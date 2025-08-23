@@ -1,0 +1,3110 @@
+/* 类脑/旅程梦星作品，禁止二传，禁止商业化，均无偿免费开源分享 */
+@import url('?family=ZCOOL+KuaiLe&family=Ma+Shan+Zheng&display=swap');
+
+/* --- 基础与布局 --- */
+.guixu-root-container {
+  --guixu-story-font-size: 14px;
+  --guixu-bg-mask: 0.7;
+  --guixu-bg-size: cover;
+  --guixu-bg-repeat: no-repeat;
+  --guixu-bg-position: center;
+  font-family: 'ZCOOL+KuaiLe', 'Ma+Shan+Zheng', serif;
+  background-size: var(--guixu-bg-size, cover);
+  background-position: var(--guixu-bg-position, center);
+  background-repeat: var(--guixu-bg-repeat, no-repeat);
+  color: #c9aa71;
+  border: 1px solid #c9aa71;
+  border-radius: 8px;
+  overflow: hidden;
+  max-width: 100%;
+  margin: auto;
+  box-shadow: 0 0 15px rgba(201, 170, 113, 0.2);
+  position: relative;
+  width: 100%;
+  /* aspect-ratio: 16 / 9; */
+  /* 移除宽高比，使用固定高度 */
+  width: 900px;
+  height: 600px;
+  max-width: none;
+  /* 恢复原始宽度 */
+}
+
+.guixu-root-container::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(15, 15, 35, var(--guixu-bg-mask, 0.7));
+  z-index: 1;
+}
+
+.game-container {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  grid-template-rows: 65px 1fr auto;
+  /* 让底部栏高度自适应 */
+  grid-template-columns: 220px 1fr 160px;
+  width: 100%;
+  gap: 1px;
+  height: 100%;
+  /* 固定高度以便滚动 */
+}
+
+.guixu-root-container * {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* --- 各面板样式 --- */
+.top-status {
+  grid-column: 1 / -1;
+  background: linear-gradient(90deg,
+      rgba(26, 26, 46, 0.8) 0%,
+      rgba(45, 27, 61, 0.8) 50%,
+      rgba(26, 26, 46, 0.8) 100%);
+  border-bottom: 1px solid #c9aa71;
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  padding: 0 10px;
+  box-shadow: 0 1px 8px rgba(201, 170, 113, 0.15);
+}
+
+.status-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.status-label {
+  font-size: 11px;
+  color: #8b7355;
+}
+
+.status-value {
+  font-size: 14px;
+  color: #c9aa71;
+  font-weight: bold;
+}
+
+.progress-bar {
+  width: 70px;
+  height: 5px;
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 3px;
+  overflow: hidden;
+  border: 1px solid #c9aa71;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #ff6b6b, #ffd93d);
+  border-radius: 2px;
+}
+
+.guixu-charge {
+  width: 100px;
+  height: 6px;
+  background: rgba(0, 0, 0, 0.7);
+  border-radius: 4px;
+  border: 1px solid #8b4513;
+  overflow: hidden;
+}
+
+.guixu-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #dc143c, #ff6b6b, #ffd700);
+  width: var(--guixu-charge, 0%);
+  border-radius: 3px;
+}
+
+.character-panel {
+  background: rgba(26, 26, 46, 0.5);
+  border-right: 1px solid #c9aa71;
+  padding: 10px;
+  overflow-y: auto;
+}
+
+.panel-section {
+  margin-bottom: 15px;
+  padding: 8px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 5px;
+  border: 1px solid rgba(201, 170, 113, 0.3);
+}
+
+.section-title {
+  font-size: 13px;
+  color: #c9aa71;
+  margin-bottom: 8px;
+  text-align: center;
+  border-bottom: 1px solid rgba(201, 170, 113, 0.3);
+  padding-bottom: 4px;
+}
+
+.equipment-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.equipment-slot {
+  aspect-ratio: 1;
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px dashed rgba(201, 170, 113, 0.5);
+  border-radius: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  color: #8b7355;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.equipment-slot.equipped {
+  border-style: solid;
+  color: #e0dcd1;
+  font-size: 12px;
+}
+
+.equipment-slot:hover {
+  background: rgba(201, 170, 113, 0.1);
+}
+
+.attributes-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.details-container {
+  margin-bottom: 5px;
+}
+
+.details-container summary {
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  list-style: none;
+  /* 隐藏默认箭头 */
+}
+
+.details-container summary::-webkit-details-marker {
+  display: none;
+  /* 隐藏默认箭头 */
+}
+
+.details-content {
+  padding: 8px;
+  margin-top: 4px;
+  font-size: 11px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+  border-top: 1px solid rgba(201, 170, 113, 0.2);
+  color: #a09c91;
+}
+
+.details-content p {
+  margin-bottom: 4px;
+}
+
+.attribute-item {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+}
+
+.attribute-name {
+  color: #8b7355;
+}
+
+.attribute-value {
+  color: #c9aa71;
+  font-weight: bold;
+}
+
+.interaction-panel {
+  background: rgba(45, 27, 61, 0.5);
+  border-left: 1px solid #c9aa71;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow-y: auto;
+  /* 新增：允许交互面板在内容过多时滚动 */
+}
+
+.interaction-btn {
+  padding: 10px 8px;
+  background: linear-gradient(45deg, #1a1a2e, #2d1b3d);
+  border: 1px solid #c9aa71;
+  border-radius: 5px;
+  color: #c9aa71;
+  font-size: 12px;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.3s ease;
+}
+
+.interaction-btn:hover {
+  background: linear-gradient(45deg, #2d1b3d, #3d2b4d);
+}
+
+.world-line-section {
+  border-top: 1px solid rgba(201, 170, 113, 0.5);
+  padding-top: 10px;
+  margin-top: auto;
+}
+
+.world-line-title {
+  font-size: 10px;
+  color: #8b7355;
+  text-align: center;
+  margin-bottom: 6px;
+}
+
+/* 世界线回顾区按钮：仅针对“本世历程/往世涟漪”，与其他按钮彻底解耦尺寸 */
+/* 修正：避免 width:100% 导致在窄侧栏并排时溢出，改用 flex:1 自适应 */
+.world-line-section .worldline-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  padding: 0 10px;
+  min-height: 32px;
+  line-height: 1.2;
+  white-space: nowrap;
+  /* 独立基础外观，避免依赖 .interaction-btn */
+  border: 1px solid #daa520;
+  border-radius: 5px;
+  flex: 1 1 0;
+  width: auto;
+  min-width: 0; /* 允许在窄侧栏中自适应而不溢出 */
+  box-sizing: border-box;
+}
+
+.primary-btn {
+  background: linear-gradient(45deg, #8b4513, #cd853f);
+  border-color: #daa520;
+  color: #fff;
+}
+
+.auto-write-section {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 15px;
+  /* 与上方内容隔开 */
+  padding-top: 15px;
+  /* 与上方内容隔开 */
+  border-top: 1px solid rgba(201, 170, 113, 0.3);
+  /* 分割线 */
+}
+
+.auto-write-label {
+  font-size: 12px;
+  color: #8b7355;
+  cursor: pointer;
+}
+
+#auto-write-checkbox {
+  cursor: pointer;
+}
+
+.primary-btn:hover {
+  background: linear-gradient(45deg, #cd853f, #daa520);
+}
+
+.bottom-status {
+  grid-column: 1 / -1;
+  background: linear-gradient(90deg,
+      rgba(45, 27, 61, 0.8) 0%,
+      rgba(26, 26, 46, 0.8) 50%,
+      rgba(45, 27, 61, 0.8) 100%);
+  border-top: 1px solid #c9aa71;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 15px;
+  padding: 0 15px;
+  transition: height 0.2s ease-in-out;
+}
+
+.quick-send-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* 网格布局对齐设置：左侧按钮靠左，输入区居中 */
+#btn-status-pop { justify-self: start; }
+.bottom-status .quick-send-container { justify-self: center; }
+
+/* 移动端：恢复纵向堆叠布局并避免与网格冲突 */
+.mobile-view .bottom-status { display: flex; flex-direction: column; transition: none; }
+
+.quick-send-input {
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid #8b7355;
+  border-radius: 4px;
+  color: #e0dcd1;
+  padding: 5px 10px;
+  font-size: 12px;
+  width: 250px;
+  /* 给一个初始宽度 */
+  height: 44px;
+  /* 固定高度，避免底部栏自动伸缩引发抖动 */
+  resize: none;
+  /* 禁止用户调整大小 */
+  line-height: 1.5;
+  /* 调整行高使单行文本看起来居中 */
+  font-family: inherit;
+  /* 继承字体 */
+  overflow-y: auto;
+  /* 内容超出时显示滚动条 */
+  transition: none;
+}
+
+.quick-send-input:focus {
+  height: 44px; /* 保持固定，防止焦点时高度变化引发布局抖动 */
+}
+
+.quick-send-input::placeholder {
+  color: #8b7355;
+}
+
+/* --- 新增：快速指令弹出菜单 --- */
+#quick-command-popup {
+  display: none;
+  position: absolute;
+  bottom: 65px;
+  /* 增加bottom值，将菜单上移 */
+  right: 175px;
+  /* 大致对齐到快速发送区域 */
+  background: rgba(15, 15, 35, 0.98);
+  border: 1px solid #c9aa71;
+  border-radius: 6px;
+  z-index: 1002;
+  width: 280px;
+  max-height: 200px;
+  overflow-y: auto;
+  box-shadow: 0 -4px 15px rgba(0, 0, 0, 0.5);
+}
+
+.quick-command-list {
+  list-style: none;
+  padding: 5px;
+  margin: 0;
+}
+
+.quick-command-item {
+  padding: 8px 12px;
+  color: #a09c91;
+  font-size: 12px;
+  /* cursor: pointer; */
+  /* 移除指针手势 */
+  border-bottom: 1px solid rgba(201, 170, 113, 0.1);
+  transition: background-color 0.2s;
+}
+
+.quick-command-item:last-child {
+  border-bottom: none;
+}
+
+.quick-command-item:hover {
+  background-color: rgba(201, 170, 113, 0.15);
+  color: #e0dcd1;
+}
+
+.quick-command-empty {
+  padding: 15px;
+  text-align: center;
+  color: #8b7355;
+  font-style: italic;
+  font-size: 12px;
+}
+
+.status-effect {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 8px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 15px;
+  border: 1px solid rgba(201, 170, 113, 0.3);
+  white-space: nowrap;
+  font-size: 10px;
+}
+
+.effect-icon {
+  width: 14px;
+  height: 14px;
+  background: #c9aa71;
+  border-radius: 50%;
+}
+
+/* --- 中央内容区 --- */
+.main-content {
+  padding: 20px;
+  overflow-y: auto;
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.game-text-container {
+  font-size: var(--guixu-story-font-size, 14px);
+  line-height: 1.8;
+  color: #e0dcd1;
+  white-space: pre-wrap;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.7);
+}
+
+/* --- 新增：正文染色样式 --- */
+.text-language {
+  color: #ff1493;
+  /* 荧光粉色 */
+  font-style: italic;
+}
+
+.text-psychology {
+  color: rgba(255, 255, 255, 0.7);
+  /* 半透明白色 */
+  font-style: italic;
+}
+
+.text-scenery {
+  color: #98fb98;
+  /* 淡绿色 */
+}
+
+/* --- 模态窗口 (Modal) 样式 --- */
+.modal-overlay {
+  display: none;
+  /* 默认隐藏 */
+  position: absolute;
+  /* 相对于 .guixu-root-container 定位 */
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.8);
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: rgba(26, 26, 46, 0.95);
+  border: 1px solid #c9aa71;
+  border-radius: 8px;
+  padding: 20px;
+  width: 90%;
+  max-width: 800px;
+  height: 90%;
+  max-height: 550px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 0 20px rgba(201, 170, 113, 0.3);
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid rgba(201, 170, 113, 0.5);
+  padding-bottom: 10px;
+  margin-bottom: 15px;
+}
+
+.modal-title {
+  font-size: 18px;
+  color: #c9aa71;
+}
+
+.modal-close-btn {
+  font-size: 24px;
+  color: #8b7355;
+  cursor: pointer;
+  background: none;
+  border: none;
+}
+
+.modal-close-btn:hover {
+  color: #c9aa71;
+}
+
+.modal-body {
+  flex-grow: 1;
+  overflow-y: auto;
+  position: relative; /* 供 #trade-tooltip 等浮窗进行相对定位 */
+}
+
+/* --- 大事记时间线样式 (参考 修仙之路) --- */
+.timeline-container {
+  position: relative;
+  padding: 20px 0;
+  margin-left: 20px;
+}
+
+.timeline-line {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: #e0e0e0;
+  /* 改为浅灰色 */
+}
+
+.timeline-event {
+  position: relative;
+  margin-bottom: 30px;
+  padding-left: 30px;
+  transition: all 0.3s ease;
+}
+
+.timeline-event:hover {
+  transform: translateX(5px);
+}
+
+.timeline-event::before {
+  content: '';
+  position: absolute;
+  left: -5px;
+  top: 5px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #ffffff;
+  /* 改为白色 */
+  border: 2px solid #cccccc;
+  /* 改为灰色边框 */
+}
+
+.timeline-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.timeline-date {
+  font-size: 12px;
+  color: #757575;
+  /* 深灰色 */
+  font-style: italic;
+}
+
+.timeline-tags {
+  display: flex;
+  gap: 5px;
+}
+
+.tag-item {
+  background-color: #eeeeee;
+  /* 浅灰色背景 */
+  border: 1px solid #e0e0e0;
+  color: #616161;
+  /* 深灰色文字 */
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 10px;
+  white-space: nowrap;
+  font-style: italic;
+}
+
+.timeline-content {
+  background: #ffffff;
+  /* 改为白色背景 */
+  padding: 15px;
+  border-radius: 5px;
+  border: 1px solid #000000;
+  /* 黑色边框 */
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.timeline-title {
+  font-weight: bold;
+  margin-bottom: 8px;
+  color: #212121;
+  /* 近黑色 */
+  font-style: italic;
+}
+
+.timeline-description {
+  font-size: 13px;
+  color: #424242;
+  /* 深灰色 */
+  line-height: 1.7;
+}
+
+.past-life-details {
+  margin-top: 10px;
+  font-size: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  color: #424242;
+  /* 深灰色 */
+}
+
+.detail-item>strong {
+  color: #212121;
+  /* 近黑色 */
+  margin-right: 5px;
+  font-style: italic;
+}
+
+/* 滚动条 */
+::-webkit-scrollbar {
+  width: 5px;
+}
+
+/* ::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.3);
+  } */
+/* 暂时注释掉以避免SillyTavern核心脚本错误 */
+::-webkit-scrollbar-thumb {
+  background: rgba(201, 170, 113, 0.5);
+  border-radius: 3px;
+}
+
+/* --- 背包模态框样式 --- */
+.inventory-category {
+  margin-bottom: 15px;
+  border: 1px solid rgba(201, 170, 113, 0.3);
+  border-radius: 5px;
+  background: rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+}
+
+.inventory-category-title {
+  padding: 10px 15px;
+  font-size: 16px;
+  color: #c9aa71;
+  cursor: pointer;
+  list-style: none;
+  display: block;
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.inventory-category-title::-webkit-details-marker {
+  display: none;
+}
+
+.inventory-item-list {
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* 背包-搜索栏 */
+#inventory-modal .inventory-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 12px 0;
+}
+#inventory-modal .inventory-search input#inventory-search-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 32px;
+  padding: 0 10px;
+  background: rgba(0,0,0,0.4);
+  border: 1px solid #8b7355;
+  border-radius: 4px;
+  color: #e0dcd1;
+  font-size: 12px;
+  box-sizing: border-box;
+}
+#inventory-modal .inventory-search #inventory-search-clear {
+  height: 32px;
+  min-width: 70px;
+  padding: 0 10px;
+  box-sizing: border-box;
+}
+
+.inventory-item {
+  background: rgba(26, 26, 46, 0.7);
+  border: 1px solid rgba(201, 170, 113, 0.2);
+  border-radius: 4px;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  position: relative;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease, background 0.18s ease;
+  will-change: transform;
+}
+.inventory-item:hover {
+  transform: translateY(-2px) scale(1.01);
+  box-shadow: 0 8px 22px rgba(201, 170, 113, 0.16), 0 0 10px rgba(201, 170, 113, 0.18) inset;
+  border-color: rgba(201, 170, 113, 0.45);
+  background: rgba(0, 0, 0, 0.28);
+}
+@media (hover: none) {
+  .inventory-item:hover {
+    transform: none;
+    box-shadow: none;
+  }
+}
+
+.item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  /* 改为顶部对齐 */
+  margin-bottom: 8px;
+}
+
+.item-details {
+  margin-top: 10px;
+  font-size: 12px;
+  border-top: 1px solid rgba(201, 170, 113, 0.2);
+  padding-top: 8px;
+}
+
+/* 背包-新布局：按行分组（标题/描述/操作/折叠详情），桌面与移动端统一风格 */
+.inventory-item .item-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.inventory-item .item-row--headline {
+  font-size: 13px;
+  font-weight: 600;
+}
+.inventory-item .item-head-left {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+.inventory-item .item-name {
+  color: #e0dcd1;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.inventory-item .item-tier {
+  color: #c9aa71;
+}
+.inventory-item .item-head-right {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+  color: #8b7355;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+.inventory-item .item-row--desc .item-description {
+  margin: 2px 0 0;
+  line-height: 1.6;
+  color: #a09c91;
+}
+.inventory-item .item-row--actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+.inventory-item .item-row--actions > button {
+  margin-left: 0 !important; /* 使用统一gap，不再依赖左外边距 */
+}
+/* 折叠详情 */
+.inventory-item .item-row--details {
+  margin-top: 2px;
+}
+.inventory-item .item-row--details-summary {
+  cursor: pointer;
+  color: #c9aa71;
+  font-size: 12px;
+  list-style: none;
+}
+.inventory-item .item-row--details summary::-webkit-details-marker {
+  display: none;
+}
+.inventory-item .item-row--details .item-details {
+  margin-top: 8px;
+  border-top: 1px solid rgba(201, 170, 113, 0.2);
+  padding-top: 8px;
+}
+
+/* 移动端背包：操作按钮两列网格，避免溢出与误触 */
+.guixu-root-container.mobile-view .inventory-item .item-row--headline {
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.guixu-root-container.mobile-view .inventory-item .item-row--actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+.guixu-root-container.mobile-view .inventory-item .item-row--actions > button {
+  width: 100%;
+  height: 32px;
+  min-width: 0;
+  padding: 0 10px !important;
+  box-sizing: border-box;
+}
+
+/* 桌面端背包：操作按钮靠右下并紧凑排列 */
+.guixu-root-container:not(.mobile-view) .inventory-item .item-row--actions {
+  align-self: flex-end;      /* 靠右 */
+  justify-content: flex-end; /* 靠右 */
+  gap: 6px;                  /* 缩小按钮间距 */
+  flex-wrap: wrap;           /* 空间不足时折行，但保持靠右 */
+  margin-top: 4px;           /* 与上方分隔略小 */
+}
+
+.item-name {
+  font-weight: bold;
+  color: #e0dcd1;
+}
+
+.item-quantity {
+  font-size: 12px;
+  color: #8b7355;
+}
+
+.item-description {
+  font-size: 12px;
+  color: #a09c91;
+}
+
+.empty-category-text {
+  color: #8b7355;
+  font-style: italic;
+  padding: 10px;
+  text-align: center;
+}
+
+/* --- 装备按钮和悬浮提示框 --- */
+.item-equip-btn,
+.item-unequip-btn {
+  padding: 4px 10px;
+  font-size: 12px;
+  background: linear-gradient(45deg, #8b4513, #cd853f);
+  border: 1px solid #daa520;
+  color: #fff;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.3s;
+  margin-left: 15px;
+}
+
+.item-equip-btn:hover,
+.item-unequip-btn:hover {
+  background: linear-gradient(45deg, #cd853f, #daa520);
+}
+
+.item-use-btn {
+  padding: 4px 10px;
+  font-size: 12px;
+  background: linear-gradient(45deg, #8b4513, #cd853f);
+  border: 1px solid #daa520;
+  color: #fff;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.3s;
+  margin-left: 15px;
+}
+
+.item-use-btn:hover {
+  background: linear-gradient(45deg, #cd853f, #daa520);
+}
+
+.item-discard-btn, .item-delete-btn, .btn-delete-relationship {
+  padding: 4px 10px;
+  font-size: 12px;
+  background: #8b0000;
+  border: 1px solid #ff6b6b;
+  color: #fff;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.3s;
+  margin-left: 5px;
+}
+
+.item-discard-btn:hover, .item-delete-btn:hover, .btn-delete-relationship:hover {
+  background: #a52a2a;
+}
+/* 背包/人物关系：统一“丢弃/删除”按钮尺寸，防止删除比丢弃更小 */
+.inventory-item .item-discard-btn,
+.inventory-item .item-delete-btn,
+.relationship-card .btn-delete-relationship {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  height: 28px !important;
+  padding: 0 10px !important;
+  line-height: 1 !important;
+  box-sizing: border-box !important;
+}
+
+#equipment-tooltip {
+  display: none;
+  position: absolute;
+  /* 跟随鼠标 */
+  background: rgba(15, 15, 35, 0.95);
+  border: 1px solid #c9aa71;
+  border-radius: 6px;
+  padding: 15px;
+  color: #e0dcd1;
+  font-size: 12px;
+  z-index: 1001;
+  width: auto;
+  max-width: 300px;
+  pointer-events: none;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+}
+
+.tooltip-title {
+  font-size: 16px;
+  font-weight: bold;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(201, 170, 113, 0.4);
+}
+
+.tooltip-section {
+  margin-top: 10px;
+}
+
+.tooltip-section-title {
+  color: #8b7355;
+  font-style: italic;
+  margin-bottom: 5px;
+}
+
+.tooltip-attributes p {
+  margin: 3px 0;
+}
+
+.tooltip-attributes strong {
+  color: #c9aa71;
+  margin-right: 5px;
+}
+
+.command-center-actions {
+  list-style-type: none;
+  padding: 0;
+  margin-bottom: 20px;
+}
+
+.command-center-action-item {
+  background: rgba(0, 0, 0, 0.3);
+  padding: 8px 12px;
+  border-radius: 4px;
+  margin-bottom: 8px;
+  font-size: 14px;
+}
+
+.command-center-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-top: auto;
+  /* 推到底部 */
+  padding-top: 15px;
+  border-top: 1px solid rgba(201, 170, 113, 0.5);
+  /* 修复“应用/保存并关闭”错位换行问题 */
+  flex-wrap: nowrap;
+}
+.command-center-footer > div {
+  display: inline-flex;
+  gap: 10px;
+  align-items: center;
+  flex-shrink: 0;
+}
+.command-center-footer button {
+  white-space: nowrap;
+}
+
+/* --- 角色详情模态框美化 --- */
+#character-details-modal .modal-content {
+  background: radial-gradient(circle, rgba(45, 27, 61, 0.9) 0%, rgba(15, 15, 35, 0.95) 100%);
+  border: 1px solid #8b7355;
+  box-shadow: 0 0 25px rgba(201, 170, 113, 0.3);
+}
+
+#character-details-modal .section-title {
+  font-family: 'Ma Shan Zheng', cursive;
+  font-size: 16px;
+  letter-spacing: 1px;
+}
+
+#character-details-modal .attributes-list {
+  gap: 0;
+  /* 移除gap，使用边框分隔 */
+}
+
+#character-details-modal .attribute-item {
+  padding: 8px 4px;
+  border-bottom: 1px solid rgba(201, 170, 113, 0.1);
+  transition: background-color 0.3s;
+}
+
+#character-details-modal .attribute-item:hover {
+  background-color: rgba(201, 170, 113, 0.05);
+}
+
+#character-details-modal .attribute-item:last-child {
+  border-bottom: none;
+}
+
+.details-progress-bar {
+  width: 100%;
+  height: 8px;
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 4px;
+  overflow: hidden;
+  border: 1px solid #8b7355;
+  margin-top: 8px;
+}
+
+.details-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #6a11cb, #2575fc);
+  border-radius: 3px;
+  transition: width 0.5s ease-in-out;
+}
+
+/* --- 归墟系统模态框美化 --- */
+#guixu-system-modal .modal-content {
+  background: radial-gradient(circle, rgba(45, 27, 61, 0.9) 0%, rgba(15, 15, 35, 0.95) 100%);
+  border: 1px solid #8b7355;
+  box-shadow: 0 0 25px rgba(201, 170, 113, 0.3);
+}
+
+#guixu-system-modal .attribute-item {
+  padding: 10px 4px;
+  /* 增加垂直内边距 */
+  font-size: 13px;
+  /* 放大字体 */
+  border-bottom: 1px solid rgba(201, 170, 113, 0.1);
+}
+
+#guixu-system-modal .attribute-item:last-child {
+  border-bottom: none;
+}
+
+/* --- 人物关系样式 --- */
+.relationship-card {
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(201, 170, 113, 0.3);
+  border-radius: 5px;
+  padding: 15px;
+  margin-bottom: 15px;
+}
+
+.relationship-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(201, 170, 113, 0.2);
+}
+
+.relationship-name {
+  font-size: 18px;
+  font-weight: bold;
+}
+
+.relationship-relation {
+  font-size: 14px;
+  color: #a09c91;
+  font-style: italic;
+}
+
+.relationship-body {
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.relationship-body p {
+  margin-bottom: 8px;
+}
+
+.relationship-meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: #a09c91;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(201, 170, 113, 0.2);
+}
+
+.favorability-bar-container {
+  width: 100%;
+  height: 8px;
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 4px;
+  margin-top: 4px;
+  border: 1px solid #8b7355;
+}
+
+.favorability-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #8b4513, #cd853f);
+  border-radius: 3px;
+}
+
+.event-history-details {
+  margin-top: 15px;
+}
+
+.event-history-summary {
+  cursor: pointer;
+  color: #c9aa71;
+  font-style: italic;
+}
+
+.event-history-list {
+  list-style-type: disc;
+  padding-left: 20px;
+  margin-top: 8px;
+  color: #a09c91;
+}
+
+/* --- 人物关系：关系类型配色与操作按钮 --- */
+.relationship-card[data-relationship="ENEMY"],
+.relationship-card--ENEMY {
+  border-color: rgba(255,107,107,0.6) !important;
+  background: rgba(255,107,107,0.08) !important;
+}
+.relationship-card[data-relationship="ALLY"],
+.relationship-card--ALLY {
+  border-color: rgba(60,179,113,0.6) !important;
+  background: rgba(60,179,113,0.08) !important;
+}
+.relationship-card[data-relationship="NEUTRAL"],
+.relationship-card--NEUTRAL {
+  border-color: rgba(160,156,145,0.6) !important;
+  background: rgba(160,156,145,0.08) !important;
+}
+.relationship-card[data-relationship="FRIEND"],
+.relationship-card--FRIEND {
+  border-color: rgba(218,165,32,0.6) !important;
+  background: rgba(218,165,32,0.08) !important;
+}
+.relationship-card[data-relationship="LOVER"],
+.relationship-card--LOVER {
+  border-color: rgba(147,112,219,0.6) !important;
+  background: rgba(147,112,219,0.08) !important;
+}
+
+/* 顶部右上角操作区 */
+.relationship-header .rel-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.rel-actions .btn-detail,
+.rel-actions .btn-trade {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 28px;
+  padding: 0 10px;
+  font-size: 12px;
+  border-radius: 4px;
+  border: 1px solid #c9aa71;
+  background: linear-gradient(45deg, #1a1a2e, #2d1b3d);
+  color: #c9aa71;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.rel-actions .btn-detail.primary,
+.rel-actions .btn-trade.primary {
+  background: linear-gradient(45deg, #8b4513, #cd853f);
+  border-color: #daa520;
+  color: #fff;
+}
+.rel-actions .btn-detail[disabled],
+.rel-actions .btn-trade[disabled],
+.rel-actions .btn-detail.is-disabled,
+.rel-actions .btn-trade.is-disabled {
+  opacity: 0.5;
+  filter: grayscale(0.5);
+  cursor: not-allowed;
+}
+
+/* 统一提取/标注按钮与详细/交易的尺寸与风格（全端一致） */
+.rel-actions .btn-extract,
+.rel-actions .btn-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 28px;
+  padding: 0 10px;
+  font-size: 12px;
+  border-radius: 4px;
+  border: 1px solid #c9aa71;
+  background: linear-gradient(45deg, #1a1a2e, #2d1b3d);
+  color: #c9aa71;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+}
+.rel-actions .btn-extract.primary,
+.rel-actions .btn-mark.primary {
+  background: linear-gradient(45deg, #8b4513, #cd853f);
+  border-color: #daa520;
+  color: #fff;
+}
+.rel-actions .btn-extract:hover,
+.rel-actions .btn-mark:hover {
+  background: linear-gradient(45deg, #2d1b3d, #3d2b4d);
+  border-color: #c9aa71;
+  color: #c9aa71;
+}
+
+/* 移动端：人物关系头部与操作区换行布局，按钮网格等宽，防止挤压变形 */
+.guixu-root-container.mobile-view #relationships-modal .relationship-header {
+  flex-direction: column !important;
+  align-items: stretch !important;
+  gap: 8px !important;
+}
+.guixu-root-container.mobile-view #relationships-modal .relationship-header .header-title {
+  width: 100% !important;
+}
+.guixu-root-container.mobile-view #relationships-modal .relationship-header .rel-actions {
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  grid-auto-rows: minmax(32px, auto) !important;
+  gap: 8px !important;
+  width: 100% !important;
+}
+.guixu-root-container.mobile-view #relationships-modal .relationship-header .rel-actions > button {
+  width: 100% !important;
+  height: 32px !important;
+  padding: 0 12px !important;
+  font-size: 12px !important;
+  line-height: normal !important;
+  min-width: 0 !important;
+  box-sizing: border-box !important;
+}
+
+/* 小屏兜底（限定在 mobile-view 下；桌面非全屏不再触发移动布局） */
+@media (max-width: 900px) {
+  .guixu-root-container.mobile-view #relationships-modal .relationship-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+  .guixu-root-container.mobile-view #relationships-modal .relationship-header .rel-actions {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-auto-rows: minmax(32px, auto);
+    gap: 8px;
+    width: 100%;
+  }
+  .guixu-root-container.mobile-view #relationships-modal .relationship-header .rel-actions > button {
+    width: 100%;
+    height: 32px;
+    padding: 0 12px;
+    font-size: 12px;
+    line-height: normal;
+    min-width: 0;
+    box-sizing: border-box;
+  }
+}
+
+/* 桌面端：人物关系操作按钮紧凑化（与背包面板一致） */
+@media (min-width: 901px) {
+  .guixu-root-container:not(.mobile-view) #relationships-modal .relationship-header .rel-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .guixu-root-container:not(.mobile-view) #relationships-modal .relationship-header .rel-actions > button,
+  .guixu-root-container:not(.mobile-view) .relationship-card .btn-delete-relationship {
+    height: 26px !important;     /* 与背包操作按钮接近的高度（背包常见 ~24-26px） */
+    padding: 0 8px !important;   /* 缩小左右内边距，视觉更紧凑 */
+    min-width: 0;
+    box-sizing: border-box;
+    flex: 0 0 auto;              /* 阻止按钮在窄宽度下被拉伸成“超宽” */
+  }
+}
+/* 强制桌面视图（小屏但强制桌面）同样紧凑化 */
+.guixu-root-container.force-desktop #relationships-modal .relationship-header .rel-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.guixu-root-container.force-desktop #relationships-modal .relationship-header .rel-actions > button,
+.guixu-root-container.force-desktop .relationship-card .btn-delete-relationship {
+  height: 26px !important;
+  padding: 0 8px !important;
+  min-width: 0;
+  box-sizing: border-box;
+  flex: 0 0 auto;              /* 防止在强制桌面下被拉伸 */
+}
+
+/* 交易面板内的布局 */
+#trade-modal .trade-summary {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+#trade-modal .inventory-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+#trade-modal .trade-section {
+  border: 1px solid rgba(201,170,113,0.3);
+  border-radius: 6px;
+  padding: 10px;
+  background: rgba(0,0,0,0.2);
+}
+#trade-modal .trade-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 0;
+  border-bottom: 1px dashed rgba(201,170,113,0.2);
+}
+#trade-modal .trade-item:last-child {
+  border-bottom: none;
+}
+#trade-modal .trade-item .item-name {
+  color: #e0dcd1;
+}
+#trade-modal .trade-item .item-meta {
+  color: #8b7355;
+  font-size: 12px;
+  white-space: nowrap;
+}
+#trade-modal .btn-purchase-item,
+#trade-modal .btn-sell-item {
+  height: 26px;
+  padding: 0 10px;
+  border: 1px solid #daa520;
+  border-radius: 4px;
+  background: linear-gradient(45deg, #8b4513, #cd853f);
+  color: #fff;
+  cursor: pointer;
+}
+
+/* ================= 交易面板：单列表表格与工具栏（防换行/省略号/滚动） ================= */
+#trade-modal .trade-toolbar {
+  display: inline-flex;
+  gap: 8px;
+  margin: 6px 0 10px;
+  flex-wrap: wrap;
+}
+#trade-modal .trade-toolbar .interaction-btn.active {
+  background: linear-gradient(45deg, #8b4513, #cd853f);
+  border-color: #daa520;
+  color: #fff;
+}
+#trade-modal .trade-table-wrapper {
+  position: relative;
+  overflow-x: auto;
+  overflow-y: hidden;
+  border: 1px solid rgba(201,170,113,0.2);
+  border-radius: 6px;
+  background: rgba(0,0,0,0.15);
+}
+#trade-modal .trade-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;     /* 固定列宽，避免因内容过长挤压布局 */
+  min-width: 720px;        /* 小屏允许横向滚动 */
+}
+#trade-modal .trade-table thead th,
+#trade-modal .trade-table tbody td {
+  padding: 6px 8px;
+  border-bottom: 1px solid rgba(201,170,113,0.15);
+  font-size: 12px;
+  white-space: nowrap;     /* 禁止换行，避免“挤下一列” */
+  vertical-align: middle;  /* 垂直居中，避免视觉错位 */
+}
+#trade-modal .trade-table thead th {
+  position: sticky;
+  top: 0;
+  background: rgba(26,26,46,0.9);
+  color: #c9aa71;
+  cursor: pointer;
+}
+#trade-modal .trade-table thead th:last-child { cursor: default; } /* 操作列不排序 */
+#trade-modal .trade-table tbody tr:hover {
+  background: rgba(201,170,113,0.06);
+}
+/* 列宽与对齐：名称列省略号，数值列右对齐 */
+#trade-modal .trade-table td:nth-child(1) { max-width: 200px; overflow: hidden; text-overflow: ellipsis; }
+#trade-modal .trade-table td:nth-child(2) { width: 72px; }
+#trade-modal .trade-table td:nth-child(3) { width: 64px; text-align: right; }
+#trade-modal .trade-table td:nth-child(4),
+#trade-modal .trade-table td:nth-child(5),
+#trade-modal .trade-table td:nth-child(6) { width: 100px; text-align: right; }
+
+/* 操作列（购买/出售）统一宽度并居中对齐（表头与单元格一致） */
+#trade-modal .trade-table td:nth-child(7),
+#trade-modal .trade-table th:nth-child(7) { width: 88px; text-align: center; }
+
+/* 表头与单元格左右对齐策略与列宽匹配，保证“上下一致对齐” */
+#trade-modal .trade-table thead th:nth-child(1),
+#trade-modal .trade-table thead th:nth-child(2) { text-align: left; }
+#trade-modal .trade-table thead th:nth-child(3),
+#trade-modal .trade-table thead th:nth-child(4),
+#trade-modal .trade-table thead th:nth-child(5),
+#trade-modal .trade-table thead th:nth-child(6) { text-align: right; }
+#trade-modal .trade-table thead th:nth-child(7) { text-align: center; }
+
+#trade-modal .trade-table tbody td:nth-child(1),
+#trade-modal .trade-table tbody td:nth-child(2) { text-align: left; }
+#trade-modal .trade-table tbody td:nth-child(3),
+#trade-modal .trade-table tbody td:nth-child(4),
+#trade-modal .trade-table tbody td:nth-child(5),
+#trade-modal .trade-table tbody td:nth-child(6) { text-align: right; }
+#trade-modal .trade-table tbody td:nth-child(7) { text-align: center; }
+
+#trade-modal .trade-table .item-name {
+  color: #e0dcd1;
+  display: inline-block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: middle;
+}
+#trade-modal .trade-table .btn-purchase-item,
+#trade-modal .trade-table .btn-sell-item {
+  height: 24px;
+  padding: 0 8px;
+}
+
+/* 物品详情浮窗（名称点击弹出） */
+#trade-tooltip {
+  display: none;
+  position: absolute;
+  background: rgba(15, 15, 35, 0.95);
+  border: 1px solid #c9aa71;
+  border-radius: 6px;
+  padding: 12px;
+  color: #e0dcd1;
+  font-size: 12px;
+  z-index: 1001;
+  width: auto;
+  max-width: 360px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+}
+
+/* 移动端兜底：缩小名称列，允许横向滚动 */
+@media (max-width: 900px) {
+  #trade-modal .trade-table { min-width: 680px; }
+  #trade-modal .trade-table td:nth-child(1) { max-width: 140px; }
+}
+
+/* 角色详情面板内的列表紧凑化 */
+#character-details-modal .detail-group {
+  margin-bottom: 12px;
+}
+#character-details-modal .kv-list {
+  display: grid;
+  grid-template-columns: 100px 1fr;
+  gap: 6px 10px;
+  font-size: 12px;
+  color: #a09c91;
+}
+
+/* --- 新增：本世历程详细信息样式 --- */
+.detail-section {
+  margin-bottom: 10px;
+  padding: 8px;
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 4px;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.detail-section strong {
+  color: #c9aa71;
+  margin-right: 5px;
+}
+
+.timeline-location {
+  font-size: 12px;
+  color: #8b7355;
+  margin: 5px 0;
+  font-style: italic;
+}
+
+.timeline-detailed-info {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 类脑/旅程梦星作品，禁止二传，禁止商业化，均无偿免费开源分享 */
+/* --- 新增：移动端适配样式 --- */
+/* --- 新增：视图切换按钮样式 --- */
+.view-toggle-btn {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  width: 35px;
+  height: 35px;
+  background: rgba(15, 15, 35, 0.8);
+  border: 1px solid #c9aa71;
+  color: #c9aa71;
+  border-radius: 50%;
+  cursor: pointer;
+  z-index: 100;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.3s;
+}
+
+.view-toggle-btn:hover {
+  background-color: rgba(45, 27, 61, 0.9);
+}
+
+/* 全屏按钮（右上角，靠左一点） */
+.fullscreen-btn {
+  position: absolute;
+  top: 15px;
+  right: 60px; /* 位于视图切换按钮左侧 */
+  width: 35px;
+  height: 35px;
+  background: rgba(15, 15, 35, 0.8);
+  border: 1px solid #c9aa71;
+  color: #c9aa71;
+  border-radius: 50%;
+  cursor: pointer;
+  z-index: 100;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.3s;
+}
+.fullscreen-btn:hover {
+  background-color: rgba(45, 27, 61, 0.9);
+}
+
+/* 设置按钮（左上角，与视图按钮风格统一） */
+.settings-btn {
+  position: absolute;
+  top: 15px;
+  left: 15px;
+  width: 35px;
+  height: 35px;
+  background: rgba(15, 15, 35, 0.8);
+  border: 1px solid #c9aa71;
+  color: #c9aa71;
+  border-radius: 50%;
+  cursor: pointer;
+  z-index: 100;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.3s;
+}
+.settings-btn:hover {
+  background-color: rgba(45, 27, 61, 0.9);
+}
+
+/* 移动端：隐藏顶部角落控制按钮（设置/视图切换/全屏），由“设置悬浮按钮”聚合 */
+.guixu-root-container.mobile-view .settings-btn,
+.guixu-root-container.mobile-view .view-toggle-btn,
+.guixu-root-container.mobile-view .fullscreen-btn {
+  display: none !important;
+}
+
+/* 移动端：通用 FAB 尺寸下调，降低误触；保持圆形与可拖拽视觉 */
+.guixu-root-container.mobile-view .mobile-fab {
+  width: 44px !important;
+  height: 44px !important;
+  font-size: 12px !important;
+  border-radius: 50% !important;
+}
+
+/* --- 新增：移动端视图样式 (由JS切换) --- */
+/* 注意：.guixu-root-container 本身会被加上 mobile-view 类，因此需要用自身选择器而非祖先选择器 */
+.guixu-root-container.mobile-view {
+  width: 100% !important;
+  height: auto !important; /* 关键修复：在嵌入式 iframe 中不要用 100%，避免父容器未定高导致内容高度为0 */
+  aspect-ratio: unset;
+  display: flex;
+  flex-direction: column;
+  /* 在移动端移除PC端的宽高比限制，并让容器占满视口 */
+}
+
+.mobile-view .game-container {
+  /* 改为 Flex 以修复非全屏下主区过小与底部栏不出现问题 */
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  flex: 1 1 auto;   /* 让内容区填满根容器剩余空间 */
+  min-height: 0;    /* 关键：允许子项正确计算高度，避免被挤压只显示数行 */
+  height: auto;
+}
+
+/* 让所有面板占据整行 */
+.mobile-view .top-status,
+.mobile-view .character-panel,
+.mobile-view .main-content,
+.mobile-view .interaction-panel,
+.mobile-view .bottom-status {
+  grid-column: 1 / -1;
+}
+
+.mobile-view .character-panel {
+  grid-row: 3;
+  /* 移动到正文下方 */
+  border-right: none;
+  border-bottom: 1px solid #c9aa71;
+  max-height: 250px;
+  /* 给一个最大高度，内容可滚动 */
+}
+
+.mobile-view .main-content {
+  grid-row: 2;
+  /* 移动到顶部下方 */
+}
+
+.mobile-view .interaction-panel {
+  grid-row: 4;
+  border-left: none;
+  border-top: 1px solid #c9aa71;
+  flex-direction: row;
+  /* 按钮横向排列 */
+  flex-wrap: wrap;
+  /* 允许换行 */
+  justify-content: center;
+  gap: 8px;
+  padding: 8px;
+}
+
+.mobile-view .interaction-btn {
+  flex-grow: 1;
+  /* 让按钮填充空间 */
+  min-width: 120px;
+  /* 最小宽度 */
+}
+
+.mobile-view .world-line-section {
+  width: 100%;
+  display: flex;
+  justify-content: space-around;
+}
+
+.mobile-view .bottom-status {
+  flex-direction: column;
+  /* 垂直堆叠 */
+  height: auto;
+  padding: 8px;
+}
+
+.mobile-view .quick-send-container {
+  width: 100%;
+  flex-direction: column;
+}
+
+.mobile-view .quick-send-input {
+  width: 100%;
+}
+
+.mobile-view #quick-command-popup {
+  width: 90%;
+  left: 5%;
+  right: 5%;
+  bottom: 110px;
+  /* 调整位置 */
+}
+
+/* 调整字体大小 */
+.mobile-view .status-value {
+  font-size: 12px;
+}
+
+.mobile-view .status-label {
+  font-size: 10px;
+}
+
+.mobile-view .section-title {
+  font-size: 12px;
+}
+
+.mobile-view .attribute-item {
+  font-size: 11px;
+}
+
+.mobile-view .game-text-container {
+  /* 改为跟随设置中心的故事文本字号，修复移动端字号不生效 */
+  font-size: var(--guixu-story-font-size, 13px);
+}
+
+.mobile-view .interaction-btn {
+  font-size: 11px;
+}
+
+/* 移动端：Flex布局下的区块顺序与尺寸 */
+.mobile-view .top-status { order: 1; flex: 0 0 auto; }
+/* 固定正文高度交由 JS(_reflowMobileLayout) 计算，CSS 侧不再拉伸主区 */
+.mobile-view .main-content { order: 2; flex: 0 0 auto; min-height: 320px; overflow-y: auto; }
+.mobile-view .character-panel { order: 3; }
+.mobile-view .interaction-panel { order: 4; }
+.mobile-view .bottom-status { order: 5; flex: 0 0 auto; }
+
+/* 移动端：侧栏以浮层形式显示，默认隐藏，通过根容器的开关类控制显隐 */
+.mobile-view .character-panel,
+.mobile-view .interaction-panel {
+  display: none;
+}
+
+.mobile-view.show-character-panel .character-panel,
+.mobile-view.show-interaction-panel .interaction-panel {
+  display: block;
+  position: fixed;
+  /* 居中显示（类似状态一览的模态居中风格） */
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: min(700px, 92vw);
+  max-width: 92vw;
+  height: min(520px, 80vh);
+  max-height: 80vh;
+  z-index: 10050;           /* 提升层级，确保浮层在所有遮罩之上 */
+  pointer-events: auto;     /* 明确允许接收点击 */
+  overflow-y: auto;
+  background: rgba(26, 26, 46, 0.95);
+  border: 1px solid #c9aa71;
+  border-radius: 10px;
+  padding: 14px;
+  box-shadow: 0 12px 28px rgba(0,0,0,0.55);
+  backdrop-filter: blur(1px);
+}
+
+/* 移动端浮窗（功能面板）布局增强：采用网格，避免按钮挤成一坨 */
+.mobile-view.show-interaction-panel .interaction-panel {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(100px, 1fr)); /* 更小的列最小宽，减轻拥挤 */
+  grid-auto-rows: minmax(40px, auto);                  /* 每行最小高度，避免挤压变形 */
+  gap: 10px !important;
+  padding: 12px !important;
+}
+/* 功能按钮：两列排布，统一高度 */
+.mobile-view.show-interaction-panel .interaction-panel .interaction-btn {
+  height: 40px;
+  min-width: 0;
+  padding: 0 10px;
+  white-space: nowrap;
+  box-sizing: border-box;
+}
+/* 功能区内的模块区块（世界书控制、世界线回顾等）占满整行，避免被按钮挤压 */
+.mobile-view.show-interaction-panel .interaction-panel .panel-section {
+  grid-column: 1 / -1;
+}
+/* 世界线回顾区块：占整行并重置为块级，避免父级 flex 规则干扰导致挤压/变形 */
+.mobile-view.show-interaction-panel .interaction-panel .world-line-section {
+  display: block !important;     /* 覆盖 .mobile-view .world-line-section 的 flex 设置 */
+  width: 100%;
+  margin-top: 12px;
+  grid-column: 1 / -1;           /* 在两列栅格中占满整行，确保居中对称 */
+}
+/* 世界线回顾区域：内部两键等分排布，间距合理 */
+.mobile-view.show-interaction-panel .interaction-panel .world-line-section > div:not(.world-line-title) {
+  display: grid !important;
+  grid-template-columns: 1fr 1fr !important;
+  gap: 10px !important;
+  width: 100% !important;
+  justify-content: stretch !important; /* 覆盖原内联的居中，避免右侧留白 */
+  align-items: stretch !important;
+}
+.mobile-view.show-interaction-panel .interaction-panel .world-line-section .worldline-btn {
+  height: 40px;
+  min-width: 0;
+  width: 100%;
+  padding: 0 12px;
+  font-size: 13px;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;              /* 防止文本溢出按钮 */
+  text-overflow: ellipsis;       /* 宽度不足时省略号 */
+  box-sizing: border-box;
+}
+
+/* 移除半透明遮罩，避免点击浮窗时整屏变暗 */
+.guixu-root-container.mobile-view.show-character-panel::after,
+.guixu-root-container.mobile-view.show-interaction-panel::after {
+  content: none;
+}
+
+/* 浮层显示时，主区域可继续滚动；如需弱化背景可半透明遮罩（不拦截点击） */
+.mobile-view.show-character-panel .main-content,
+.mobile-view.show-interaction-panel .main-content {
+  filter: none;
+}
+
+/* 移动端视口容器在移动视图下允许滚动，修复非全屏下无法下拉的问题 */
+.guixu-viewport.mobile-view {
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* 类脑/旅程梦星作品，禁止二传，禁止商业化，均无偿免费开源分享 */
+/* --- 自定义确认模态框 --- */
+.confirm-modal-content {
+  width: auto;
+  max-width: 400px;
+  height: auto;
+  max-height: none;
+  text-align: center;
+  padding: 30px;
+}
+
+.confirm-modal-message {
+  font-size: 16px;
+  color: #ff6b6b;
+  /* 红色警告 */
+  margin-bottom: 25px;
+  line-height: 1.6;
+}
+
+.confirm-modal-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+}
+
+/* 类脑/旅程梦星作品，禁止二传，禁止商业化，均无偿免费开源分享 */
+/* --- 新增：存档管理模态框样式 --- */
+/* 移动端-存档管理 浮窗与每条存档布局优化（不影响桌面） */
+.guixu-root-container.mobile-view #save-load-modal .modal-content {
+  width: 96vw;
+  max-width: 96vw;
+  height: auto;
+  max-height: 90vh;
+  overflow-x: hidden;
+}
+.guixu-root-container.mobile-view #save-load-modal .modal-body {
+  overflow-y: auto;
+}
+.guixu-root-container.mobile-view #save-load-modal .modal-header {
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.guixu-root-container.mobile-view #save-slots-container .save-slot {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+}
+.guixu-root-container.mobile-view #save-slots-container .save-slot-info {
+  width: 100%;
+}
+.guixu-root-container.mobile-view #save-slots-container .save-slot-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  width: 100%;
+  justify-content: stretch;
+}
+.guixu-root-container.mobile-view #save-slots-container .save-slot-actions > button {
+  height: 36px;
+  padding: 0 10px;
+  min-width: 0;
+  box-sizing: border-box;
+}
+.clear-saves-btn {
+  background: #8b0000;
+  color: #fff;
+  border: 1px solid #ff6b6b;
+  padding: 4px 10px;
+  font-size: 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.3s;
+  margin-left: auto;
+  /* 将按钮推到右边 */
+}
+
+.clear-saves-btn:hover {
+  background: #a52a2a;
+}
+
+/* 移动端-自动存档列表：与手动存档一致的纵向布局与按钮网格 */
+.guixu-root-container.mobile-view #auto-save-slot-container > .save-slot,
+.guixu-root-container.mobile-view #auto-save-slot-container > .auto-save-slot {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
+  gap: 10px !important;
+}
+.guixu-root-container.mobile-view #auto-save-slot-container .save-slot-info,
+.guixu-root-container.mobile-view #auto-save-slot-container .slot-info {
+  width: 100% !important;
+}
+.guixu-root-container.mobile-view #auto-save-slot-container .save-slot-actions,
+.guixu-root-container.mobile-view #auto-save-slot-container .slot-actions {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 8px !important;
+  width: 100% !important;
+  justify-content: stretch !important;
+}
+.guixu-root-container.mobile-view #auto-save-slot-container button {
+  height: 36px !important;
+  padding: 0 10px !important;
+  min-width: 0 !important;
+  box-sizing: border-box !important;
+}
+
+#save-slots-container {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.save-slot {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(201, 170, 113, 0.3);
+  border-radius: 5px;
+  padding: 15px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.save-slot-info {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.save-slot-info .slot-name {
+  font-size: 16px;
+  color: #e0dcd1;
+}
+
+.save-slot-info .slot-time {
+  font-size: 12px;
+  color: #8b7355;
+  margin-top: 5px;
+}
+
+.save-slot-info .slot-summary {
+  font-size: 11px;
+  color: #a09c91;
+  margin-top: 8px;
+  font-style: italic;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex-grow: 1;
+  min-width: 0;
+}
+
+.save-slot-actions {
+  display: flex;
+  gap: 8px;
+  /* 减小间距以容纳更多按钮 */
+  flex-shrink: 0;
+  /* 防止按钮被压缩 */
+}
+
+/* --- 自动存档部分样式 --- */
+.auto-save-section {
+  padding: 15px;
+  margin-bottom: 15px;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(201, 170, 113, 0.3);
+  border-radius: 5px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.auto-save-title {
+  font-size: 16px;
+  color: #c9aa71;
+}
+
+.auto-save-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.auto-save-toggle label {
+  font-size: 14px;
+  color: #a09c91;
+  cursor: pointer;
+}
+
+.auto-save-toggle input[type="checkbox"] {
+  cursor: pointer;
+  width: 18px;
+  height: 18px;
+}
+
+/* 类脑/旅程梦星作品，禁止二传，禁止商业化，均无偿免费开源分享 */
+/* --- 新增：等待悬浮窗 --- */
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes god-tier-animation {
+  0% {
+    background-position: -200% center;
+  }
+
+  100% {
+    background-position: 200% center;
+  }
+}
+
+.waiting-spinner {
+  width: 24px;
+  height: 24px;
+  border: 3px solid rgba(201, 170, 113, 0.3);
+  border-top-color: #c9aa71;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  flex-shrink: 0;
+}
+
+.waiting-popup {
+  position: absolute;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(15, 15, 35, 0.8);
+  color: #c9aa71;
+  padding: 15px 25px;
+  border-radius: 8px;
+  border: 1px solid #c9aa71;
+  z-index: 9999;
+  font-size: 16px;
+  box-shadow: 0 5px 25px rgba(0, 0, 0, 0.7);
+  line-height: 1.6;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  width: 450px;
+  /* 拉长悬浮框 */
+  max-width: 90%;
+}
+
+/* 统一危险按钮风格（与整体UI一致） */
+.danger-btn {
+  background: #8b0000;
+  border: 1px solid #ff6b6b;
+  color: #fff;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+.danger-btn:hover {
+  background: #a52a2a;
+}
+
+
+/* 人物关系的删除按钮也与"丢弃"按钮保持一致（样式已合并到统一选择器） */
+
+/* --- 全屏适配（进入全屏时铺满视口，消除底部空白） --- */
+.guixu-root-container:fullscreen,
+.guixu-root-container:-webkit-full-screen {
+  width: 100vw;
+  height: 100vh;
+  max-width: none;
+  margin: 0;
+  border-radius: 0;
+  /* 防止全屏下固定/浮层被父容器裁剪（iPad/Safari 常见） */
+  overflow: visible;
+}
+.guixu-root-container:fullscreen .game-container,
+.guixu-root-container:-webkit-full-screen .game-container {
+  height: 100%;
+}
+/* 全屏 + 移动端：确保“角色/功能”浮窗强制显示在最上层且不被裁剪
+   注意：不覆盖 display，保留非全屏下的布局（功能面板为两列网格） */
+.guixu-root-container:fullscreen.mobile-view.show-character-panel .character-panel,
+.guixu-root-container:-webkit-full-screen.mobile-view.show-character-panel .character-panel {
+  /* 角色面板：保持块级布局，由非全屏规则负责宽高与样式 */
+  position: fixed !important;
+  z-index: 10050 !important;
+  left: 50% !important;
+  top: 50% !important;
+  transform: translate(-50%, -50%) !important;
+}
+.guixu-root-container:fullscreen.mobile-view.show-interaction-panel .interaction-panel,
+.guixu-root-container:-webkit-full-screen.mobile-view.show-interaction-panel .interaction-panel {
+  /* 功能面板：保留原先的两列网格布局（不覆写 display），仅强制定位与层级 */
+  position: fixed !important;
+  z-index: 10050 !important;
+  left: 50% !important;
+  top: 50% !important;
+  transform: translate(-50%, -50%) !important;
+}
+
+/* 移动端横屏全屏：固定底部栏可见，避免被正文遮挡 */
+.guixu-root-container.mobile-view.mobile-landscape-fullscreen .bottom-status {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0; /* 使用视口底部 */
+  z-index: 10010;
+  width: 100vw;
+  max-width: 100vw;
+  box-sizing: border-box;
+  padding: 6px 12px calc(6px + env(safe-area-inset-bottom, 0));
+  gap: 10px;
+  background: linear-gradient(90deg,
+      rgba(45, 27, 61, 0.9) 0%,
+      rgba(26, 26, 46, 0.92) 50%,
+      rgba(45, 27, 61, 0.9) 100%);
+  border-top: 1px solid #c9aa71;
+  min-height: 60px;
+  /* 横屏下水平布局 */
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* 为正文区预留底部栏高度，防止被覆盖 */
+.guixu-root-container.mobile-view.mobile-landscape-fullscreen .game-container {
+  padding-bottom: calc(68px + env(safe-area-inset-bottom, 0));
+}
+
+/* 横屏下快速发送区域横向排列且宽度合理 */
+.guixu-root-container.mobile-view.mobile-landscape-fullscreen .quick-send-container {
+  flex-direction: row;
+  width: auto;
+}
+.guixu-root-container.mobile-view.mobile-landscape-fullscreen .quick-send-input {
+  width: min(56vw, 560px);
+  height: 40px;
+}
+
+/* 左侧“状态一览”按钮靠左 */
+.guixu-root-container.mobile-view.mobile-landscape-fullscreen #btn-status-pop {
+  justify-self: flex-start;
+}
+
+/* 安全区（打孔屏/曲面屏）适配 */
+@supports (padding: max(0px)) {
+  .guixu-root-container.mobile-view.mobile-landscape-fullscreen .bottom-status {
+    padding-left: max(12px, env(safe-area-inset-left, 0));
+    padding-right: max(12px, env(safe-area-inset-right, 0));
+  }
+}
+
+/* 移动端横屏全屏：固定底部栏可见，避免被正文遮挡 */
+.guixu-root-container.mobile-view.mobile-landscape-fullscreen .bottom-status {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0; /* 使用视口底部 */
+  z-index: 10010;
+  width: 100vw;
+  max-width: 100vw;
+  box-sizing: border-box;
+  padding: 6px 12px calc(6px + env(safe-area-inset-bottom, 0));
+  gap: 10px;
+  background: linear-gradient(90deg,
+      rgba(45, 27, 61, 0.9) 0%,
+      rgba(26, 26, 46, 0.92) 50%,
+      rgba(45, 27, 61, 0.9) 100%);
+  border-top: 1px solid #c9aa71;
+  min-height: 60px;
+  /* 横屏下水平布局 */
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* 为正文区预留底部栏高度，防止被覆盖 */
+.guixu-root-container.mobile-view.mobile-landscape-fullscreen .game-container {
+  padding-bottom: calc(68px + env(safe-area-inset-bottom, 0));
+}
+
+/* 横屏下快速发送区域横向排列且宽度合理 */
+.guixu-root-container.mobile-view.mobile-landscape-fullscreen .quick-send-container {
+  flex-direction: row;
+  width: auto;
+}
+.guixu-root-container.mobile-view.mobile-landscape-fullscreen .quick-send-input {
+  width: min(56vw, 560px);
+  height: 40px;
+}
+
+/* 左侧“状态一览”按钮靠左 */
+.guixu-root-container.mobile-view.mobile-landscape-fullscreen #btn-status-pop {
+  justify-self: flex-start;
+}
+
+/* 安全区（打孔屏/曲面屏）适配 */
+@supports (padding: max(0px)) {
+  .guixu-root-container.mobile-view.mobile-landscape-fullscreen .bottom-status {
+    padding-left: max(12px, env(safe-area-inset-left, 0));
+    padding-right: max(12px, env(safe-area-inset-right, 0));
+  }
+}
+
+/* --- 状态类型配色（底部快捷状态与模态统一） --- */
+.status-effect--BUFF {
+  background: rgba(60, 179, 113, 0.2);
+  border-color: rgba(60, 179, 113, 0.5);
+}
+.status-effect--BUFF .effect-icon {
+  background: #3cb371;
+}
+
+.status-effect--DEBUFF {
+  background: rgba(255, 107, 107, 0.2);
+  border-color: rgba(255, 107, 107, 0.5);
+}
+.status-effect--DEBUFF .effect-icon {
+  background: #ff6b6b;
+}
+
+.status-effect--NEUTRAL {
+  background: rgba(160, 156, 145, 0.2);
+  border-color: rgba(160, 156, 145, 0.4);
+}
+.status-effect--NEUTRAL .effect-icon {
+  background: #a09c91;
+}
+
+.status-effect--AURA {
+  background: rgba(147, 112, 219, 0.2);
+  border-color: rgba(147, 112, 219, 0.5);
+}
+.status-effect--AURA .effect-icon {
+  background: #9370db;
+}
+
+.status-effect--TERRAIN {
+  background: rgba(218, 165, 32, 0.2);
+  border-color: rgba(218, 165, 32, 0.5);
+}
+.status-effect--TERRAIN .effect-icon {
+  background: #daa520;
+}
+
+/* 模态内状态卡片边框强调 */
+.status-card[data-status-type="BUFF"] { border-color: rgba(60,179,113,0.6) !important; }
+.status-card[data-status-type="DEBUFF"] { border-color: rgba(255,107,107,0.6) !important; }
+.status-card[data-status-type="NEUTRAL"] { border-color: rgba(160,156,145,0.6) !important; }
+.status-card[data-status-type="AURA"] { border-color: rgba(147,112,219,0.6) !important; }
+.status-card[data-status-type="TERRAIN"] { border-color: rgba(218,165,32,0.6) !important; }
+
+/* 状态卡片网格布局：稳定不跳列，展开只向下扩展 */
+.statuses-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 10px;
+  align-items: start;
+}
+
+.status-card-wrapper {
+  display: block;
+  /* grid 下不需要 column-break 控制，避免不必要的重排 */
+}
+
+/* 状态一览：将详情改为浮层显示，避免展开时整体重排“挤来挤去” */
+#statuses-modal .statuses-grid { position: relative; overflow: visible; }
+#statuses-modal .status-card { position: relative; overflow: visible; }
+
+/* 浮层详情：相对卡片定位，向下展开为弹出层，不占据网格高度 */
+#statuses-modal .status-card .status-details {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(100% + 6px);
+  background: rgba(26, 26, 46, 0.95);
+  border: 1px solid rgba(201, 170, 113, 0.4);
+  border-radius: 6px;
+  padding: 10px;
+  z-index: 20;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5);
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+/* summary 区域保持紧凑，点击仅弹出浮层 */
+#statuses-modal .status-card > summary {
+  cursor: pointer;
+  list-style: none;
+}
+
+/* 保证弹层可见不被裁剪 */
+#statuses-modal .modal-body { overflow: auto; }
+
+.status-details {
+  border-top: 1px solid rgba(201, 170, 113, 0.2);
+  padding-top: 8px;
+}
+
+/* 背景预览框样式 */
+.bg-preview {
+  min-height: 120px;
+  background: rgba(0,0,0,0.3);
+  border: 1px solid #8b7355;
+  border-radius: 4px;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+/* 设置中心：背景库路径（下拉）限制宽度，避免挤压按钮 */
+#settings-modal .attributes-list .attribute-item {
+  flex-wrap: nowrap;
+}
+#settings-modal #pref-bg-select {
+  flex: 1 1 auto;
+  min-width: 160px;
+  max-width: 50%;
+}
+#settings-modal #pref-bg-upload,
+#settings-modal #pref-bg-delete,
+#settings-modal #pref-bg-clear {
+  white-space: nowrap;
+  flex: 0 0 auto;
+}
+/* 设置中心按钮统一尺寸，保证4字中文完整显示且与 danger 样式等宽等高 */
+#settings-modal .attributes-list .interaction-btn,
+#settings-modal .attributes-list .danger-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 90px;
+  height: 32px !important;      /* 强制统一高度，修复“删除背景”偏小 */
+  padding: 0 12px !important;   /* 覆盖行内 padding */
+  font-size: 12px;
+  line-height: normal !important; /* 放宽行高，避免中文被上下裁切，视觉高度与邻居一致 */
+  white-space: nowrap;
+  box-sizing: border-box;
+}
+
+/* 移动端-设置中心 浮窗尺寸与布局修复（不影响桌面） */
+.guixu-root-container.mobile-view #settings-modal .modal-content {
+  width: 96vw;
+  max-width: 96vw;
+  height: auto;
+  max-height: 90vh;
+  overflow-x: hidden;
+}
+.guixu-root-container.mobile-view #settings-modal .modal-body {
+  overflow-y: auto;
+}
+.guixu-root-container.mobile-view #settings-modal .modal-header {
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.guixu-root-container.mobile-view #settings-modal .attributes-list .attribute-item {
+  flex-wrap: wrap !important;
+  gap: 6px !important;
+}
+.guixu-root-container.mobile-view #settings-modal #pref-bg-select {
+  flex: 1 1 100% !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+}
+.guixu-root-container.mobile-view #settings-modal #pref-bg-upload,
+.guixu-root-container.mobile-view #settings-modal #pref-bg-delete,
+.guixu-root-container.mobile-view #settings-modal #pref-bg-clear {
+  flex: 1 1 calc(33% - 6px) !important;
+  min-width: 0 !important;
+}
+
+/* 移动端-设置中心：按钮尺寸与页脚布局优化，防止超出浮窗 */
+.guixu-root-container.mobile-view #settings-modal .attributes-list .interaction-btn,
+.guixu-root-container.mobile-view #settings-modal .attributes-list .danger-btn {
+  min-width: 0 !important;
+  height: 34px !important;
+  padding: 0 10px !important;
+  flex: 1 1 auto !important;
+  box-sizing: border-box !important;
+}
+/* 设置中心页脚：上方“恢复默认”独占一行，下面“应用/保存并关闭”双列并排 */
+.guixu-root-container.mobile-view #settings-modal .command-center-footer {
+  flex-wrap: wrap !important;
+  gap: 8px !important;
+}
+.guixu-root-container.mobile-view #settings-modal #pref-reset-defaults {
+  flex: 1 1 100% !important;
+  height: 36px !important;
+}
+.guixu-root-container.mobile-view #settings-modal .command-center-footer > div {
+  width: 100% !important;
+  display: grid !important;
+  grid-template-columns: 1fr 1fr !important;
+  gap: 8px !important;
+}
+.guixu-root-container.mobile-view #settings-modal .command-center-footer > div > button {
+  width: 100% !important;
+  height: 36px !important;
+  min-width: 0 !important;
+  padding: 0 10px !important;
+  box-sizing: border-box !important;
+}
+/* 分辨率模块：预设与自定义在移动端分行排布，输入框等分 */
+.guixu-root-container.mobile-view #settings-modal #pref-ui-res-preset {
+  flex: 1 1 100% !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+}
+.guixu-root-container.mobile-view #settings-modal #pref-ui-res-width,
+.guixu-root-container.mobile-view #settings-modal #pref-ui-res-height {
+  width: calc(50% - 10px) !important;
+  min-width: 0 !important;
+  box-sizing: border-box !important;
+}
+.guixu-root-container.mobile-view #settings-modal .attributes-list .attribute-item .attribute-name {
+  white-space: nowrap;
+}
+
+/* 桌面端通用按钮统一尺寸（不影响移动端），一次性修复“大小不一/四字拥挤/被行内样式压缩”等问题 */
+.guixu-root-container:not(.mobile-view) .interaction-btn:not(.worldline-btn),
+.guixu-root-container:not(.mobile-view) .primary-btn:not(.worldline-btn),
+.guixu-root-container:not(.mobile-view) .danger-btn:not(.worldline-btn),
+.guixu-root-container:not(.mobile-view) .clear-saves-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+
+  /* 统一高度与内边距，覆盖行内样式 */
+  height: 32px !important;
+  padding: 0 12px !important;
+
+  /* 统一文本呈现，避免中文拥挤与上下裁切 */
+  font-size: 12px !important;
+  line-height: normal !important;
+  letter-spacing: normal !important;
+  white-space: nowrap !important;
+  word-break: keep-all !important;
+
+  /* 盒模型统一，避免不同容器出现视觉高度不一致 */
+  box-sizing: border-box !important;
+
+  /* 给足四字中文的最小宽度，但不作用于 worldline-btn（防止右侧窄栏再次溢出） */
+  min-width: 96px;
+}
+
+/* 视口容器：控制非全屏分辨率与统一缩放的包裹层 */
+.guixu-viewport {
+  position: relative;
+  width: var(--viewport-w, 900px);
+  height: var(--viewport-h, 600px);
+  margin: 0 auto;
+  overflow: hidden;
+}
+.guixu-viewport .guixu-root-container {
+  position: absolute;
+  left: 0;
+  top: 0;
+}
+
+/* 移动端：在 viewport 中让根容器参与文档流，避免父容器高度坍塌导致页面不可见 */
+.guixu-viewport.mobile-view .guixu-root-container {
+  position: static;
+  left: auto;
+  top: auto;
+  width: 100%;
+  height: auto;
+}
+
+/* 移动端视图：在嵌入式 iframe 中跟随容器高度，避免 fixed/视口单位导致整体不可见 */
+.guixu-viewport.mobile-view {
+  position: relative;
+  width: 100%;
+  height: auto;
+  margin: 0 auto;
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* 新增：小屏(<=900px)优先级兜底，确保嵌入式(酒馆楼层 iframe)在 JS 未执行前也能正确撑开高度并显示内容 */
+@media (max-width: 900px) {
+  /* 视口容器参与文档流，按内容自适应高度，允许滚动 */
+  .guixu-viewport {
+    width: 100% !important;
+    height: auto !important;
+    overflow: auto !important;
+  }
+  /* 根容器不可用绝对定位，否则父容器高度会被误判为 0 导致整块不可见 */
+  .guixu-viewport .guixu-root-container {
+    position: static !important;
+    left: auto !important;
+    top: auto !important;
+    width: 100% !important;
+    height: auto !important;
+  }
+  /* 覆盖桌面端固定 900x600 的默认值 */
+  .guixu-root-container {
+    width: 100% !important;
+    height: auto !important;
+  }
+  /* 在 CSS 层面直接启用“移动端纵向布局”，即使 JS 还未给 .mobile-view 类 */
+  .game-container {
+    display: flex !important;
+    flex-direction: column !important;
+    height: auto !important;
+    min-height: 0 !important;
+    gap: 0 !important;
+  }
+  .main-content {
+    order: 2;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+  }
+  .bottom-status {
+    order: 5;
+    flex: 0 0 auto;
+  }
+  /* 小屏默认隐藏左右侧栏（等待悬浮按钮或移动端类启用后再以浮层打开） */
+  .character-panel,
+  .interaction-panel {
+    display: none;
+  }
+}
+
+/* 新增：状态浮窗按钮与布局调整 */
+#status-effects-wrapper { display: none !important; } /* 隐藏底部状态筹码滚动条 */
+#btn-view-statuses { display: none !important; }     /* 移除“查看状态”按钮 */
+#btn-quick-commands { display: none !important; }    /* 隐藏底部“当前指令”按钮 */
+
+.status-pop-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 15px;
+  border: 1px solid rgba(201, 170, 113, 0.3);
+  color: #c9aa71;
+  font-size: 12px;
+  cursor: pointer;
+}
+.status-pop-btn:hover {
+  background-color: rgba(201, 170, 113, 0.1);
+}
+.status-pop-btn .effect-icon {
+  width: 14px;
+  height: 14px;
+  background: #c9aa71;
+  border-radius: 50%;
+}
+
+/* 轻微调整快速发送容器的间距（保持居中时的视觉间隔） */
+.quick-send-container { margin: 0 10px; }
+
+/* ================= 强制桌面视图覆盖（小屏时也可强制桌面布局） ================= */
+/* 当 JS 添加 .force-desktop 到根容器/viewport 时，覆盖移动端的媒体查询与 .mobile-view 样式 */
+
+/* 强制桌面：覆盖小屏兜底与 viewport 定位，恢复绝对定位与固定基准尺寸 */
+.guixu-root-container.force-desktop {
+  width: 900px !important;
+  height: 600px !important;
+}
+#guixu-viewport.force-desktop {
+  width: var(--viewport-w, 900px) !important;
+  height: var(--viewport-h, 600px) !important;
+  overflow: hidden !important;
+}
+#guixu-viewport.force-desktop .guixu-root-container {
+  position: absolute !important;
+  left: 0 !important;
+  top: 0 !important;
+}
+
+/* 明确三栏网格区域，防止主内容误入右栏 */
+.guixu-root-container.force-desktop .character-panel { grid-column: 1 !important; grid-row: 2 !important; }
+.guixu-root-container.force-desktop .main-content { grid-column: 2 !important; grid-row: 2 !important; }
+.guixu-root-container.force-desktop .interaction-panel { grid-column: 3 !important; grid-row: 2 !important; }
+
+/* 恢复桌面网格布局与整体高度 */
+.guixu-root-container.force-desktop .game-container {
+  display: grid !important;
+  grid-template-rows: 65px 1fr auto !important;
+  grid-template-columns: 220px 1fr 160px !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  gap: 1px !important;
+}
+
+/* 顶部/正文/底部恢复网格区域行为 */
+.guixu-root-container.force-desktop .top-status { grid-column: 1 / -1 !important; }
+.guixu-root-container.force-desktop .bottom-status { grid-column: 1 / -1 !important; }
+
+/* 左右侧栏恢复显示（取消移动端浮层/隐藏） */
+.guixu-root-container.force-desktop .character-panel,
+.guixu-root-container.force-desktop .interaction-panel {
+  display: block !important;
+  position: static !important;
+  width: auto !important;
+  height: auto !important;
+  overflow-y: auto !important;
+  background: revert-layer;
+  padding: 10px;
+  border-radius: 0;
+  box-shadow: none;
+  transform: none !important;
+}
+
+/* 左侧栏边框回归 */
+.guixu-root-container.force-desktop .character-panel {
+  border-right: 1px solid #c9aa71 !important;
+  border-bottom: none !important;
+}
+
+/* 右侧栏边框回归，方向回到列 */
+.guixu-root-container.force-desktop .interaction-panel {
+  border-left: 1px solid #c9aa71 !important;
+  border-top: none !important;
+  flex-direction: column !important;
+  flex-wrap: nowrap !important;
+  justify-content: flex-start !important;
+}
+
+/* 正文区回到网格中间列（由 grid 定位，不需要额外 order/flex） */
+.guixu-root-container.force-desktop .main-content {
+  flex: 0 1 auto !important;
+  min-height: 0 !important;
+  overflow-y: auto !important;
+}
+
+/* 隐藏任何移动端浮层状态类的影响 */
+.guixu-root-container.force-desktop.show-character-panel .character-panel,
+.guixu-root-container.force-desktop.show-interaction-panel .interaction-panel {
+  position: static !important;
+  width: auto !important;
+  height: auto !important;
+  transform: none !important;
+}
+
+/* 快速恢复模式：禁用过渡/动画，提升恢复速度 */
+.guixu-root-container.fast-reflow *,
+.guixu-root-container.fast-reflow .main-content {
+  transition: none !important;
+  animation: none !important;
+}
+
+/* 桌面端右侧功能按钮固定尺寸布局（改为 Flex 以保留底部“世界线”模块，并确保滚动条可见） */
+.guixu-root-container.force-desktop .interaction-panel {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 8px;
+  align-content: stretch !important;
+  justify-content: flex-start !important;
+  overflow-y: auto !important;
+}
+.guixu-root-container.force-desktop .interaction-btn {
+  width: 100% !important;
+  flex: 0 0 40px !important;
+  height: 40px !important;          /* 固定按钮高度 */
+  display: flex;
+  align-items: center;
+  justify-content: center;          /* 文本居中 */
+  white-space: nowrap;              /* 单行显示 */
+  overflow: hidden;                 /* 超出隐藏 */
+  text-overflow: ellipsis;          /* 省略号 */
+  padding: 0 10px;
+  box-sizing: border-box;
+  letter-spacing: normal;           /* 修复部分环境中文字间距异常 */
+  word-break: keep-all;             /* 不拆分中文，避免拥挤/换行 */
+  min-width: 0;                     /* 允许 Flex 子项在窄栏中正确收缩 */
+}
+/* 将世界书等底部区固定在面板底部，不与按钮挤在一起 */
+.guixu-root-container.force-desktop .world-line-section {
+  margin-top: auto !important;
+  border-top: 1px solid rgba(201, 170, 113, 0.5);
+  padding-top: 10px;
+}
+/* 强制桌面视图下，右侧面板对按钮的统一尺寸不影响世界线回顾两键 */
+/* 修正：使用宽度自适应且保持等分，不再强制 100% 导致溢出 */
+.guixu-root-container.force-desktop .world-line-section .worldline-btn {
+  width: auto !important;
+  height: 34px !important;
+  flex: 1 1 0 !important;
+  box-sizing: border-box;
+}
+/*（已移除强制纵排，保持并排但自适应等分，避免出界）*/
+
+/* 在强制桌面视图下，确保移动端FAB不可见 */
+.guixu-root-container.force-desktop #fab-character,
+.guixu-root-container.force-desktop #fab-functions {
+  display: none !important;
+}
+
+/* --- 历史面板搜索栏样式（与背包搜索一致风格） --- */
+#history-modal .history-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: 10px;
+}
+#history-modal .history-search input#history-search-input {
+  height: 32px;
+  min-width: 180px;
+  padding: 0 10px;
+  background: rgba(0,0,0,0.4);
+  border: 1px solid #8b7355;
+  border-radius: 4px;
+  color: #e0dcd1;
+  font-size: 12px;
+  box-sizing: border-box;
+}
+#history-modal .history-search #history-search-clear {
+  height: 32px;
+  padding: 0 10px;
+}
+
+/* --- 历程/涟漪 时间线卡片美化（覆盖默认白底） --- */
+.timeline-line {
+  background: linear-gradient(180deg, rgba(201,170,113,0.65), rgba(201,170,113,0.2));
+}
+.timeline-event::before {
+  background: radial-gradient(circle, #ffd57a 0%, #daa520 60%, rgba(218,165,32,0.2) 100%);
+  border: 2px solid #c9aa71;
+  box-shadow: 0 0 8px rgba(201,170,113,0.7), 0 0 2px rgba(201,170,113,0.9) inset;
+}
+.timeline-content {
+  background: radial-gradient(120% 120% at 20% 0%, rgba(45,27,61,0.85) 0%, rgba(15,15,35,0.92) 60%);
+  border: 1px solid rgba(201,170,113,0.55);
+  box-shadow: 0 6px 18px rgba(0,0,0,0.35), inset 0 0 18px rgba(201,170,113,0.08);
+}
+.timeline-title {
+  color: #c9aa71;
+}
+.timeline-description {
+  color: #a09c91;
+}
+.timeline-date {
+  color: #8b7355;
+}
+.timeline-tags .tag-item {
+  background: rgba(201,170,113,0.12);
+  border: 1px solid rgba(201,170,113,0.35);
+  color: #e0dcd1;
+}
+/* 暗色时间线卡片下的往世详细文字颜色优化 */
+.timeline-content .past-life-details { 
+  color: #e0dcd1; 
+}
+.timeline-content .detail-item>strong { 
+  color: #c9aa71; 
+}
+
+
+/* --- 移动端：历史面板头部换行与搜索栏自适应，防止“清除”溢出 --- */
+.guixu-root-container.mobile-view #history-modal .modal-header {
+  flex-wrap: wrap !important;
+  gap: 8px !important;
+}
+.guixu-root-container.mobile-view #history-modal #history-modal-actions {
+  order: 2 !important;
+  flex: 1 1 100% !important;
+  display: flex !important;
+  gap: 8px !important;
+  flex-wrap: wrap !important; /* 允许换行，避免溢出 */
+  margin-left: 0 !important;  /* 覆盖内联 margin-left:auto，防止动作区被推到面板外 */
+}
+.guixu-root-container.mobile-view #history-modal .history-search {
+  flex: 1 1 100% !important;    /* 独占一行 */
+  min-width: 0 !important;
+  margin-left: 0 !important;    /* 移除左侧间距，防止被挤出 */
+}
+.guixu-root-container.mobile-view #history-modal .history-search input#history-search-input {
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+  width: auto !important;
+}
+.guixu-root-container.mobile-view #history-modal .history-search #history-search-clear {
+  flex: 0 0 auto !important;
+  min-width: 72px !important;
+}
+
+/* --- 时间线标签在小屏换行且不挤压布局 --- */
+.timeline-header { align-items: flex-start; }
+.timeline-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  row-gap: 4px;
+  justify-content: flex-end;
+  max-width: 60%;
+}
+.timeline-tags .tag-item {
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+@media (max-width: 900px) {
+  .timeline-tags {
+    max-width: 100%;
+    justify-content: flex-start;
+  }
+  .timeline-tags .tag-item { max-width: 90px; }
+}
+
+/* 移动端：时间线日期与标签分行显示，标签独占一行 */
+.guixu-root-container.mobile-view .timeline-header {
+  flex-direction: column !important;
+  align-items: flex-start !important;
+  gap: 6px !important;
+}
+.guixu-root-container.mobile-view .timeline-tags {
+  max-width: 100% !important;
+  width: 100% !important;
+  justify-content: flex-start !important;
+}
+
+/* ================= 合并“核心属性 + 修为详情”模块样式（进度条展示 + 点击浮窗） ================= */
+/* 使属性说明浮窗可相对角色面板定位 */
+.character-panel { position: relative; }
+
+/* 宿主区块 */
+#attr-cultivation-panel .section-title {
+  font-size: 13px;
+  color: #c9aa71;
+  text-align: center;
+  border-bottom: 1px solid rgba(201,170,113,0.3);
+  padding-bottom: 4px;
+  margin-bottom: 8px;
+}
+
+/* 属性条集合 */
+.attr-card {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.attr-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 6px 6px;
+  border: 1px solid rgba(201,170,113,0.18);
+  border-radius: 6px;
+  background: rgba(0,0,0,0.15);
+  cursor: pointer;
+  outline: none;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.attr-row:hover, .attr-row:focus-visible {
+  background: rgba(201,170,113,0.1);
+  border-color: rgba(201,170,113,0.35);
+}
+
+/* 头行：名称 + 数值 */
+.attr-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12px;
+}
+.attr-name { color: #e0dcd1; font-weight: 700; letter-spacing: .5px; }
+.attr-values { color: #c9aa71; font-weight: 600; font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; }
+
+/* 进度条 */
+.attr-bar {
+  height: 12px;
+  border-radius: 8px;
+  background: linear-gradient(180deg, rgba(201,170,113,0.12), rgba(201,170,113,0.05));
+  border: 1px solid rgba(201,170,113,0.25);
+  overflow: hidden;
+}
+.attr-bar .attr-bar-fill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, #4caf50, #ffd700);
+  box-shadow: 0 0 10px rgba(255, 215, 0, 0.35);
+  transition: width 300ms ease;
+}
+
+/* 修为进度区域（与上方属性条统一视觉） */
+.attr-cultivation-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 6px;
+  border: 1px solid rgba(201,170,113,0.18);
+  border-radius: 6px;
+  background: rgba(0,0,0,0.15);
+}
+.attr-bar--cultivation .attr-bar-fill {
+  background: linear-gradient(90deg, #6a11cb, #2575fc);
+}
+.attr-bottleneck {
+  margin-top: 4px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+}
+.attr-bottleneck-label { color: #8b7355; }
+.attr-bottleneck-value { color: #e0dcd1; }
+
+/* 气运徽章（角色面板） */
+.qiyun-row {
+  display: flex;
+  justify-content: center;
+  margin: 4px 0 10px;
+}
+.qiyun-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;       /* 徽章内容水平居中 */
+  gap: 5px;
+  padding: 3px 20px;             /* 横向更长、垂直更紧凑 */
+  min-width: 128px;              /* 设定最小左右长度，确保“稍微更长”可见 */
+  border-radius: 999px;
+  border: 1px solid rgba(201,170,113,0.55);
+  background: linear-gradient(180deg, rgba(201,170,113,0.28), rgba(201,170,113,0.12));
+  box-shadow: 0 0 10px rgba(218,165,32,0.25) inset, 0 2px 8px rgba(0,0,0,0.25);
+  color: #e8e3d6;
+}
+.qiyun-badge .label {
+  color: #c9aa71;
+  font-weight: 700;
+  font-size: 11px; /* 略缩小，降低整体高度 */
+  letter-spacing: .5px;
+}
+.qiyun-badge .value {
+  color: #ffd700;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+  text-shadow: 0 0 6px rgba(255,215,0,0.45);
+}
+/* 移动端缩放 */
+.guixu-root-container.mobile-view .qiyun-badge {
+  padding: 2px 16px; /* 移动端：更细高但更长 */
+  font-size: 12px;
+  min-width: 112px;  /* 移动端保持更长的左右长度 */
+}
+.guixu-root-container.mobile-view .qiyun-badge .label { font-size: 11px; }
+.guixu-root-container.mobile-view .qiyun-badge .value { font-size: 12px; }
+
+/* 属性分解浮窗（点击法力/神海/道心/空速弹出） */
+.attr-tooltip {
+  position: absolute;
+  background: rgba(15, 15, 35, 0.95);
+  border: 1px solid #c9aa71;
+  border-radius: 8px;
+  padding: 10px;
+  color: #e0dcd1;
+  font-size: 12px;
+  z-index: 1002;
+  width: auto;
+  max-width: 360px;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.45);
+}
+.attr-tip-title {
+  font-size: 14px;
+  font-weight: 800;
+  color: #e8e3d6;
+  margin-bottom: 6px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(201,170,113,0.2);
+}
+.attr-breakline {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 4px 0;
+}
+.attr-break-k { color: #8b7355; }
+.attr-break-v { color: #c9aa71; font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; }
+
+.attr-break-group { margin-top: 8px; }
+.attr-break-title {
+  color: #c9aa71;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+.attr-break-items { display: flex; flex-direction: column; gap: 4px; }
+.attr-break-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  border-bottom: 1px dashed rgba(201,170,113,0.15);
+  padding-bottom: 4px;
+}
+.attr-break-item:last-child { border-bottom: none; }
+.attr-break-name { color: #e0dcd1; max-width: 60%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.attr-break-val { color: #c9aa71; }
+
+/* 移动端：紧凑间距与更小高度 */
+.guixu-root-container.mobile-view .attr-row { padding: 6px; }
+.guixu-root-container.mobile-view .attr-bar { height: 10px; }
+.guixu-root-container.mobile-view .attr-cultivation-wrap { padding: 6px; }
+
+/* 横屏移动端全屏修复 override（平板适配 + 输入区居中） */
+.guixu-root-container.mobile-view.mobile-landscape-fullscreen .game-container {
+  /* 为正文区预留的 padding 区域提供与正文一致的底色，避免最下方出现一截明暗不一致 */
+  background: rgba(0, 0, 0, 0.2);
+}
+
+/* 将底部栏内容整体居中，状态按钮独立定位到左侧 */
+.guixu-root-container.mobile-view.mobile-landscape-fullscreen .bottom-status {
+  justify-content: center !important;
+}
+
+/* 状态一览按钮固定在左侧，避免影响中间输入区水平居中 */
+.guixu-root-container.mobile-view.mobile-landscape-fullscreen #btn-status-pop {
+  position: absolute !important;
+  left: max(12px, env(safe-area-inset-left, 0)) !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+}
+
+/* 输入区容器水平居中，宽度不拉满，防止“过长” */
+.guixu-root-container.mobile-view.mobile-landscape-fullscreen .quick-send-container {
+  margin: 0 auto !important;
+  width: auto !important;
+}
+
+/* 输入框宽度收敛，保持在底部栏中间且不过长（平板友好） */
+.guixu-root-container.mobile-view.mobile-landscape-fullscreen .quick-send-input {
+  width: clamp(320px, 44vw, 520px) !important;
+  height: 40px !important;
+}

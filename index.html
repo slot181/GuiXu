@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<!-- 类脑/旅程梦星作品，禁止二传，禁止商业化，均无偿免费开源分享 -->
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>归墟 - 宿命轮回</title>
+  <link rel="stylesheet" href="https://sparkling-hummingbird-1a2fc4.netlify.app/归墟/css/guixu.css" />
+</head>
+
+<body>
+  <!-- 类脑/旅程梦星作品，禁止二传，禁止商业化，均无偿免费开源分享 -->
+  <div id="guixu-viewport" class="guixu-viewport">
+    <div class="guixu-root-container">
+    <!-- 视图/设置按钮 -->
+    <button id="btn-settings" class="settings-btn" title="设置">⚙️</button>
+    <button id="view-toggle-btn" class="view-toggle-btn" title="切换视图">📱</button>
+    <button id="fullscreen-btn" class="fullscreen-btn" title="进入全屏">⛶</button>
+
+    <div class="game-container">
+      <!-- 顶部状态栏 -->
+      <div class="top-status">
+        <div class="status-item">
+          <div class="status-label">境界</div>
+          <div id="val-jingjie" class="status-value">...</div>
+        </div>
+        <div class="status-item">
+          <div class="status-label">当前纪年</div>
+          <div id="val-jinian" class="status-value">...</div>
+        </div>
+        <div class="status-item">
+          <div class="status-label">归墟充能</div>
+          <div id="val-guixu-charge-text" class="status-value">...%</div>
+          <div id="bar-guixu-charge" class="guixu-charge">
+            <div class="guixu-fill"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 左侧角色面板 -->
+      <div class="character-panel">
+        <div class="panel-section">
+          <div class="section-title">核心属性 <span style="font-size: 10px; color: #8b7355">(当前/上限)</span></div>
+          <div class="attributes-list">
+            <div class="attribute-item">
+              <span class="attribute-name">法力</span><span id="attr-fali" class="attribute-value">...</span>
+            </div>
+            <div class="attribute-item">
+              <span class="attribute-name">神海</span><span id="attr-shenhai" class="attribute-value">...</span>
+            </div>
+            <div class="attribute-item">
+              <span class="attribute-name">道心</span><span id="attr-daoxin" class="attribute-value">...</span>
+            </div>
+            <div class="attribute-item">
+              <span class="attribute-name">空速</span><span id="attr-kongsu" class="attribute-value">...</span>
+            </div>
+            <div class="attribute-item">
+              <span class="attribute-name">气运</span><span id="attr-qiyun" class="attribute-value">...</span>
+            </div>
+            <div class="attribute-item">
+              <span class="attribute-name">生理年龄</span><span id="attr-shengli" class="attribute-value">...</span>
+            </div>
+            <div class="attribute-item">
+              <span class="attribute-name">心理年龄</span><span id="attr-xinli" class="attribute-value">...</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel-section">
+          <div class="section-title">修为详情</div>
+          <div class="attributes-list">
+            <div class="attribute-item">
+              <span class="attribute-name">修为进度</span>
+              <span id="cultivation-progress-text" class="attribute-value">0%</span>
+            </div>
+            <div class="details-progress-bar">
+              <div id="cultivation-progress-fill" class="details-progress-fill" style="width: 0%;"></div>
+            </div>
+            <div class="attribute-item" style="margin-top: 8px;">
+              <span class="attribute-name">当前瓶颈</span>
+              <span id="cultivation-bottleneck" class="attribute-value">无</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel-section">
+          <div class="section-title">天赋灵根</div>
+          <div id="talent-linggen-list" class="attributes-list">
+            <!-- 天赋和灵根动态填充 -->
+          </div>
+        </div>
+
+        <div class="panel-section">
+          <div class="section-title">当前装备</div>
+          <div class="equipment-grid">
+            <div id="equip-wuqi" class="equipment-slot">武器</div>
+            <div id="equip-fangju" class="equipment-slot">防具</div>
+            <div id="equip-shipin" class="equipment-slot">饰品</div>
+            <div id="equip-fabao1" class="equipment-slot">法宝</div>
+            <div id="equip-zhuxiuGongfa" class="equipment-slot">主修功法</div>
+            <div id="equip-fuxiuXinfa" class="equipment-slot">辅修心法</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 中央内容区 -->
+      <div class="main-content">
+        <div id="game-text-display" class="game-text-container">
+          <gametxt> 欢迎来到《归墟》的世界。你的宿命，由此开始。 </gametxt>
+        </div>
+      </div>
+
+      <!-- 右侧交互面板 -->
+      <div class="interaction-panel">
+        <button id="btn-inventory" class="interaction-btn">背包</button>
+        <button id="btn-relationships" class="interaction-btn">人物关系</button>
+        <button id="btn-command-center" class="interaction-btn">指令中心</button>
+        <button id="btn-guixu-system" class="interaction-btn">归墟系统</button>
+        <button id="btn-show-extracted" class="interaction-btn">查看提取内容</button>
+        <button id="btn-save-load-manager" class="interaction-btn">存档/读档</button>
+
+        <!-- 世界书控制 -->
+        <div id="world-book-controls" class="panel-section" style="padding: 8px; margin-top: 10px;">
+          <div class="section-title" style="font-size: 11px; margin-bottom: 6px;">世界书控制</div>
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            <div style="display: flex; align-items: center; justify-content: space-between;">
+              <label for="unified-index-input" style="font-size: 11px; color: #8b7355;">读写序号:</label>
+              <input type="number" id="unified-index-input" value="1" min="1"
+                style="width: 60px; background: rgba(0,0,0,0.5); border: 1px solid #8b7355; color: #e0dcd1; border-radius: 4px; padding: 4px; font-size: 12px;">
+            </div>
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <input type="checkbox" id="auto-toggle-lorebook-checkbox" style="cursor: pointer;">
+              <label for="auto-toggle-lorebook-checkbox" class="auto-write-label"
+                style="font-size: 11px;">自动开关世界书</label>
+            </div>
+          </div>
+        </div>
+
+        <!-- 世界线回顾 -->
+        <div class="world-line-section">
+          <div class="world-line-title">世界线回顾</div>
+          <div style="display: flex; gap: 10px; justify-content: center;">
+            <button id="btn-view-journey-main" class="primary-btn worldline-btn"
+              style="flex-grow: 1; white-space: nowrap;">本世历程</button>
+            <button id="btn-view-past-lives-main" class="primary-btn worldline-btn"
+              style="flex-grow: 1; white-space: nowrap;">往世涟漪</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 底部状态与快速发送 -->
+      <div id="bottom-status-container" class="bottom-status">
+        <div id="status-effects-wrapper" style="display: flex; gap: 8px; overflow-x: auto">
+          <div class="status-effect">
+            <div class="effect-icon"></div>
+            <span>当前无状态效果</span>
+          </div>
+        </div>
+        <button id="btn-view-statuses" class="interaction-btn" style="padding: 5px 10px; white-space: nowrap;">查看状态</button>
+        <div class="quick-send-container">
+          <button id="btn-quick-commands" class="interaction-btn" style="padding: 5px 12px">当前指令</button>
+          <textarea id="quick-send-input" class="quick-send-input" placeholder="请在此输入回复..."></textarea>
+          <button id="btn-quick-send" class="interaction-btn" style="padding: 5px 12px">发送</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 各种模态窗口 -->
+    <div id="inventory-modal" class="modal-overlay">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2 class="modal-title">我的背包</h2>
+          <button class="modal-close-btn">&times;</button>
+        </div>
+        <div class="modal-body"><!-- 动态填充 --></div>
+      </div>
+    </div>
+    <div id="relationships-modal" class="modal-overlay">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2 class="modal-title">人物关系</h2>
+          <button class="modal-close-btn">&times;</button>
+        </div>
+        <div class="modal-body"><!-- 动态填充 --></div>
+      </div>
+    </div>
+    <div id="history-modal" class="modal-overlay">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2 id="history-modal-title" class="modal-title">历史回顾</h2>
+          <div id="history-modal-actions" style="display: flex; align-items: center; gap: 10px; margin-left: auto;"></div>
+          <button class="modal-close-btn" style="margin-left: 15px;">&times;</button>
+        </div>
+        <div id="history-modal-body" class="modal-body"><!-- 动态填充 --></div>
+      </div>
+    </div>
+    <div id="command-center-modal" class="modal-overlay">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2 class="modal-title">指令中心</h2>
+          <button class="modal-close-btn">&times;</button>
+        </div>
+        <div class="modal-body"><!-- 动态填充 --></div>
+        <div class="command-center-footer">
+          <button id="btn-refresh-storage" class="interaction-btn">刷新缓存</button>
+          <div>
+            <button id="btn-clear-commands" class="interaction-btn">清空指令</button>
+            <button id="btn-execute-commands" class="interaction-btn primary-btn" style="margin-left: 10px">执行指令</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div id="extracted-content-modal" class="modal-overlay">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2 class="modal-title">最后一次提取的AI内容</h2>
+          <div style="display: flex; align-items: center; gap: 10px; margin-left: auto;"></div>
+          <button class="modal-close-btn" style="margin-left: 15px;">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="panel-section">
+            <div class="section-title" style="display: flex; justify-content: space-between; align-items: center">
+              <span>本世历程</span>
+              <button id="btn-write-journey" class="interaction-btn" style="padding: 4px 8px; font-size: 12px; margin-left: 10px">写入世界书</button>
+            </div>
+            <pre id="extracted-journey" style="white-space: pre-wrap; word-wrap: break-word; color: #e0dcd1; font-size: 12px; padding: 10px; background: rgba(0, 0, 0, 0.2); border-radius: 4px; min-height: 50px;">无内容</pre>
+          </div>
+          <div class="panel-section">
+            <div class="section-title" style="display: flex; justify-content: space-between; align-items: center">
+              <span>往世涟漪</span>
+              <button id="btn-write-past-lives" class="interaction-btn" style="padding: 4px 8px; font-size: 12px; margin-left: 10px">写入世界书</button>
+            </div>
+            <pre id="extracted-past-lives" style="white-space: pre-wrap; word-wrap: break-word; color: #e0dcd1; font-size: 12px; padding: 10px; background: rgba(0, 0, 0, 0.2); border-radius: 4px; min-height: 50px;">无内容</pre>
+          </div>
+          <div class="panel-section">
+            <div class="section-title" style="display: flex; justify-content: space-between; align-items: center">
+              <span>小说模式</span>
+              <button id="btn-write-novel-mode" class="interaction-btn" style="padding: 4px 8px; font-size: 12px; margin-left: 10px">写入世界书</button>
+            </div>
+            <pre id="extracted-novel-mode" style="white-space: pre-wrap; word-wrap: break-word; color: #e0dcd1; font-size: 12px; padding: 10px; background: rgba(0, 0, 0, 0.2); border-radius: 4px; min-height: 50px;">小说模式已关闭</pre>
+          </div>
+          <div class="panel-section">
+            <div class="section-title" style="display: flex; justify-content: space-between; align-items: center">
+              <span>提取角色</span>
+              <button id="btn-write-character-card" class="interaction-btn" style="padding: 4px 8px; font-size: 12px; margin-left: 10px">写入世界书</button>
+            </div>
+            <pre id="extracted-character-card" style="white-space: pre-wrap; word-wrap: break-word; color: #e0dcd1; font-size: 12px; padding: 10px; background: rgba(0, 0, 0, 0.2); border-radius: 4px; min-height: 50px;">无内容</pre>
+          </div>
+          <div class="auto-write-section">
+            <input type="checkbox" id="novel-mode-enabled-checkbox" />
+            <label for="novel-mode-enabled-checkbox" class="auto-write-label">开启小说模式</label>
+            <input type="checkbox" id="auto-write-checkbox" checked style="margin-left: 20px" />
+            <label for="auto-write-checkbox" class="auto-write-label">自动写入历程/涟漪</label>
+          </div>
+          <details class="panel-section" style="margin-top: 15px">
+            <summary class="section-title" style="cursor: pointer; list-style: none">
+              <span>本次变量改变</span>
+            </summary>
+            <pre id="extracted-variable-changes" style="white-space: pre-wrap; word-wrap: break-word; color: #e0dcd1; font-size: 12px; padding: 10px; background: rgba(0, 0, 0, 0.2); border-radius: 4px; min-height: 50px;">无内容</pre>
+          </details>
+        </div>
+      </div>
+    </div>
+    <div id="guixu-system-modal" class="modal-overlay">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2 class="modal-title">归墟系统</h2>
+          <button class="modal-close-btn">&times;</button>
+        </div>
+        <div class="modal-body"><!-- 动态填充 --></div>
+      </div>
+    </div>
+    <!-- 新增：角色详情模态框 -->
+    <div id="character-details-modal" class="modal-overlay">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2 class="modal-title">角色详情</h2>
+          <button class="modal-close-btn">&times;</button>
+        </div>
+        <div class="modal-body"><!-- 动态填充 --></div>
+      </div>
+    </div>
+
+    <!-- 新增：交易面板模态框 -->
+    <div id="trade-modal" class="modal-overlay">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2 class="modal-title">交易面板</h2>
+          <button class="modal-close-btn">&times;</button>
+        </div>
+        <div class="modal-body"><!-- 动态填充 --></div>
+      </div>
+    </div>
+
+    <div id="equipment-tooltip"></div>
+    <div id="custom-confirm-modal" class="modal-overlay">
+      <div class="modal-content confirm-modal-content">
+        <div id="custom-confirm-message" class="confirm-modal-message"></div>
+        <div class="confirm-modal-buttons">
+          <button id="custom-confirm-btn-ok" class="interaction-btn primary-btn">确认</button>
+          <button id="custom-confirm-btn-cancel" class="interaction-btn">取消</button>
+        </div>
+      </div>
+    </div>
+    <div id="quick-command-popup"></div>
+    <div id="save-load-modal" class="modal-overlay">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2 class="modal-title">存档管理</h2>
+          <div style="display: flex; gap: 10px; margin-left: auto;">
+            <button id="btn-import-save" class="interaction-btn">导入存档</button>
+            <button id="btn-clear-all-saves" class="clear-saves-btn">清除所有存档</button>
+          </div>
+          <button class="modal-close-btn" style="margin-left: 15px;">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="auto-save-section">
+            <div class="auto-save-title">自动存档</div>
+            <div class="auto-save-toggle">
+              <label for="auto-save-checkbox">开启自动存档</label>
+              <input type="checkbox" id="auto-save-checkbox" />
+            </div>
+          </div>
+          <div id="auto-save-slot-container" style="margin-bottom: 15px;"></div>
+          <h3 style="font-size: 14px; color: #8b7355; margin-top: 20px; margin-bottom: 10px; border-top: 1px solid rgba(201, 170, 113, 0.3); padding-top: 15px;">手动存档</h3>
+          <div id="save-slots-container"></div>
+        </div>
+      </div>
+    </div>
+    <div id="trim-journey-modal" class="modal-overlay">
+      <div class="modal-content" style="width: 500px; height: auto;">
+        <div class="modal-header">
+          <h2 class="modal-title">自动化系统修剪</h2>
+          <button class="modal-close-btn">&times;</button>
+        </div>
+        <div class="modal-body" style="padding: 20px;">
+          <p style="color: #a09c91; font-size: 14px; margin-bottom: 20px;">
+            此功能将移除“本世历程”中除最近两个事件外的所有“自动化系统”内容，以优化性能和减少干扰。
+          </p>
+          <div class="panel-section">
+            <div class="section-title">修剪选项</div>
+            <div class="attributes-list" style="padding: 10px;">
+              <div class="attribute-item">
+                <span class="attribute-name">读取/写入序号</span>
+                <input type="number" id="trim-journey-index-input" value="1" min="1" style="width: 80px; background: rgba(0,0,0,0.5); border: 1px solid #8b7355; color: #e0dcd1; border-radius: 4px; padding: 4px; font-size: 12px;">
+              </div>
+            </div>
+          </div>
+          <div class="confirm-modal-buttons" style="margin-top: 20px;">
+            <button id="btn-confirm-trim" class="interaction-btn primary-btn">确认修剪</button>
+            <button id="btn-cancel-trim" class="interaction-btn">取消</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div id="settings-modal" class="modal-overlay">
+      <div class="modal-content" style="max-width: 600px;">
+        <div class="modal-header">
+          <h2 class="modal-title">设置中心</h2>
+          <button class="modal-close-btn">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="panel-section">
+            <div class="section-title">背景图</div>
+            <div class="attributes-list" style="padding: 10px;">
+              <div class="attribute-item" style="gap:8px; align-items:center;">
+                <span class="attribute-name" style="min-width:70px;">背景库</span>
+                <select id="pref-bg-select" style="flex:1; background: rgba(0,0,0,0.5); border: 1px solid #8b7355; color: #e0dcd1; border-radius: 4px; padding: 6px; font-size: 12px;">
+                  <option value="">（未选择）</option>
+                </select>
+                <button id="pref-bg-upload" class="interaction-btn" style="padding: 4px 8px; font-size: 12px;">本地上传</button>
+                <button id="pref-bg-delete" class="interaction-btn danger-btn" style="padding: 4px 8px; font-size: 12px;">删除背景</button>
+                <button id="pref-bg-clear" class="interaction-btn" style="padding: 4px 8px; font-size: 12px;">清除背景</button>
+              </div>
+              <div class="attribute-item" style="margin-top:8px;">
+                <div id="pref-bg-preview" class="bg-preview" style="width:100%;"></div>
+              </div>
+            </div>
+          </div>
+          <div class="panel-section">
+            <div class="section-title">背景遮罩透明度</div>
+            <div class="attributes-list" style="padding: 10px;">
+              <div class="attribute-item" style="gap:10px; align-items:center;">
+                <input id="pref-bg-mask" type="range" min="0" max="0.8" step="0.01" style="flex:1;">
+                <span id="pref-bg-mask-val" class="attribute-value">0.70</span>
+              </div>
+            </div>
+          </div>
+          <div class="panel-section">
+            <div class="section-title">背景显示方式</div>
+            <div class="attributes-list" style="padding: 10px;">
+              <div class="attribute-item" style="gap:10px; align-items:center;">
+                <select id="pref-bg-fit-mode" style="flex:1; background: rgba(0,0,0,0.5); border: 1px solid #8b7355; color: #e0dcd1; border-radius: 4px; padding: 6px; font-size: 12px;">
+                  <option value="cover">拉伸填充（cover）</option>
+                  <option value="contain">完整适配（contain）</option>
+                  <option value="repeat">平铺（repeat）</option>
+                  <option value="stretch">拉伸至满屏（100% x 100%）</option>
+                  <option value="center">原尺寸居中</option>
+                </select>
+          </div>
+        </div>
+      </div>
+      <div class="panel-section">
+        <div class="section-title">背景压缩</div>
+        <div class="attributes-list" style="padding: 10px;">
+          <div class="attribute-item" style="gap:10px; align-items:center;">
+            <span class="attribute-name" style="min-width:90px;">质量</span>
+            <input id="pref-bg-quality" type="range" min="0.6" max="1.0" step="0.01" value="0.90" style="flex:1;">
+            <span id="pref-bg-quality-val" class="attribute-value">0.90</span>
+          </div>
+          <div class="attribute-item" style="gap:8px; align-items:center;">
+            <input id="pref-bg-keep-size" type="checkbox" />
+            <label for="pref-bg-keep-size" class="auto-write-label">保留原始尺寸（不缩放）</label>
+          </div>
+        </div>
+      </div>
+      <div class="panel-section">
+        <div class="section-title">故事文本字号</div>
+            <div class="attributes-list" style="padding: 10px;">
+              <div class="attribute-item" style="gap:10px; align-items:center;">
+                <input id="pref-story-font-size" type="range" min="12" max="20" step="1" style="flex:1;">
+                <span id="pref-story-font-size-val" class="attribute-value">14px</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel-section">
+            <div class="section-title">桌面视图分辨率（窗口模式，仅桌面端）</div>
+            <div class="attributes-list" style="padding: 10px; gap:8px;">
+              <div class="attribute-item" style="gap:8px; align-items:center;">
+                <span class="attribute-name" style="min-width:90px;">预设</span>
+                <select id="pref-ui-res-preset" style="flex:1; background: rgba(0,0,0,0.5); border: 1px solid #8b7355; color: #e0dcd1; border-radius: 4px; padding: 6px; font-size: 12px;">
+                  <option value="keep">跟随默认(900x600)</option>
+                  <option value="1024x576">1024 x 576</option>
+                  <option value="1280x720">1280 x 720</option>
+                  <option value="1366x768">1366 x 768</option>
+                  <option value="1600x900">1600 x 900</option>
+                  <option value="1920x1080">1920 x 1080</option>
+                  <option value="2560x1440">2560 x 1440</option>
+                  <option value="custom">自定义</option>
+                </select>
+              </div>
+              <div class="attribute-item" style="gap:8px; align-items:center;">
+                <span class="attribute-name" style="min-width:90px;">自定义</span>
+                <input id="pref-ui-res-width" type="number" min="300" max="7680" placeholder="宽" style="width:100px; background: rgba(0,0,0,0.5); border: 1px solid #8b7355; color: #e0dcd1; border-radius: 4px; padding: 6px; font-size: 12px;">
+                <span class="attribute-name">x</span>
+                <input id="pref-ui-res-height" type="number" min="200" max="4320" placeholder="高" style="width:100px; background: rgba(0,0,0,0.5); border: 1px solid #8b7355; color: #e0dcd1; border-radius: 4px; padding: 6px; font-size: 12px;">
+                <span class="attribute-name" style="font-size: 11px; color: #8b7355;">（选择“自定义”后可用）</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="command-center-footer">
+          <button id="pref-reset-defaults" class="interaction-btn">恢复默认</button>
+          <div>
+            <button id="pref-apply" class="interaction-btn">应用</button>
+            <button id="pref-save-close" class="interaction-btn primary-btn" style="margin-left: 10px;">保存并关闭</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div id="statuses-modal" class="modal-overlay">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2 class="modal-title">状态一览</h2>
+          <input id="statuses-search-input" type="text" placeholder="搜索状态..." style="margin-left:auto; background: rgba(0,0,0,0.5); border: 1px solid #8b7355; color: #e0dcd1; border-radius: 4px; padding: 6px; font-size: 12px; width: 220px;">
+          <button class="modal-close-btn">&times;</button>
+        </div>
+        <div class="modal-body"><!-- 动态填充 --></div>
+      </div>
+    </div>
+    <input type="file" id="import-file-input" style="display: none;" accept=".json" />
+  </div>
+  </div>
+
+  <!-- 加载模块化脚本（按依赖顺序） -->
+  <script src="https://sparkling-hummingbird-1a2fc4.netlify.app/归墟/js/utils/constants.js"></script>
+  <script src="https://sparkling-hummingbird-1a2fc4.netlify.app/归墟/js/utils/tradeCalculator.js"></script>
+  <script src="https://sparkling-hummingbird-1a2fc4.netlify.app/归墟/js/utils/dom.js"></script>
+  <script src="https://sparkling-hummingbird-1a2fc4.netlify.app/归墟/js/utils/helpers.js"></script>
+  <script src="https://sparkling-hummingbird-1a2fc4.netlify.app/归墟/js/utils/renderers.js"></script>
+  <script src="https://sparkling-hummingbird-1a2fc4.netlify.app/归墟/js/core/TavernAPI.js"></script>
+  
+  <!-- 加载服务层脚本 -->
+  <script src="https://sparkling-hummingbird-1a2fc4.netlify.app/归墟/js/services/state.js"></script>
+  <script src="https://sparkling-hummingbird-1a2fc4.netlify.app/归墟/js/services/attributes.js"></script>
+  <script src="https://sparkling-hummingbird-1a2fc4.netlify.app/归墟/js/services/lorebook.js"></script>
+  <script src="https://sparkling-hummingbird-1a2fc4.netlify.app/归墟/js/services/action.js"></script>
+
+  <!-- 组件脚本（在 UI 协调器之前加载） -->
+  <script src="https://sparkling-hummingbird-1a2fc4.netlify.app/归墟/js/components/modal.js"></script>
+  <script src="https://sparkling-hummingbird-1a2fc4.netlify.app/归墟/js/components/settings.js"></script>
+  <script src="https://sparkling-hummingbird-1a2fc4.netlify.app/归墟/js/components/statuses.js"></script>
+  <script src="https://sparkling-hummingbird-1a2fc4.netlify.app/归墟/js/components/inventory.js"></script>
+  <script src="https://sparkling-hummingbird-1a2fc4.netlify.app/归墟/js/components/relationships.js"></script>
+  <script src="https://sparkling-hummingbird-1a2fc4.netlify.app/归墟/js/components/command-center.js"></script>
+  <script src="https://sparkling-hummingbird-1a2fc4.netlify.app/归墟/js/components/extracted-content.js"></script>
+  <script src="https://sparkling-hummingbird-1a2fc4.netlify.app/归墟/js/components/guixu-system.js"></script>
+  <script src="https://sparkling-hummingbird-1a2fc4.netlify.app/归墟/js/components/journey.js"></script>
+  <script src="https://sparkling-hummingbird-1a2fc4.netlify.app/归墟/js/components/past-lives.js"></script>
+  <script src="https://sparkling-hummingbird-1a2fc4.netlify.app/归墟/js/components/cultivation-panel.js"></script>
+
+  <script src="https://sparkling-hummingbird-1a2fc4.netlify.app/归墟/js/components/intro-modal.js"></script>
+  <script src="https://sparkling-hummingbird-1a2fc4.netlify.app/归墟/js/main.js"></script>
+</body>
+
+</html>
