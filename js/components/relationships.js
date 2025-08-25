@@ -3505,6 +3505,120 @@
       return false;
     },
 
+    // 根据当前 MVU 定位 NPC（兼容对象字典/数组包装/字符串化）
+    _locateNpcInState(stat_data, rel) {
+      try {
+        const h = window.GuixuHelpers;
+        const norm = (v) => {
+          if (v === undefined || v === null) return '';
+          try { return String(v).trim().toLowerCase(); } catch { return ''; }
+        };
+        let container = stat_data && stat_data['人物关系列表'];
+        try {
+          if (typeof container === 'string') {
+            const s = container.trim();
+            if ((s.startsWith('{') && s.endsWith('}')) || (s.startsWith('[') && s.endsWith(']'))) {
+              container = JSON.parse(s);
+            }
+          }
+        } catch (_) { }
+        const relKey = h.SafeGetValue(rel, '__key', null);
+        const relId = h.SafeGetValue(rel, 'id', h.SafeGetValue(rel, 'uid', null));
+        const relName = h.SafeGetValue(rel, 'name', null);
+        const rid = norm(relId);
+        const rname = norm(relName);
+
+        // 对象字典优先
+        if (container && typeof container === 'object' && !Array.isArray(container)) {
+          // 1) __key 直击
+          if (relKey && Object.prototype.hasOwnProperty.call(container, relKey)) {
+            const ov = container[relKey];
+            const obj = (typeof ov === 'string') ? (()=>{try{return JSON.parse(ov);}catch{return ov;}})() : (ov || {});
+            return { containerType: 'object', matchKeyOrIdx: relKey, relObj: (typeof obj === 'object' ? obj : {}), originalRelEntry: ov };
+          }
+          // 2) name 作为键名匹配
+          if (relName && Object.prototype.hasOwnProperty.call(container, relName)) {
+            const ov = container[relName];
+            const obj = (typeof ov === 'string') ? (()=>{try{return JSON.parse(ov);}catch{return ov;}})() : (ov || {});
+            return { containerType: 'object', matchKeyOrIdx: relName, relObj: (typeof obj === 'object' ? obj : {}), originalRelEntry: ov };
+          }
+          // 2.5) id 作为键名（规范化）匹配
+          if (rid) {
+            try {
+              const keys = Object.keys(container).filter(k => k !== '$meta');
+              const hit = keys.find(k => norm(k) === rid);
+              if (hit) {
+                const ov = container[hit];
+                const obj = (typeof ov === 'string') ? (()=>{try{return JSON.parse(ov);}catch{return ov;}})() : (ov || {});
+                return { containerType: 'object', matchKeyOrIdx: hit, relObj: (typeof obj === 'object' ? obj : {}), originalRelEntry: ov };
+              }
+            } catch (_) {}
+          }
+          // 3) 扫描值按 id/name 匹配；值缺 name 时回退到键名
+          const entries = Object.entries(container).filter(([k]) => k !== '$meta');
+          for (const [k, v] of entries) {
+            let obj = v;
+            try { obj = (typeof v === 'string') ? JSON.parse(v) : v; } catch { obj = v; }
+            if (!obj) continue;
+            const oid = norm(h.SafeGetValue(obj, 'id', h.SafeGetValue(obj, 'uid', null)));
+            const onameRaw = h.SafeGetValue(obj, 'name', null);
+            const oname = norm(onameRaw);
+            const missingName = !oname || oname === 'n/a';
+            if (rid && oid && rid === oid) {
+              return { containerType: 'object', matchKeyOrIdx: k, relObj: (typeof obj === 'object' ? obj : {}), originalRelEntry: v };
+            }
+            if (rname && !missingName && rname === oname) {
+              return { containerType: 'object', matchKeyOrIdx: k, relObj: (typeof obj === 'object' ? obj : {}), originalRelEntry: v };
+            }
+            if (rname && missingName && rname === norm(k)) {
+              return { containerType: 'object', matchKeyOrIdx: k, relObj: (typeof obj === 'object' ? obj : {}), originalRelEntry: v };
+            }
+            // 允许用 id 匹配键名（当值缺少 id/name 时）
+            if (rid && norm(k) === rid) {
+              return { containerType: 'object', matchKeyOrIdx: k, relObj: (typeof obj === 'object' ? obj : {}), originalRelEntry: v };
+            }
+          }
+          // 4) 使用 readList 兜底（借助 __key 反查）
+          try {
+            const arr = h.readList(stat_data, '人物关系列表') || [];
+            const found = arr.find(o => {
+              try {
+                const oid = norm(h.SafeGetValue(o, 'id', h.SafeGetValue(o, 'uid', null)));
+                const oname = norm(h.SafeGetValue(o, 'name', null));
+                return (rid && oid && rid === oid) || (rname && oname && rname === oname);
+              } catch { return false; }
+            });
+            const key = h.SafeGetValue(found || {}, '__key', null);
+            if (key && Object.prototype.hasOwnProperty.call(container, key)) {
+              const ov = container[key];
+              let obj = ov;
+              try { obj = (typeof ov === 'string') ? JSON.parse(ov) : ov; } catch { }
+              return { containerType: 'object', matchKeyOrIdx: key, relObj: (typeof obj === 'object' ? obj : {}), originalRelEntry: ov };
+            }
+          } catch (_) { }
+        }
+
+        // 旧数组包装
+        const list = (container && Array.isArray(container) && Array.isArray(container[0])) ? container[0] : [];
+        if (Array.isArray(list)) {
+          for (let i = 0; i < list.length; i++) {
+            const entry = list[i];
+            let obj = entry;
+            try { obj = (typeof entry === 'string') ? JSON.parse(entry) : entry; } catch { obj = entry; }
+            if (!obj) continue;
+            const oid = norm(h.SafeGetValue(obj, 'id', h.SafeGetValue(obj, 'uid', null)));
+            const oname = norm(h.SafeGetValue(obj, 'name', null));
+            if (rid && oid && rid === oid) return { containerType: 'array', matchKeyOrIdx: i, relObj: (typeof obj === 'object' ? obj : {}), originalRelEntry: entry };
+            if (rname && oname && rname === oname) return { containerType: 'array', matchKeyOrIdx: i, relObj: (typeof obj === 'object' ? obj : {}), originalRelEntry: entry };
+          }
+        }
+
+        return null;
+      } catch (_e) {
+        return null;
+      }
+    },
+
     // 将出售结果写回 MVU：增加玩家灵石、从玩家包减少/移除该物品、NPC 物品列表加入/叠加、NPC 灵石减少
     async _applySellTransaction(rel, item, offer) {
       const _ = window.GuixuAPI?.lodash || window._ || {
@@ -3548,15 +3662,27 @@
       const relId = h.SafeGetValue(rel, 'id', null);
       const relName = h.SafeGetValue(rel, 'name', null);
       let relObj, originalRelEntry, containerType = 'array', matchKeyOrIdx = -1;
+      const __loc = RelationshipsComponent._locateNpcInState(stat_data, rel);
+      if (__loc) {
+        containerType = __loc.containerType;
+        matchKeyOrIdx = __loc.matchKeyOrIdx;
+        relObj = __loc.relObj;
+        originalRelEntry = __loc.originalRelEntry;
+      }
 
-      if (container && typeof container === 'object' && container.$meta && container.$meta.extensible === true) {
+      if (!__loc && container && typeof container === 'object' && container.$meta && container.$meta.extensible === true) {
         containerType = 'object';
         const entries = Object.entries(container).filter(([k]) => k !== '$meta');
+        const relKey = h.SafeGetValue(rel, '__key', null);
         const found = entries.findIndex(([k, v]) => {
           try {
+            // 新MVU对象字典：优先以字典键匹配（__key 或 name == 键名）
+            if (relKey && String(k) === String(relKey)) return true;
             const obj = typeof v === 'string' ? JSON.parse(v) : v;
             if (relId != null) return h.SafeGetValue(obj, 'id', null) === relId;
-            return h.SafeGetValue(obj, 'name', null) === relName;
+            const objName = h.SafeGetValue(obj, 'name', null);
+            if ((objName == null || objName === 'N/A' || objName === '') && relName && String(k) === String(relName)) return true;
+            return objName === relName;
           } catch { return false; }
         });
         if (found === -1) throw new Error('在人物关系列表中未找到该角色');
@@ -3564,8 +3690,8 @@
         matchKeyOrIdx = mk;
         originalRelEntry = ov;
         relObj = (typeof ov === 'string') ? JSON.parse(ov) : (ov || {});
-      } else {
-        const list = (stat_data?.['人物关系列表']?.[0]) || [];
+      } else if (!__loc) {
+        const list = (stat_data?.['人物关系列表']?.[0]) || []
         if (!Array.isArray(list)) throw new Error('人物关系列表结构异常');
         const idx = list.findIndex(entry => {
           try {
@@ -3584,21 +3710,17 @@
       if (offer > npcStones) throw new Error('对方灵石不足');
       relObj['灵石'] = npcStones - offer;
 
-      // 从玩家背包中移除该物品（智能分类：与购买时保持一致的分类逻辑）
+      // 从玩家背包中移除该物品（智能分类，优先兼容新MVU对象字典）
       const getSmartItemCategoryForSell = (item) => {
         // 优先使用显式的 type 字段
         const explicitType = h.SafeGetValue(item, 'type', null);
-        if (explicitType && explicitType !== '其他') {
-          return explicitType;
-        }
+        if (explicitType && explicitType !== '其他') return explicitType;
 
-        // 基于名称和描述进行智能分类（与购买逻辑保持一致）
+        // 基于名称与描述的关键词分类（与购买逻辑保持一致）
         const itemName = (h.SafeGetValue(item, 'name', '') || '').toLowerCase();
         const itemDesc = (h.SafeGetValue(item, 'description', '') || '').toLowerCase();
         const itemEffect = (h.SafeGetValue(item, 'effect', '') || '').toLowerCase();
         const text = `${itemName} ${itemDesc} ${itemEffect}`;
-
-        // 物品分类关键词匹配
         const categoryKeywords = {
           '丹药': ['丹', '药', '丹药', '灵药', '仙丹', '药丸', '药液', '药膏', '疗伤', '回血', '回蓝', '恢复'],
           '武器': ['剑', '刀', '枪', '弓', '剑法', '刀法', '武器', '兵器', '长剑', '宝剑', '战刀', '长枪', '弯弓'],
@@ -3608,22 +3730,12 @@
           '功法': ['功法', '心法', '秘籍', '经', '诀', '术', '功', '法', '真经', '宝典'],
           '材料': ['材料', '矿', '石', '木', '草', '花', '兽', '皮', '骨', '精', '血', '矿石', '灵草']
         };
-
-        // 按优先级检查分类（丹药优先级最高，因为最容易误分类）
         const priorityOrder = ['丹药', '武器', '防具', '饰品', '法宝', '功法', '材料'];
-
-        for (const category of priorityOrder) {
-          const keywords = categoryKeywords[category];
-          for (const keyword of keywords) {
-            if (text.includes(keyword)) {
-              return category;
-            }
-          }
+        for (const cat of priorityOrder) {
+          if (categoryKeywords[cat].some(k => text.includes(k))) return cat;
         }
-
         return '其他';
       };
-
       const mapTypeToListKey = (typ) => {
         switch (String(typ || '其他')) {
           case '功法': return '功法列表';
@@ -3632,74 +3744,115 @@
           case '饰品': return '饰品列表';
           case '法宝': return '法宝列表';
           case '丹药': return '丹药列表';
-          case '材料': return '其他列表'; // 材料暂时放入其他列表
+          case '材料': return '其他列表';
           case '其他':
           default: return '其他列表';
         }
       };
+      const normalize = (v) => {
+        if (v === null || v === undefined) return '';
+        try { return String(v).trim().toLowerCase(); } catch { return ''; }
+      };
+      const targetId = normalize(h.SafeGetValue(item, 'id', h.SafeGetValue(item, 'uid', '')));
+      const targetName = normalize(h.SafeGetValue(item, 'name', null));
+      const sellQuantity = Number(h.SafeGetValue(item, 'sellQuantity', 1)) || 1;
 
-      // 优先使用由前端传入的 __userRef 信息（包含原 listKey 与索引），避免重复查找失败
-      let userListKey = mapTypeToListKey(getSmartItemCategoryForSell(item));
-      let userListPath = `${userListKey}.0`;
-      // 确保包装层存在（{类别}列表 为 [ [] ] 结构）
-      if (!Array.isArray(_.get(stat_data, userListKey))) {
-        _.set(stat_data, userListKey, [[]]);
+      // 可能的背包分类（优先使用 __userRef.listKey，其次根据智能分类映射）
+      const candidateKeys = [];
+      if (item && item.__userRef && item.__userRef.listKey) candidateKeys.push(item.__userRef.listKey);
+      const guessedKey = mapTypeToListKey(getSmartItemCategoryForSell(item));
+      if (!candidateKeys.includes(guessedKey)) candidateKeys.push(guessedKey);
+
+      // 先尝试在“对象字典容器”中扣减/删除
+      let removed = false;
+      for (const key of candidateKeys) {
+        const cont = stat_data[key];
+        const isDict = cont && typeof cont === 'object' && !Array.isArray(cont) && cont.$meta && cont.$meta.extensible === true;
+        if (!isDict) continue;
+        try {
+          let matchedKey = null;
+          let originalVal;
+          let parsedObj = null;
+          for (const [k, v] of Object.entries(cont)) {
+            if (k === '$meta') continue;
+            let obj = v;
+            try { obj = (typeof v === 'string') ? JSON.parse(v) : v; } catch { obj = v; }
+            const cid = normalize(h.SafeGetValue(obj, 'id', h.SafeGetValue(obj, 'uid', '')));
+            const cname = normalize(h.SafeGetValue(obj, 'name', null));
+            if ((targetId && cid && cid === targetId) || (targetName && cname && cname === targetName)) {
+              matchedKey = k;
+              originalVal = v;
+              parsedObj = obj;
+              break;
+            }
+          }
+          if (matchedKey) {
+            const curQ = Number(h.SafeGetValue(parsedObj, 'quantity', 1)) || 1;
+            const left = Math.max(0, curQ - sellQuantity);
+            if (left > 0) {
+              parsedObj.quantity = left;
+              cont[matchedKey] = (typeof originalVal === 'string') ? JSON.stringify(parsedObj) : parsedObj;
+            } else {
+              delete cont[matchedKey];
+            }
+            removed = true;
+            break;
+          }
+        } catch (_) { /* continue */ }
       }
-      let userArr = _.get(stat_data, userListPath, []);
-      if (!Array.isArray(userArr)) throw new Error('玩家背包结构异常');
 
-      let uIdx = -1;
-      let originalEntry = null;
+      // 若对象字典未找到，再兼容旧数组包装 [ [ ... ] ]
+      if (!removed) {
+        let userListKey = candidateKeys[0];
+        let userListPath = `${userListKey}.0`;
+        // 确保包装层存在
+        if (!Array.isArray(_.get(stat_data, userListKey))) {
+          _.set(stat_data, userListKey, [[]]);
+        }
+        let userArr = _.get(stat_data, userListPath, []);
+        if (!Array.isArray(userArr)) throw new Error('玩家背包结构异常');
 
-      if (item && item.__userRef && item.__userRef.listKey) {
-        // 使用前端找到的引用信息
-        userListKey = item.__userRef.listKey;
-        userListPath = `${userListKey}.0`;
-        userArr = _.get(stat_data, userListPath, []);
-        if (Array.isArray(userArr)) {
-          const possibleIdx = Number(item.__userRef.uIdx);
-          if (!Number.isNaN(possibleIdx) && possibleIdx >= 0 && possibleIdx < userArr.length) {
-            uIdx = possibleIdx;
+        let uIdx = -1;
+        let originalEntry = null;
+
+        if (item && item.__userRef && Number.isInteger(item.__userRef.uIdx)) {
+          const i = Number(item.__userRef.uIdx);
+          if (i >= 0 && i < userArr.length) {
+            uIdx = i;
             originalEntry = userArr[uIdx];
           }
         }
-      }
-
-      // 如果仍未定位到索引，则做保底查找（兼容字符串化条目与 name/id 匹配）
-      if (uIdx === -1) {
-        const itemId = h.SafeGetValue(item, 'id', h.SafeGetValue(item, 'uid', ''));
-        const itemName = h.SafeGetValue(item, 'name', null);
-        for (let i = 0; i < userArr.length; i++) {
-          const entry = userArr[i];
-          if (!entry || entry === '$__META_EXTENSIBLE__$') continue;
-          try {
-            const it = typeof entry === 'string' ? JSON.parse(entry) : entry;
-            const eid = h.SafeGetValue(it, 'id', h.SafeGetValue(it, 'uid', ''));
-            const ename = h.SafeGetValue(it, 'name', null);
-            if ((eid && String(eid) === String(itemId)) || (ename && itemName && String(ename) === String(itemName))) {
-              uIdx = i;
-              originalEntry = entry;
-              break;
-            }
-          } catch { continue; }
+        if (uIdx === -1) {
+          for (let i = 0; i < userArr.length; i++) {
+            const entry = userArr[i];
+            if (!entry || entry === '$__META_EXTENSIBLE__$') continue;
+            try {
+              const it = typeof entry === 'string' ? JSON.parse(entry) : entry;
+              const eid = normalize(h.SafeGetValue(it, 'id', h.SafeGetValue(it, 'uid', '')));
+              const ename = normalize(h.SafeGetValue(it, 'name', null));
+              if ((targetId && eid && eid === targetId) || (targetName && ename && ename === targetName)) {
+                uIdx = i;
+                originalEntry = entry;
+                break;
+              }
+            } catch { /* ignore */ }
+          }
         }
+        if (uIdx === -1) throw new Error('玩家物品不存在');
+
+        // 解析条目，按原始类型写回，并处理批量出售数量
+        let parsedEntry = {};
+        try { parsedEntry = typeof originalEntry === 'string' ? JSON.parse(originalEntry) : originalEntry; } catch { parsedEntry = {}; }
+        const sellQCur = Number(h.SafeGetValue(parsedEntry, 'quantity', 1)) || 1;
+
+        if (sellQCur > sellQuantity) {
+          parsedEntry.quantity = sellQCur - sellQuantity;
+          userArr[uIdx] = (typeof originalEntry === 'string') ? JSON.stringify(parsedEntry) : parsedEntry;
+        } else {
+          userArr.splice(uIdx, 1);
+        }
+        _.set(stat_data, userListPath, userArr);
       }
-
-      if (uIdx === -1) throw new Error('玩家物品不存在');
-
-      // 解析条目，按原始类型写回，并处理批量出售数量
-      let parsedEntry = {};
-      try { parsedEntry = typeof originalEntry === 'string' ? JSON.parse(originalEntry) : originalEntry; } catch { parsedEntry = {}; }
-      const sellQ = Number(h.SafeGetValue(parsedEntry, 'quantity', 1)) || 1;
-      const sellQuantity = Number(h.SafeGetValue(item, 'sellQuantity', 1)) || 1;
-
-      if (sellQ > sellQuantity) {
-        parsedEntry.quantity = sellQ - sellQuantity;
-        userArr[uIdx] = (typeof originalEntry === 'string') ? JSON.stringify(parsedEntry) : parsedEntry;
-      } else {
-        userArr.splice(uIdx, 1);
-      }
-      _.set(stat_data, userListPath, userArr);
 
       // NPC 物品列表加入/叠加
       // 统一 NPC 物品容器
@@ -3769,17 +3922,23 @@
       // relObj.物品列表 已经通过引用被修改
 
       // 写回人物（保持与原类型一致）
+      // 统一安全写回（兼容：对象字典原容器为字符串/对象；旧数组包装）
       if (containerType === 'object') {
-        stat_data['人物关系列表'][matchKeyOrIdx] = undefined; // no-op to avoid accidental creation
+        const wasStringContainer = (typeof stat_data['人物关系列表'] === 'string');
+        let dict;
+        try {
+          dict = wasStringContainer ? JSON.parse(stat_data['人物关系列表']) : stat_data['人物关系列表'];
+        } catch (_) { dict = {}; }
+        if (!dict || typeof dict !== 'object' || Array.isArray(dict)) dict = {};
         const v = (typeof originalRelEntry === 'string') ? JSON.stringify(relObj) : relObj;
-        stat_data['人物关系列表'][matchKeyOrIdx] = v; // for completeness if engine supports bracket access
-        // 直接修改 container
-        const cont = stat_data['人物关系列表'];
-        cont[matchKeyOrIdx] = v;
+        dict[matchKeyOrIdx] = v;
+        stat_data['人物关系列表'] = wasStringContainer ? JSON.stringify(dict) : dict;
       } else {
-        const list = stat_data['人物关系列表'][0];
+        // 旧结构 [ [ ... ] ]：保持包装层
+        const wrap = Array.isArray(stat_data['人物关系列表']) ? stat_data['人物关系列表'] : [[]];
+        const list = Array.isArray(wrap[0]) ? wrap[0] : [];
         list[matchKeyOrIdx] = (typeof originalRelEntry === 'string') ? JSON.stringify(relObj) : relObj;
-        stat_data['人物关系列表'][0] = list;
+        stat_data['人物关系列表'] = [list];
       }
 
       // 保存（当前楼层 + 0 楼），带错误捕获与调试输出
@@ -4109,15 +4268,27 @@
       const relId = h.SafeGetValue(rel, 'id', null);
       const relName = h.SafeGetValue(rel, 'name', null);
       let relObj, originalRelEntry, containerType = 'array', matchKeyOrIdx = -1;
+      const __loc = RelationshipsComponent._locateNpcInState(stat_data, rel);
+      if (__loc) {
+        containerType = __loc.containerType;
+        matchKeyOrIdx = __loc.matchKeyOrIdx;
+        relObj = __loc.relObj;
+        originalRelEntry = __loc.originalRelEntry;
+      }
 
-      if (container && typeof container === 'object' && container.$meta && container.$meta.extensible === true) {
+      if (!__loc && container && typeof container === 'object' && container.$meta && container.$meta.extensible === true) {
         containerType = 'object';
         const entries = Object.entries(container).filter(([k]) => k !== '$meta');
+        const relKey = h.SafeGetValue(rel, '__key', null);
         const found = entries.findIndex(([k, v]) => {
           try {
+            // 新MVU对象字典：优先以字典键匹配（__key 或 name == 键名）
+            if (relKey && String(k) === String(relKey)) return true;
             const obj = typeof v === 'string' ? JSON.parse(v) : v;
             if (relId != null) return h.SafeGetValue(obj, 'id', null) === relId;
-            return h.SafeGetValue(obj, 'name', null) === relName;
+            const objName = h.SafeGetValue(obj, 'name', null);
+            if ((objName == null || objName === 'N/A' || objName === '') && relName && String(k) === String(relName)) return true;
+            return objName === relName;
           } catch { return false; }
         });
         if (found === -1) throw new Error('在人物关系列表中未找到该角色');
@@ -4125,8 +4296,8 @@
         matchKeyOrIdx = mk;
         originalRelEntry = ov;
         relObj = (typeof ov === 'string') ? JSON.parse(ov) : (ov || {});
-      } else {
-        const list = (stat_data?.['人物关系列表']?.[0]) || [];
+      } else if (!__loc) {
+        const list = (stat_data?.['人物关系列表']?.[0]) || []
         if (!Array.isArray(list)) throw new Error('人物关系列表结构异常');
         const idx = list.findIndex(entry => {
           try {
@@ -4188,17 +4359,27 @@
       }
 
       // 将更新后的 relObj 写回（保持与原类型一致）
+      // 统一安全写回（兼容：对象字典原容器为字符串/对象；旧数组包装）
       if (containerType === 'object') {
+        const wasStringContainer = (typeof stat_data['人物关系列表'] === 'string');
+        let dict;
+        try {
+          dict = wasStringContainer ? JSON.parse(stat_data['人物关系列表']) : stat_data['人物关系列表'];
+        } catch (_) { dict = {}; }
+        if (!dict || typeof dict !== 'object' || Array.isArray(dict)) dict = {};
         const v = (typeof originalRelEntry === 'string') ? JSON.stringify(relObj) : relObj;
-        const cont = stat_data['人物关系列表'];
-        cont[matchKeyOrIdx] = v;
+        dict[matchKeyOrIdx] = v;
+        stat_data['人物关系列表'] = wasStringContainer ? JSON.stringify(dict) : dict;
       } else {
-        const list = stat_data['人物关系列表'][0];
+        // 旧结构 [ [ ... ] ]：保持包装层
+        const wrap = Array.isArray(stat_data['人物关系列表']) ? stat_data['人物关系列表'] : [[]];
+        const list = Array.isArray(wrap[0]) ? wrap[0] : [];
         list[matchKeyOrIdx] = (typeof originalRelEntry === 'string') ? JSON.stringify(relObj) : relObj;
-        stat_data['人物关系列表'][0] = list;
+        stat_data['人物关系列表'] = [list];
       }
 
       // 3) 加入玩家对应分类列表（使用统一的分类逻辑并自动修复type字段）
+      // 新MVU写入优先：对象字典 { $meta:{ extensible:true }, "物品名": { ... } }；兼容旧 [ [ ... ] ] 结构
 
       // 自动修复购买物品的type字段（防护机制）
       const fixedBought = this._fixItemType(JSON.parse(JSON.stringify(bought)));
@@ -4220,58 +4401,94 @@
 
       const itemType = fixedBought.type;
       const userListKey = mapTypeToListKey(itemType);
-      const userListPath = `${userListKey}.0`;
-      // 确保包装层存在（{类别}列表 为 [ [] ] 结构）
-      if (!Array.isArray(_.get(stat_data, userListKey))) {
-        _.set(stat_data, userListKey, [[]]);
-      }
-      const userList = _.get(stat_data, userListPath, []);
-      const arr = Array.isArray(userList) ? userList : [];
-      const boughtItemId = h.SafeGetValue(bought, 'id', h.SafeGetValue(bought, 'uid', ''));
-      const boughtItemName = h.SafeGetValue(bought, 'name', null);
 
-      // 如果已存在相同 id 或 name 的物品则叠加数量（使用归一化匹配并兼容字符串条目）
       const normalize = (v) => {
         if (v === null || v === undefined) return '';
         try { return String(v).trim().toLowerCase(); } catch { return ''; }
       };
-      const bId = normalize(boughtItemId);
-      const bName = normalize(boughtItemName);
-      const existIdx = arr.findIndex(entry => {
-        try {
-          let it;
-          if (typeof entry === 'string') {
-            try { it = JSON.parse(entry); } catch { it = { name: entry }; }
-          } else {
-            it = entry;
-          }
-          if (!it) return false;
-          const currentId = normalize(h.SafeGetValue(it, 'id', h.SafeGetValue(it, 'uid', '')));
-          const currentName = normalize(h.SafeGetValue(it, 'name', null));
-          if (bId && currentId && currentId === bId) return true;
-          if (bName && currentName && currentName === bName) return true;
-          return false;
-        } catch {
-          return false;
-        }
-      });
+      const bId = normalize(h.SafeGetValue(bought, 'id', h.SafeGetValue(bought, 'uid', '')));
+      const bName = normalize(h.SafeGetValue(bought, 'name', null));
 
-      if (existIdx !== -1) {
-        // 叠加数量
-        const originalEntry = arr[existIdx];
-        let parsedEntry;
-        try { parsedEntry = typeof originalEntry === 'string' ? JSON.parse(originalEntry) : originalEntry; } catch { parsedEntry = {}; }
-        const oldQ = Number(h.SafeGetValue(parsedEntry, 'quantity', 1)) || 1;
-        parsedEntry.quantity = oldQ + purchaseQuantity;
-        // 写回时保持原格式
-        arr[existIdx] = (typeof originalEntry === 'string') ? JSON.stringify(parsedEntry) : parsedEntry;
-      } else {
-        // 添加新物品
-        delete bought.quantity;
-        bought.quantity = purchaseQuantity;
-        arr.push(bought);
+      // 若不存在该分类容器，优先创建“对象字典”容器
+      if (!stat_data[userListKey]) {
+        stat_data[userListKey] = { $meta: { extensible: true } };
       }
-      _.set(stat_data, userListPath, arr);
+
+      const userListContainer = stat_data[userListKey];
+      const isDict = userListContainer && typeof userListContainer === 'object' && !Array.isArray(userListContainer) && userListContainer.$meta && userListContainer.$meta.extensible === true;
+
+      if (isDict) {
+        // 对象字典：按 id/name 在 value 中寻找匹配，存在则叠加数量，否则以“名称或ID”为键新增
+        let matchedKey = null;
+        let originalVal;
+        let parsedObj = null;
+        try {
+          for (const [k, v] of Object.entries(userListContainer)) {
+            if (k === '$meta') continue;
+            let obj = v;
+            try { obj = (typeof v === 'string') ? JSON.parse(v) : v; } catch { obj = v; }
+            const cid = normalize(h.SafeGetValue(obj, 'id', h.SafeGetValue(obj, 'uid', '')));
+            const cname = normalize(h.SafeGetValue(obj, 'name', null));
+            if ((bId && cid && cid === bId) || (bName && cname && cname === bName)) {
+              matchedKey = k;
+              originalVal = v;
+              parsedObj = obj;
+              break;
+            }
+          }
+        } catch (_) {}
+
+        if (matchedKey) {
+          const oldQ = Number(h.SafeGetValue(parsedObj, 'quantity', 1)) || 1;
+          parsedObj.quantity = oldQ + purchaseQuantity;
+          userListContainer[matchedKey] = (typeof originalVal === 'string') ? JSON.stringify(parsedObj) : parsedObj;
+        } else {
+          const keyName = h.SafeGetValue(fixedBought, 'name', h.SafeGetValue(fixedBought, 'id', '物品'));
+          const newObj = JSON.parse(JSON.stringify(fixedBought));
+          newObj.quantity = purchaseQuantity;
+          userListContainer[keyName] = newObj;
+        }
+      } else {
+        // 旧结构 [ [ ... ] ]：保持原有逻辑（兼容历史数据）
+        const userListPath = `${userListKey}.0`;
+        if (!Array.isArray(_.get(stat_data, userListKey))) {
+          _.set(stat_data, userListKey, [[]]);
+        }
+        const userList = _.get(stat_data, userListPath, []);
+        const arr = Array.isArray(userList) ? userList : [];
+        const existIdx = arr.findIndex(entry => {
+          try {
+            let it;
+            if (typeof entry === 'string') {
+              try { it = JSON.parse(entry); } catch { it = { name: entry }; }
+            } else {
+              it = entry;
+            }
+            if (!it) return false;
+            const currentId = normalize(h.SafeGetValue(it, 'id', h.SafeGetValue(it, 'uid', '')));
+            const currentName = normalize(h.SafeGetValue(it, 'name', null));
+            if (bId && currentId && currentId === bId) return true;
+            if (bName && currentName && currentName === bName) return true;
+            return false;
+          } catch {
+            return false;
+          }
+        });
+
+        if (existIdx !== -1) {
+          const originalEntry = arr[existIdx];
+          let parsedEntry;
+          try { parsedEntry = typeof originalEntry === 'string' ? JSON.parse(originalEntry) : originalEntry; } catch { parsedEntry = {}; }
+          const oldQ = Number(h.SafeGetValue(parsedEntry, 'quantity', 1)) || 1;
+          parsedEntry.quantity = oldQ + purchaseQuantity;
+          arr[existIdx] = (typeof originalEntry === 'string') ? JSON.stringify(parsedEntry) : parsedEntry;
+        } else {
+          const toPush = JSON.parse(JSON.stringify(fixedBought));
+          toPush.quantity = purchaseQuantity;
+          arr.push(toPush);
+        }
+        _.set(stat_data, userListPath, arr);
+      }
 
       // 4) 保存（当前楼层 + 0 楼），带错误捕获与调试输出
       const updates = [{ message_id: currentId, data: currentMvuState }];
