@@ -32,7 +32,7 @@
               stat_data = sd0;
               console.info('[归墟] 人物关系：使用 0 楼 mvu 数据只读展示。');
             }
-          } catch (_) {}
+          } catch (_) { }
         }
 
         if (window.GuixuMain && typeof window.GuixuMain._deepStripMeta === 'function') {
@@ -46,7 +46,7 @@
               stat_data = normalized.stat_data;
             }
           }
-        } catch (_) {}
+        } catch (_) { }
         if (!stat_data) {
           body.innerHTML = '<p class="modal-placeholder" style="text-align:center; color:#8b7355; font-size:12px;">无法获取人物关系数据。</p>';
           return;
@@ -85,12 +85,27 @@
 
           const name = h.SafeGetValue(rel, 'name', '未知之人');
           const tier = h.SafeGetValue(rel, 'tier', '凡人');
-          const level = h.SafeGetValue(rel, '等级', '');
+          const level = h.SafeGetValue(rel, 'level', h.SafeGetValue(rel, '等级', ''));
           const relationship = h.SafeGetValue(rel, 'relationship', 'NEUTRAL');
           const relationshipCN = RelationshipsComponent._toChineseRelationship(relationship);
-          const description = h.SafeGetValue(rel, 'description', '背景不详');
+          const description = h.SafeGetValue(rel, 'description', h.SafeGetValue(rel, '身份背景', '背景不详'));
           const favorability = parseInt(h.SafeGetValue(rel, 'favorability', 0), 10);
-          const eventHistory = rel.event_history || [];
+          const eventHistoryRaw = rel.event_history || [];
+          const eventHistory = Array.isArray(eventHistoryRaw)
+            ? eventHistoryRaw
+            : (eventHistoryRaw && typeof eventHistoryRaw === 'object'
+              ? Object.keys(eventHistoryRaw)
+                .filter(k => k !== '$meta' && k !== '$__META_EXTENSIBLE__$')
+                .map(k => {
+                  const v = eventHistoryRaw[k];
+                  if (typeof v === 'string') return v;
+                  try {
+                    return window.GuixuHelpers.SafeGetValue(v, 'description', window.GuixuHelpers.SafeGetValue(v, 'name', JSON.stringify(v)));
+                  } catch (_) {
+                    try { return JSON.stringify(v); } catch { return String(v); }
+                  }
+                })
+              : []);
 
           const tierStyle = h.getTierStyle(tier);
           const favorabilityPercent = Math.max(0, Math.min(100, (favorability / 200) * 100)); // 假设好感度上限为200
@@ -135,28 +150,27 @@
                   <div class="favorability-bar-fill" style="width: ${favorabilityPercent}%;"></div>
                 </div>
 
-                ${
-                  Array.isArray(eventHistory) && eventHistory.length > 0
-                    ? `
+                ${Array.isArray(eventHistory) && eventHistory.length > 0
+              ? `
                       <details class="event-history-details">
                         <summary class="event-history-summary">过往交集</summary>
                         <ul class="event-history-list">
                           ${eventHistory
-                            .map((event, i) => (event !== '$__META_EXTENSIBLE__$' && event !== '...') 
-                              ? `<li class="event-history-item" data-ev-idx="${i}">
+                .map((event, i) => (event !== '$__META_EXTENSIBLE__$' && event !== '...')
+                  ? `<li class="event-history-item" data-ev-idx="${i}">
                                    <span class="event-text" title="点击可编辑">${event}</span>
                                    <button class="ev-del-btn" title="删除此记录">×</button>
                                  </li>`
-                              : '')
-                            .join('')}
+                  : '')
+                .join('')}
                         </ul>
                         <div class="event-history-actions">
                           <button class="interaction-btn ev-add-btn" title="新增一条过往交集" style="padding: 2px 8px; font-size: 12px;">新增交集</button>
                         </div>
                       </details>
                     `
-                    : ''
-                }
+              : ''
+            }
               </div>
             </div>
           `;
@@ -169,279 +183,279 @@
     },
 
     bindEvents(container) {
-        container.addEventListener('click', async (e) => {
-            const card = e.target.closest('.relationship-card');
-            const getRelFromCard = () => {
-              if (!card) return null;
-              try { return JSON.parse(card.dataset.relationshipDetails.replace(/&#39;/g, "'")); } catch { return null; }
-            };
+      container.addEventListener('click', async (e) => {
+        const card = e.target.closest('.relationship-card');
+        const getRelFromCard = () => {
+          if (!card) return null;
+          try { return JSON.parse(card.dataset.relationshipDetails.replace(/&#39;/g, "'")); } catch { return null; }
+        };
 
-            // 编辑过往交集：点击文字进入编辑
-            const evText = e.target.closest('.event-text');
-            if (evText && card) {
-              e.preventDefault();
-              e.stopPropagation();
-              // 防重入
-              if (evText._editing) return;
-              evText._editing = true;
+        // 编辑过往交集：点击文字进入编辑
+        const evText = e.target.closest('.event-text');
+        if (evText && card) {
+          e.preventDefault();
+          e.stopPropagation();
+          // 防重入
+          if (evText._editing) return;
+          evText._editing = true;
 
-              const li = evText.closest('.event-history-item');
-              const idx = li ? parseInt(li.getAttribute('data-ev-idx'), 10) : -1;
-              const oldText = evText.textContent || '';
-              const input = document.createElement('textarea');
-              input.className = 'event-edit-input';
-              input.value = oldText;
-              // 适配移动端：行数自适应
-              input.rows = Math.max(1, Math.min(4, Math.ceil(oldText.length / 22)));
+          const li = evText.closest('.event-history-item');
+          const idx = li ? parseInt(li.getAttribute('data-ev-idx'), 10) : -1;
+          const oldText = evText.textContent || '';
+          const input = document.createElement('textarea');
+          input.className = 'event-edit-input';
+          input.value = oldText;
+          // 适配移动端：行数自适应
+          input.rows = Math.max(1, Math.min(4, Math.ceil(oldText.length / 22)));
 
-              // 替换节点
-              evText.style.display = 'none';
-              evText.insertAdjacentElement('afterend', input);
-              input.focus();
-              input.setSelectionRange(0, input.value.length);
+          // 替换节点
+          evText.style.display = 'none';
+          evText.insertAdjacentElement('afterend', input);
+          input.focus();
+          input.setSelectionRange(0, input.value.length);
 
-              const cleanup = () => {
-                try { input.remove(); } catch(_) {}
-                evText.style.display = '';
-                evText._editing = false;
-              };
+          const cleanup = () => {
+            try { input.remove(); } catch (_) { }
+            evText.style.display = '';
+            evText._editing = false;
+          };
 
-              const commit = async () => {
-                const newVal = String(input.value || '').trim();
-                if (newVal === oldText) { cleanup(); return; }
-                const relData = getRelFromCard();
-                if (!relData || !Number.isInteger(idx) || idx < 0) { cleanup(); return; }
-                try {
-                  await RelationshipsComponent._updateEventHistoryItem(relData, idx, newVal);
-                  window.GuixuHelpers?.showTemporaryMessage?.('已更新过往交集');
-                } catch (err) {
-                  console.warn('[归墟] 更新过往交集失败:', err);
-                  window.GuixuHelpers?.showTemporaryMessage?.('更新失败');
-                } finally {
-                  cleanup();
-                }
-              };
-
-              input.addEventListener('keydown', (ke) => {
-                if (ke.key === 'Enter' && !ke.shiftKey) { ke.preventDefault(); commit(); }
-                else if (ke.key === 'Escape') { ke.preventDefault(); cleanup(); }
-              });
-              input.addEventListener('blur', () => commit());
-              return;
+          const commit = async () => {
+            const newVal = String(input.value || '').trim();
+            if (newVal === oldText) { cleanup(); return; }
+            const relData = getRelFromCard();
+            if (!relData || !Number.isInteger(idx) || idx < 0) { cleanup(); return; }
+            try {
+              await RelationshipsComponent._updateEventHistoryItem(relData, idx, newVal);
+              window.GuixuHelpers?.showTemporaryMessage?.('已更新过往交集');
+            } catch (err) {
+              console.warn('[归墟] 更新过往交集失败:', err);
+              window.GuixuHelpers?.showTemporaryMessage?.('更新失败');
+            } finally {
+              cleanup();
             }
+          };
 
-            // 新增过往交集
-            const addBtn = e.target.closest('.ev-add-btn');
-            if (addBtn && card) {
-              e.preventDefault();
-              e.stopPropagation();
-              const relData = getRelFromCard();
-              if (!relData) return;
-              // 使用内联新增编辑框
-              const details = addBtn.closest('.event-history-details');
-              const list = details?.querySelector('.event-history-list');
-              if (!list) return;
+          input.addEventListener('keydown', (ke) => {
+            if (ke.key === 'Enter' && !ke.shiftKey) { ke.preventDefault(); commit(); }
+            else if (ke.key === 'Escape') { ke.preventDefault(); cleanup(); }
+          });
+          input.addEventListener('blur', () => commit());
+          return;
+        }
 
-              const newLi = document.createElement('li');
-              newLi.className = 'event-history-item';
-              newLi.setAttribute('data-ev-idx', String((list.children?.length || 0)));
-              newLi.innerHTML = `
+        // 新增过往交集
+        const addBtn = e.target.closest('.ev-add-btn');
+        if (addBtn && card) {
+          e.preventDefault();
+          e.stopPropagation();
+          const relData = getRelFromCard();
+          if (!relData) return;
+          // 使用内联新增编辑框
+          const details = addBtn.closest('.event-history-details');
+          const list = details?.querySelector('.event-history-list');
+          if (!list) return;
+
+          const newLi = document.createElement('li');
+          newLi.className = 'event-history-item';
+          newLi.setAttribute('data-ev-idx', String((list.children?.length || 0)));
+          newLi.innerHTML = `
                 <textarea class="event-edit-input" placeholder="请输入新的过往交集..." rows="2"></textarea>
                 <button class="ev-del-btn" title="删除此记录">×</button>
               `;
-              list.appendChild(newLi);
-              const input = newLi.querySelector('.event-edit-input');
-              input?.focus();
+          list.appendChild(newLi);
+          const input = newLi.querySelector('.event-edit-input');
+          input?.focus();
 
-              const commitNew = async () => {
-                const txt = String(input.value || '').trim();
-                if (!txt) { try { newLi.remove(); } catch(_) {} return; }
-                // 使用当前 relData 的 event_history 长度作为索引追加
-                const i = Array.isArray(relData?.event_history) ? relData.event_history.filter(x => x && x !== '$__META_EXTENSIBLE__$' && x !== '...').length : 0;
-                try {
-                  await RelationshipsComponent._updateEventHistoryItem(relData, i, txt);
-                  window.GuixuHelpers?.showTemporaryMessage?.('已新增过往交集');
-                } catch (err) {
-                  console.warn('[归墟] 新增过往交集失败:', err);
-                  window.GuixuHelpers?.showTemporaryMessage?.('新增失败');
-                }
-              };
+          const commitNew = async () => {
+            const txt = String(input.value || '').trim();
+            if (!txt) { try { newLi.remove(); } catch (_) { } return; }
+            // 使用当前 relData 的 event_history 长度作为索引追加
+            const i = Array.isArray(relData?.event_history) ? relData.event_history.filter(x => x && x !== '$__META_EXTENSIBLE__$' && x !== '...').length : 0;
+            try {
+              await RelationshipsComponent._updateEventHistoryItem(relData, i, txt);
+              window.GuixuHelpers?.showTemporaryMessage?.('已新增过往交集');
+            } catch (err) {
+              console.warn('[归墟] 新增过往交集失败:', err);
+              window.GuixuHelpers?.showTemporaryMessage?.('新增失败');
+            }
+          };
 
-              input.addEventListener('keydown', (ke) => {
-                if (ke.key === 'Enter' && !ke.shiftKey) { ke.preventDefault(); commitNew(); }
-                else if (ke.key === 'Escape') { ke.preventDefault(); try { newLi.remove(); } catch(_) {} }
-              });
-              input.addEventListener('blur', () => commitNew());
+          input.addEventListener('keydown', (ke) => {
+            if (ke.key === 'Enter' && !ke.shiftKey) { ke.preventDefault(); commitNew(); }
+            else if (ke.key === 'Escape') { ke.preventDefault(); try { newLi.remove(); } catch (_) { } }
+          });
+          input.addEventListener('blur', () => commitNew());
+          return;
+        }
+
+        // 删除过往交集（点击红色圆形×按钮即时删除）
+        const delBtn = e.target.closest('.ev-del-btn');
+        if (delBtn && card) {
+          e.preventDefault();
+          e.stopPropagation();
+          const li = delBtn.closest('.event-history-item');
+          const idx = li ? parseInt(li.getAttribute('data-ev-idx'), 10) : -1;
+          const relData = getRelFromCard();
+          if (Number.isInteger(idx) && idx >= 0 && relData) {
+            try {
+              await RelationshipsComponent._deleteEventHistoryItem(relData, idx);
+              window.GuixuHelpers?.showTemporaryMessage?.('已删除过往交集');
+            } catch (err) {
+              console.warn('[归墟] 删除过往交集失败:', err);
+              window.GuixuHelpers?.showTemporaryMessage?.('删除失败');
+            }
+          }
+          return;
+        }
+
+        // 查看详细
+        if (e.target.classList.contains('btn-detail')) {
+          const relData = getRelFromCard();
+          if (!relData) return;
+          const allowView = (String(window.GuixuHelpers.SafeGetValue(relData, 'allow_view', false)).toLowerCase() === 'true') || window.GuixuHelpers.SafeGetValue(relData, 'allow_view', false) === true;
+          if (!allowView) {
+            window.GuixuHelpers.showTemporaryMessage('对方未授权查看详细信息（allow_view = false）');
+            return;
+          }
+          await this.showCharacterDetails(relData);
+          return;
+        }
+
+        // 交易（强化：总是以最新MVU状态校验 allow_trade）
+        if (e.target.classList.contains('btn-trade')) {
+          const relData = getRelFromCard();
+          if (!relData) return;
+          try {
+            const messages = await window.GuixuAPI.getChatMessages(window.GuixuAPI.getCurrentMessageId());
+            const sd = (messages?.[0]?.data?.stat_data) || {};
+            const arr = window.GuixuHelpers.readList(sd, '人物关系列表');
+            const h = window.GuixuHelpers;
+            const rid = h.SafeGetValue(relData, 'id', null);
+            const rname = h.SafeGetValue(relData, 'name', null);
+            const latest = arr.map(x => { try { return typeof x === 'string' ? JSON.parse(x) : x; } catch { return null; } })
+              .find(o => o && ((rid != null && h.SafeGetValue(o, 'id', null) === rid) || (rname && h.SafeGetValue(o, 'name', null) === rname))) || relData;
+            const allowTradeNow = (String(h.SafeGetValue(latest, 'allow_trade', false)).toLowerCase() === 'true') || h.SafeGetValue(latest, 'allow_trade', false) === true;
+            if (!allowTradeNow) {
+              window.GuixuHelpers.showTemporaryMessage('该角色不接受交易（allow_trade = false）');
               return;
             }
+            this.openTradePanel(latest);
+          } catch (err) {
+            console.warn('[归墟] 检查交易资格失败:', err);
+            window.GuixuHelpers.showTemporaryMessage('无法校验交易资格');
+          }
+          return;
+        }
 
-            // 删除过往交集（点击红色圆形×按钮即时删除）
-            const delBtn = e.target.closest('.ev-del-btn');
-            if (delBtn && card) {
-              e.preventDefault();
-              e.stopPropagation();
-              const li = delBtn.closest('.event-history-item');
-              const idx = li ? parseInt(li.getAttribute('data-ev-idx'), 10) : -1;
-              const relData = getRelFromCard();
-              if (Number.isInteger(idx) && idx >= 0 && relData) {
-                try {
-                  await RelationshipsComponent._deleteEventHistoryItem(relData, idx);
-                  window.GuixuHelpers?.showTemporaryMessage?.('已删除过往交集');
-                } catch (err) {
-                  console.warn('[归墟] 删除过往交集失败:', err);
-                  window.GuixuHelpers?.showTemporaryMessage?.('删除失败');
-                }
-              }
-              return;
-            }
+        // 删除
+        if (e.target.classList.contains('btn-delete-relationship')) {
+          if (card) {
+            const relData = getRelFromCard();
+            if (relData) await this.deleteRelationship(relData);
+          }
+          return;
+        }
 
-            // 查看详细
-            if (e.target.classList.contains('btn-detail')) {
-              const relData = getRelFromCard();
-              if (!relData) return;
-              const allowView = (String(window.GuixuHelpers.SafeGetValue(relData, 'allow_view', false)).toLowerCase() === 'true') || window.GuixuHelpers.SafeGetValue(relData, 'allow_view', false) === true;
-              if (!allowView) {
-                window.GuixuHelpers.showTemporaryMessage('对方未授权查看详细信息（allow_view = false）');
-                return;
-              }
-              await this.showCharacterDetails(relData);
-              return;
-            }
+        // 提取
+        if (e.target.classList.contains('btn-extract')) {
+          const relData = getRelFromCard();
+          if (!relData) return;
+          await RelationshipsComponent._extractCharacterToLorebook(relData);
+          const settings = RelationshipsComponent._getExtractSettings();
+          if (settings.autoDeleteAfterExtract) {
+            await RelationshipsComponent.deleteRelationship(relData);
+          }
+          return;
+        }
 
-            // 交易（强化：总是以最新MVU状态校验 allow_trade）
-            if (e.target.classList.contains('btn-trade')) {
-              const relData = getRelFromCard();
-              if (!relData) return;
-              try {
-                const messages = await window.GuixuAPI.getChatMessages(window.GuixuAPI.getCurrentMessageId());
-                const sd = (messages?.[0]?.data?.stat_data) || {};
-                const arr = window.GuixuHelpers.readList(sd, '人物关系列表');
-                const h = window.GuixuHelpers;
-                const rid = h.SafeGetValue(relData, 'id', null);
-                const rname = h.SafeGetValue(relData, 'name', null);
-                const latest = arr.map(x => { try { return typeof x === 'string' ? JSON.parse(x) : x; } catch { return null; } })
-                                  .find(o => o && ((rid != null && h.SafeGetValue(o, 'id', null) === rid) || (rname && h.SafeGetValue(o, 'name', null) === rname))) || relData;
-                const allowTradeNow = (String(h.SafeGetValue(latest, 'allow_trade', false)).toLowerCase() === 'true') || h.SafeGetValue(latest, 'allow_trade', false) === true;
-                if (!allowTradeNow) {
-                  window.GuixuHelpers.showTemporaryMessage('该角色不接受交易（allow_trade = false）');
-                  return;
-                }
-                this.openTradePanel(latest);
-              } catch (err) {
-                console.warn('[归墟] 检查交易资格失败:', err);
-                window.GuixuHelpers.showTemporaryMessage('无法校验交易资格');
-              }
-              return;
-            }
-
-            // 删除
-            if (e.target.classList.contains('btn-delete-relationship')) {
-                if (card) {
-                    const relData = getRelFromCard();
-                    if (relData) await this.deleteRelationship(relData);
-                }
-                return;
-            }
-
-            // 提取
-            if (e.target.classList.contains('btn-extract')) {
-              const relData = getRelFromCard();
-              if (!relData) return;
-              await RelationshipsComponent._extractCharacterToLorebook(relData);
-              const settings = RelationshipsComponent._getExtractSettings();
-              if (settings.autoDeleteAfterExtract) {
-                await RelationshipsComponent.deleteRelationship(relData);
-              }
-              return;
-            }
-
-            // 标注/取消标注
-            if (e.target.classList.contains('btn-mark')) {
-              const relData = getRelFromCard();
-              if (!relData) return;
-              const name = window.GuixuHelpers.SafeGetValue(relData, 'name', '');
-              const isMarked = RelationshipsComponent._toggleMarked(name);
-              e.target.textContent = isMarked ? '取消标注' : '标注';
-              e.target.classList.toggle('primary', isMarked);
-              return;
-            }
-        });
+        // 标注/取消标注
+        if (e.target.classList.contains('btn-mark')) {
+          const relData = getRelFromCard();
+          if (!relData) return;
+          const name = window.GuixuHelpers.SafeGetValue(relData, 'name', '');
+          const isMarked = RelationshipsComponent._toggleMarked(name);
+          e.target.textContent = isMarked ? '取消标注' : '标注';
+          e.target.classList.toggle('primary', isMarked);
+          return;
+        }
+      });
     },
 
     async deleteRelationship(relToDelete, opts = {}) {
-        const h = window.GuixuHelpers;
-        const relName = h.SafeGetValue(relToDelete, 'name', '未知之人');
-        const silent = !!(opts && opts.silent);
+      const h = window.GuixuHelpers;
+      const relName = h.SafeGetValue(relToDelete, 'name', '未知之人');
+      const silent = !!(opts && opts.silent);
 
-        let confirmed = true;
-        if (!silent) {
-          confirmed = await new Promise(resolve => 
-              window.GuixuMain.showCustomConfirm(
-                  `确定要删除与【${relName}】的关系吗？此操作不可逆，将直接从角色数据中移除。`,
-                  () => resolve(true),
-                  () => resolve(false)
-              )
-          );
+      let confirmed = true;
+      if (!silent) {
+        confirmed = await new Promise(resolve =>
+          window.GuixuMain.showCustomConfirm(
+            `确定要删除与【${relName}】的关系吗？此操作不可逆，将直接从角色数据中移除。`,
+            () => resolve(true),
+            () => resolve(false)
+          )
+        );
+      }
+
+      if (!confirmed) {
+        h.showTemporaryMessage('操作已取消');
+        return;
+      }
+
+      try {
+        const messages = await window.GuixuAPI.getChatMessages(window.GuixuAPI.getCurrentMessageId());
+        if (!messages || !messages[0] || !messages[0].data || !messages[0].data.stat_data) {
+          throw new Error('无法获取角色数据。');
+        }
+        const currentMvuState = messages[0].data;
+        const stat_data = currentMvuState.stat_data;
+
+        const listKey = '人物关系列表';
+        const container = stat_data[listKey];
+
+        if (container && typeof container === 'object' && container.$meta && container.$meta.extensible === true) {
+          // 新：对象字典形式
+          const entries = Object.entries(container).filter(([k]) => k !== '$meta');
+          const matchKey = entries.find(([k, v]) => {
+            try {
+              const obj = typeof v === 'string' ? JSON.parse(v) : v;
+              return window.GuixuHelpers.SafeGetValue(obj, 'name', null) === relName;
+            } catch { return false; }
+          })?.[0];
+          if (!matchKey) throw new Error(`在列表中未找到人物: ${relName}`);
+          delete container[matchKey];
+        } else if (Array.isArray(container) && Array.isArray(container[0])) {
+          // 旧：数组包装形式
+          const list = container[0];
+          const relIndex = list.findIndex(r => {
+            const parsed = typeof r === 'string' ? JSON.parse(r) : r;
+            return parsed.name === relName;
+          });
+          if (relIndex === -1) {
+            throw new Error(`在列表中未找到人物: ${relName}`);
+          }
+          list.splice(relIndex, 1);
+        } else {
+          throw new Error('找不到人物关系列表。');
         }
 
-        if (!confirmed) {
-            h.showTemporaryMessage('操作已取消');
-            return;
+        await window.GuixuAPI.setChatMessages([{
+          message_id: 0,
+          data: currentMvuState,
+        }], { refresh: 'none' });
+
+        h.showTemporaryMessage(`与【${relName}】的关系已删除。`);
+        await this.show();
+        // 同步主界面（如有装备信息联动）
+        if (window.GuixuMain?.updateDynamicData) {
+          window.GuixuMain.updateDynamicData();
         }
 
-        try {
-            const messages = await window.GuixuAPI.getChatMessages(window.GuixuAPI.getCurrentMessageId());
-            if (!messages || !messages[0] || !messages[0].data || !messages[0].data.stat_data) {
-                throw new Error('无法获取角色数据。');
-            }
-            const currentMvuState = messages[0].data;
-            const stat_data = currentMvuState.stat_data;
-
-            const listKey = '人物关系列表';
-            const container = stat_data[listKey];
-
-            if (container && typeof container === 'object' && container.$meta && container.$meta.extensible === true) {
-              // 新：对象字典形式
-              const entries = Object.entries(container).filter(([k]) => k !== '$meta');
-              const matchKey = entries.find(([k, v]) => {
-                try {
-                  const obj = typeof v === 'string' ? JSON.parse(v) : v;
-                  return window.GuixuHelpers.SafeGetValue(obj, 'name', null) === relName;
-                } catch { return false; }
-              })?.[0];
-              if (!matchKey) throw new Error(`在列表中未找到人物: ${relName}`);
-              delete container[matchKey];
-            } else if (Array.isArray(container) && Array.isArray(container[0])) {
-              // 旧：数组包装形式
-              const list = container[0];
-              const relIndex = list.findIndex(r => {
-                  const parsed = typeof r === 'string' ? JSON.parse(r) : r;
-                  return parsed.name === relName;
-              });
-              if (relIndex === -1) {
-                  throw new Error(`在列表中未找到人物: ${relName}`);
-              }
-              list.splice(relIndex, 1);
-            } else {
-              throw new Error('找不到人物关系列表。');
-            }
-
-                    await window.GuixuAPI.setChatMessages([{
-                message_id: 0,
-                data: currentMvuState,
-            }], { refresh: 'none' });
-
-            h.showTemporaryMessage(`与【${relName}】的关系已删除。`);
-            await this.show();
-            // 同步主界面（如有装备信息联动）
-            if (window.GuixuMain?.updateDynamicData) {
-              window.GuixuMain.updateDynamicData();
-            }
-
-        } catch (error) {
-            console.error('删除人物关系时出错:', error);
-            h.showTemporaryMessage(`删除失败: ${error.message}`);
-        }
+      } catch (error) {
+        console.error('删除人物关系时出错:', error);
+        h.showTemporaryMessage(`删除失败: ${error.message}`);
+      }
     },
 
     // 更新指定人物的过往交集事件内容（按原始索引），实时写回 MVU
@@ -463,7 +477,7 @@
               o = o[k];
             }
             o[keys[0]] = value;
-          } catch {}
+          } catch { }
           return obj;
         },
       };
@@ -558,7 +572,7 @@
               stat_data = sd0;
               console.info('[归墟] 人物关系：使用 0 楼 mvu 数据只读展示。');
             }
-          } catch (_) {}
+          } catch (_) { }
         }
 
         if (window.GuixuMain && typeof window.GuixuMain._deepStripMeta === 'function') {
@@ -572,7 +586,7 @@
               stat_data = normalized.stat_data;
             }
           }
-        } catch (_) {}
+        } catch (_) { }
         if (!stat_data) {
           body.innerHTML = '<p class="modal-placeholder" style="text-align:center; color:#8b7355; font-size:12px;">无法获取人物关系数据。</p>';
           return;
@@ -592,7 +606,7 @@
         const h = window.GuixuHelpers;
 
         // 关系类型集合（中文映射），并按固定顺序排序
-        const ORDER = ['敌对','盟友','中立','朋友','恋人'];
+        const ORDER = ['敌对', '盟友', '中立', '朋友', '恋人'];
         const typeSet = new Set();
         const counts = {};
         let totalCount = 0;
@@ -605,7 +619,7 @@
             typeSet.add(relCN);
             counts[relCN] = (counts[relCN] || 0) + 1;
             totalCount += 1;
-          } catch (_) {}
+          } catch (_) { }
         });
         const orderedTypes = ORDER.filter(t => typeSet.has(t));
         const extraTypes = Array.from(typeSet).filter(t => !ORDER.includes(t));
@@ -613,10 +627,10 @@
 
         const tabsHtml = allTabs.map((t, i) => {
           const cnt = t === '全部' ? totalCount : (counts[t] || 0);
-          return `<button class="rel-tab${i===0?' active':''}" data-type="${t}">` +
-                   `<span class="rel-tab-label">${t}</span>` +
-                   `<span class="rel-tab-count">${cnt}</span>` +
-                 `</button>`;
+          return `<button class="rel-tab${i === 0 ? ' active' : ''}" data-type="${t}">` +
+            `<span class="rel-tab-label">${t}</span>` +
+            `<span class="rel-tab-count">${cnt}</span>` +
+            `</button>`;
         }).join('');
 
         body.innerHTML = `
@@ -1050,30 +1064,34 @@
           const rid = h.SafeGetValue(rel, 'id', null);
           const rname = h.SafeGetValue(rel, 'name', null);
           const full = arr.map(x => { try { return typeof x === 'string' ? JSON.parse(x) : x; } catch { return null; } })
-                         .find(o => o && ((rid != null && h.SafeGetValue(o, 'id', null) === rid) || (rname && h.SafeGetValue(o, 'name', null) === rname)));
+            .find(o => o && ((rid != null && h.SafeGetValue(o, 'id', null) === rid) || (rname && h.SafeGetValue(o, 'name', null) === rname)));
           if (full) rel = full;
-        } catch {}
+        } catch { }
         const name = h.SafeGetValue(rel, 'name', '未知之人');
         const tier = h.SafeGetValue(rel, 'tier', '凡人');
-        const level = h.SafeGetValue(rel, '等级', '');
+        const level = h.SafeGetValue(rel, 'level', h.SafeGetValue(rel, '等级', ''));
         const relationship = h.SafeGetValue(rel, 'relationship', 'NEUTRAL');
         const relationshipCN = RelationshipsComponent._toChineseRelationship(relationship);
         const favorability = parseInt(h.SafeGetValue(rel, 'favorability', 0), 10);
-        const description = h.SafeGetValue(rel, 'description', '背景不详');
+        const description = h.SafeGetValue(rel, 'description', h.SafeGetValue(rel, '身份背景', '背景不详'));
         const qiyun = parseInt(h.SafeGetValue(rel, '气运', h.SafeGetValue(rel, '气運', 0)), 10) || 0;
+        // 新增：角色性格/外貌/称呼（仅在有值时展示）
+        const personality = h.SafeGetValue(rel, '性格', '');
+        const appearance = h.SafeGetValue(rel, '外貌', '');
+        const appellation = h.SafeGetValue(rel, '称呼', '');
 
         // 四维（兼容字符串化 JSON，同时兼容数组包装或字符串数组）
         const parseMaybeJson = (v) => {
           if (typeof v === 'string') {
             const s = v.trim();
             if ((s.startsWith('{') && s.endsWith('}')) || (s.startsWith('[') && s.endsWith(']'))) {
-              try { 
-                return JSON.parse(s); 
+              try {
+                return JSON.parse(s);
               } catch (e1) {
                 // 兼容单引号/非严格 JSON：使用 Function 尝试解析
-                try { 
-                  return (new Function('return (' + s + ')'))(); 
-                } catch (e2) {}
+                try {
+                  return (new Function('return (' + s + ')'))();
+                } catch (e2) { }
               }
             }
           }
@@ -1092,17 +1110,17 @@
 
         // 基础/加成/当前 四维属性，可能是对象、字符串化 JSON 或包装在数组里
         const baseAttrs = (() => {
-          const raw = rel?.['基础四维属性'];
+          const raw = rel?.['基础四维'] ?? rel?.['基础四维属性'];
           const n = normalizeField(raw ?? {});
           return (n && typeof n === 'object' && !Array.isArray(n)) ? n : {};
         })();
         const attrs = (() => {
-          const raw = rel?.['四维属性'];
+          const raw = rel?.['四维上限'] ?? rel?.['四维属性'];
           const n = normalizeField(raw ?? {});
           return (n && typeof n === 'object' && !Array.isArray(n)) ? n : {};
         })();
         const curAttrs = (() => {
-          const raw = rel?.['当前四维属性'];
+          const raw = rel?.['当前四维'] ?? rel?.['当前四维属性'];
           const n = normalizeField(raw ?? {});
           return (n && typeof n === 'object' && !Array.isArray(n)) ? n : {};
         })();
@@ -1165,9 +1183,9 @@
             : [];
           const parsedTop = Array.isArray(topTalents)
             ? topTalents
-                .filter(x => x && x !== '$__META_EXTENSIBLE__$')
-                .map(x => { try { return typeof x === 'string' ? JSON.parse(x) : x; } catch { return x; } })
-                .filter(Boolean)
+              .filter(x => x && x !== '$__META_EXTENSIBLE__$')
+              .map(x => { try { return typeof x === 'string' ? JSON.parse(x) : x; } catch { return x; } })
+              .filter(Boolean)
             : [];
           const seen = new Set();
           const keyOf = (o) => {
@@ -1189,8 +1207,11 @@
             return '<div class="attribute-item"><span class="attribute-name">无</span><span class="attribute-value">-</span></div>';
           }
           const entries = Object.entries(obj).filter(([k, v]) => {
+            // 过滤字典元数据占位
+            if (k === '$meta' || k === '$__META_EXTENSIBLE__$') return false;
             if (v === undefined || v === null) return false;
-            const s = String(v).trim();
+            // 过滤占位符与空串
+            const s = typeof v === 'string' ? v.trim() : String(v);
             if (!s) return false;
             if (s === '$__META_EXTENSIBLE__$' || s === '...') return false;
             return true;
@@ -1230,6 +1251,8 @@
             const clean = (s) => String(s).trim();
             const isMeta = (s) => s === '$__META_EXTENSIBLE__$' || s === '...';
             let n = v;
+
+            // 字符串：支持 JSON 数组/对象两种形式
             if (typeof n === 'string') {
               const s = clean(n);
               if (!s) return [];
@@ -1238,31 +1261,84 @@
                   const arr = JSON.parse(s);
                   n = Array.isArray(arr) ? arr : [s];
                 } catch { n = [s]; }
+              } else if (s.startsWith('{') && s.endsWith('}')) {
+                try {
+                  n = JSON.parse(s);
+                } catch { n = [s]; }
               } else {
                 n = [s];
               }
             }
+
+            // 数组：逐条清洗
             if (Array.isArray(n)) {
               return n
                 .filter(x => x && !isMeta(x))
-                .map(x => typeof x === 'string' ? clean(x) : (h.SafeGetValue(x, 'name', h.SafeGetValue(x, '名称', clean(JSON.stringify(x))))))
+                .map(x => typeof x === 'string'
+                  ? clean(x)
+                  : (h.SafeGetValue(x, 'name', h.SafeGetValue(x, '名称', clean(JSON.stringify(x))))))
                 .filter(Boolean);
             }
+
+            // 对象字典：输出键名（过滤 $meta），避免把整段 JSON 渲染成一条
             if (n && typeof n === 'object') {
-              // 单对象作为一条
-              return [clean(h.SafeGetValue(n, 'name', h.SafeGetValue(n, '名称', JSON.stringify(n))))];
+              return Object.keys(n)
+                .filter(k => k !== '$meta' && k !== '$__META_EXTENSIBLE__$')
+                .map(k => clean(k))
+                .filter(Boolean);
             }
             return [];
           };
           return safeArr.map(item => {
-            const obj = (typeof item === 'string') ? (function(){ try { return JSON.parse(item); } catch { return {}; } })() : item;
+            const obj = (typeof item === 'string') ? (function () { try { return JSON.parse(item); } catch { return {}; } })() : item;
             const n = h.SafeGetValue(obj, 'name', h.SafeGetValue(obj, '名称', '未知'));
             const t = h.SafeGetValue(obj, 'tier', h.SafeGetValue(obj, '品阶', '凡品'));
             const d = h.SafeGetValue(obj, 'description', h.SafeGetValue(obj, '描述', ''));
             const color = h.getTierColorStyle(t);
             const ab = normalizeField(obj['attributes_bonus'] ?? obj['属性加成'] ?? {}) || {};
             const pb = normalizeField(obj['百分比加成'] ?? obj['percent_bonus'] ?? {}) || {};
-            const se = effectsList(obj['special_effects'] ?? obj['词条效果'] ?? obj['词条'] ?? []);
+            const sePairs = (function (v) {
+              const clean = (s) => String(s).trim();
+              const isMeta = (s) => s === '$__META_EXTENSIBLE__$' || s === '...';
+              let n = v;
+              try {
+                if (typeof n === 'string') {
+                  const s = clean(n);
+                  if (!s) return [];
+                  if ((s.startsWith('{') && s.endsWith('}')) || (s.startsWith('[') && s.endsWith(']'))) {
+                    try { n = JSON.parse(s); } catch { n = s; }
+                  }
+                }
+                if (Array.isArray(n)) {
+                  const out = [];
+                  n.forEach(e => {
+                    if (!e || isMeta(e)) return;
+                    if (typeof e === 'string') {
+                      const m = e.match(/^([^:：]+)\s*[:：]\s*(.+)$/);
+                      out.push([m ? clean(m[1]) : '', m ? clean(m[2]) : clean(e)]);
+                    } else if (typeof e === 'object') {
+                      const k = h.SafeGetValue(e, 'name', h.SafeGetValue(e, '名称', ''));
+                      const d = h.SafeGetValue(e, 'description', h.SafeGetValue(e, '描述', clean(JSON.stringify(e))));
+                      out.push([clean(k), clean(d)]);
+                    }
+                  });
+                  return out;
+                }
+                if (n && typeof n === 'object') {
+                  return Object.entries(n)
+                    .filter(([k, v]) => k !== '$meta' && k !== '$__META_EXTENSIBLE__$' && v != null && clean(v) !== '')
+                    .map(([k, v]) => [clean(k), typeof v === 'string' ? clean(v) : clean(JSON.stringify(v))]);
+                }
+                if (typeof n === 'string') {
+                  const parts = n.split(/[\n;,、]+/).map(s => clean(s)).filter(Boolean);
+                  return parts.map(s => {
+                    const m = s.match(/^([^:：]+)\s*[:：]\s*(.+)$/);
+                    return [m ? clean(m[1]) : '', m ? clean(m[2]) : s];
+                  });
+                }
+              } catch (_) { }
+              return [];
+            })(obj['special_effects'] ?? obj['词条效果'] ?? obj['词条'] ?? []);
             return `
               <details class="details-container">
                 <summary><span class="attribute-value" style="${color}">${n}</span><span class="attribute-name">【${t}】</span></summary>
@@ -1270,7 +1346,7 @@
                   ${d ? `<div style="margin-bottom:6px;">${d}</div>` : ''}
                   ${Object.keys(ab).length ? `<div class="attribute-item"><span class="attribute-name">属性加成</span><span class="attribute-value"></span></div>${renderKV(ab)}` : ''}
                   ${Object.keys(pb).length ? `<div class="attribute-item"><span class="attribute-name">百分比加成</span><span class="attribute-value"></span></div>${renderKV(pb)}` : ''}
-                  ${se.length ? `<div class="attribute-item"><span class="attribute-name">词条</span><span class="attribute-value"></span></div><div class="pill-group">${se.map(s => `<span class="gx-badge">${s}</span>`).join('')}</div>` : ''}
+                  ${sePairs.length ? `<div class="attribute-item"><span class="attribute-name">词条</span><span class="attribute-value"></span></div>${sePairs.map(([k,v]) => `<div class="attribute-item"><span class="attribute-name">${k || '条目'}</span><span class="attribute-value">${v}</span></div>`).join('')}` : ''}
                 </div>
               </details>
             `;
@@ -1316,7 +1392,7 @@
         };
         // 计算NPC四维上限（前端）：基于 基础四维属性 + 装备(主修/辅修/武器/防具/饰品/法宝1) + 灵根 + 天赋
         // 工具：百分比解析/词条提取/加成提取
-        const ATTR_KEYS_CN = ['法力','神海','道心','空速'];
+        const ATTR_KEYS_CN = ['法力', '神海', '道心', '空速'];
         const parsePercent = (v) => {
           if (v === null || v === undefined) return 0;
           const s = String(v).trim();
@@ -1384,7 +1460,7 @@
         // 天赋
         (Array.isArray(talentList) ? talentList : []).forEach(t => {
           if (!t || t === '$__META_EXTENSIBLE__$') return;
-          const obj = (typeof t === 'string') ? (function(){ try { return JSON.parse(t); } catch { return null; } })() : t;
+          const obj = (typeof t === 'string') ? (function () { try { return JSON.parse(t); } catch { return null; } })() : t;
           if (!obj) return;
           pushSource('天赋', window.GuixuHelpers.SafeGetValue(obj, 'name', window.GuixuHelpers.SafeGetValue(obj, '名称', '天赋')), obj);
         });
@@ -1420,6 +1496,8 @@
           const clean = (s) => String(s).trim();
           const isMeta = (s) => s === '$__META_EXTENSIBLE__$' || s === '...';
           let n = v;
+
+          // 字符串：支持 JSON 数组/对象两种形式
           if (typeof n === 'string') {
             const s = clean(n);
             if (!s) return [];
@@ -1428,20 +1506,78 @@
                 const arr = JSON.parse(s);
                 n = Array.isArray(arr) ? arr : [s];
               } catch { n = [s]; }
+            } else if (s.startsWith('{') && s.endsWith('}')) {
+              try {
+                n = JSON.parse(s);
+              } catch { n = [s]; }
             } else {
               n = [s];
             }
           }
+
+          // 数组：逐条清洗
           if (Array.isArray(n)) {
             return n
               .filter(x => x && !isMeta(x))
-              .map(x => typeof x === 'string' ? clean(x) : (h.SafeGetValue(x, 'name', h.SafeGetValue(x, '名称', clean(JSON.stringify(x))))))
+              .map(x => typeof x === 'string'
+                ? clean(x)
+                : (h.SafeGetValue(x, 'name', h.SafeGetValue(x, '名称', clean(JSON.stringify(x))))))
               .filter(Boolean);
           }
+
+          // 对象字典：输出键名（过滤 $meta），避免把整段 JSON 渲染成一条
           if (n && typeof n === 'object') {
-            // 单对象作为一条
-            return [clean(h.SafeGetValue(n, 'name', h.SafeGetValue(n, '名称', JSON.stringify(n))))];
+            return Object.keys(n)
+              .filter(k => k !== '$meta' && k !== '$__META_EXTENSIBLE__$')
+              .map(k => clean(k))
+              .filter(Boolean);
           }
+          return [];
+        };
+        const parseEffectsEntries = (v) => {
+          const clean = (s) => String(s).trim();
+          const isMeta = (s) => s === '$__META_EXTENSIBLE__$' || s === '...';
+          let n = v;
+          try {
+            // 字符串：尝试解析 JSON；否则解析为“键:值”对
+            if (typeof n === 'string') {
+              const s = clean(n);
+              if (!s) return [];
+              if ((s.startsWith('{') && s.endsWith('}')) || (s.startsWith('[') && s.endsWith(']'))) {
+                try { n = JSON.parse(s); } catch { n = s; }
+              }
+            }
+            // 数组：逐个元素解析
+            if (Array.isArray(n)) {
+              const out = [];
+              n.forEach(e => {
+                if (!e || isMeta(e)) return;
+                if (typeof e === 'string') {
+                  const m = e.match(/^([^:：]+)\s*[:：]\s*(.+)$/);
+                  out.push([m ? clean(m[1]) : '', m ? clean(m[2]) : clean(e)]);
+                } else if (typeof e === 'object') {
+                  const k = h.SafeGetValue(e, 'name', h.SafeGetValue(e, '名称', ''));
+                  const d = h.SafeGetValue(e, 'description', h.SafeGetValue(e, '描述', clean(JSON.stringify(e))));
+                  out.push([clean(k), clean(d)]);
+                }
+              });
+              return out;
+            }
+            // 对象字典：输出“键: 值”（过滤 $meta）
+            if (n && typeof n === 'object') {
+              return Object.entries(n)
+                .filter(([k, v]) => k !== '$meta' && k !== '$__META_EXTENSIBLE__$' && v != null && clean(v) !== '')
+                .map(([k, v]) => [clean(k), typeof v === 'string' ? clean(v) : clean(JSON.stringify(v))]);
+            }
+            // 纯字符串：按分隔符切成多对
+            if (typeof n === 'string') {
+              const parts = n.split(/[\n;,、]+/).map(s => clean(s)).filter(Boolean);
+              return parts.map(s => {
+                const m = s.match(/^([^:：]+)\s*[:：]\s*(.+)$/);
+                return [m ? clean(m[1]) : '', m ? clean(m[2]) : s];
+              });
+            }
+          } catch (_) { }
           return [];
         };
         const lgAttrBonus = normalizeField(linggen && (linggen['attributes_bonus'] ?? linggen['属性加成']) || {}) || {};
@@ -1608,6 +1744,9 @@
                 </div>
                 <div class="kv">
                   <div class="k">描述</div><div class="v">${description || '背景不详'}</div>
+                  ${personality ? `<div class="k">性格</div><div class="v">${personality}</div>` : ''}
+                  ${appearance ? `<div class="k">外貌</div><div class="v">${appearance}</div>` : ''}
+                  ${appellation ? `<div class="k">称呼你</div><div class="v">${appellation}</div>` : ''}
                 </div>
               </div>
 
@@ -1635,14 +1774,14 @@
               <div class="attr-cultivation-wrap">
                 <div class="attr-head">
                   <span class="attr-name">进度</span>
-                  <span class="attr-values">${Math.max(0, Math.min(100, Number(h.SafeGetValue(rel,'修为进度',0)) || 0))}%</span>
+                  <span class="attr-values">${Math.max(0, Math.min(100, Number(h.SafeGetValue(rel, '修为进度', 0)) || 0))}%</span>
                 </div>
                 <div class="attr-bar attr-bar--cultivation">
-                  <div class="attr-bar-fill" style="width:${Math.max(0, Math.min(100, Number(h.SafeGetValue(rel,'修为进度',0)) || 0))}%;"></div>
+                  <div class="attr-bar-fill" style="width:${Math.max(0, Math.min(100, Number(h.SafeGetValue(rel, '修为进度', 0)) || 0))}%;"></div>
                 </div>
                 <div class="attr-bottleneck">
                   <span class="attr-bottleneck-label">当前瓶颈</span>
-                  <span class="attr-bottleneck-value">${h.SafeGetValue(rel,'修为瓶颈','无')}</span>
+                  <span class="attr-bottleneck-value">${h.SafeGetValue(rel, '修为瓶颈', '无')}</span>
                 </div>
               </div>
             </div>
@@ -1654,26 +1793,26 @@
                 <div class="section-title">装备</div>
                 <div class="equipment-grid npc-equip-grid">
                   ${(() => {
-                    const slotDefs = [
-                      { key: '主修功法', label: '主修功法' },
-                      { key: '辅修心法', label: '辅修心法' },
-                      { key: '武器', label: '武器' },
-                      { key: '防具', label: '防具' },
-                      { key: '饰品', label: '饰品' },
-                      { key: '法宝', legacy: '法宝栏1', label: '法宝' }
-                    ];
-                    return slotDefs.map(def => {
-                      const it = window.GuixuHelpers.readEquipped(rel, def.key) || (def.legacy ? window.GuixuHelpers.readEquipped(rel, def.legacy) : null);
-                      if (it && typeof it === 'object') {
-                        const n = h.SafeGetValue(it, 'name', h.SafeGetValue(it, '名称', def.label));
-                        const t = h.SafeGetValue(it, 'tier', h.SafeGetValue(it, '品阶', '凡品'));
-                        const tierStyle = h.getTierStyle(t);
-                        const json = JSON.stringify(it).replace(/'/g, "&#39;");
-                        return `<div class="equipment-slot equipped" data-slot="${def.key}" data-item='${json}' style="${tierStyle}">${n}</div>`;
-                      }
-                      return `<div class="equipment-slot" data-slot="${def.key}">${def.label}</div>`;
-                    }).join('');
-                  })()}
+            const slotDefs = [
+              { key: '主修功法', label: '主修功法' },
+              { key: '辅修心法', label: '辅修心法' },
+              { key: '武器', label: '武器' },
+              { key: '防具', label: '防具' },
+              { key: '饰品', label: '饰品' },
+              { key: '法宝', legacy: '法宝栏1', label: '法宝' }
+            ];
+            return slotDefs.map(def => {
+              const it = window.GuixuHelpers.readEquipped(rel, def.key) || (def.legacy ? window.GuixuHelpers.readEquipped(rel, def.legacy) : null);
+              if (it && typeof it === 'object') {
+                const n = h.SafeGetValue(it, 'name', h.SafeGetValue(it, '名称', def.label));
+                const t = h.SafeGetValue(it, 'tier', h.SafeGetValue(it, '品阶', '凡品'));
+                const tierStyle = h.getTierStyle(t);
+                const json = JSON.stringify(it).replace(/'/g, "&#39;");
+                return `<div class="equipment-slot equipped" data-slot="${def.key}" data-item='${json}' style="${tierStyle}">${n}</div>`;
+              }
+              return `<div class="equipment-slot" data-slot="${def.key}">${def.label}</div>`;
+            }).join('');
+          })()}
                 </div>
                 <div style="margin-top:6px;color:#8b7355;font-size:11px;">提示：NPC装备栏仅供查看，所有装备变更由LLM的mvu语法驱动。</div>
               </div>
@@ -1681,8 +1820,7 @@
               <div class="gx-card ability-item">
                 <div class="section-title">灵根</div>
                 <div class="attributes-list">
-                  ${
-                    linggen && (linggen.名称 || linggen.name) ? `
+                  ${linggen && (linggen.名称 || linggen.name) ? `
                       <div class="attribute-item"><span class="attribute-name">名称</span><span class="attribute-value" style="${h.getTierColorStyle(linggen.品阶 || linggen.tier || '凡品')}">【${linggen.品阶 || linggen.tier || '凡品'}】 ${linggen.名称 || linggen.name || '未知灵根'}</span></div>
                       <div class="attribute-item"><span class="attribute-name">品阶</span><span class="attribute-value" style="${h.getTierColorStyle(linggen.品阶 || linggen.tier || '凡品')}">${linggen.品阶 || linggen.tier || '凡品'}</span></div>
                       ${linggen.描述 || linggen.description ? `<div class="details-content">${linggen.描述 || linggen.description}</div>` : ''}
@@ -1697,15 +1835,15 @@
                         ${renderKV(lgPercentBonus)}
                       ` : ''}
 
-                      ${lgSpecialsArr.length ? `
-                        <div class="attribute-item"><span class="attribute-name">词条</span><span class="attribute-value"></span></div>
-                        <div class="pill-group">
-                          ${lgSpecialsArr.map(s => `<span class="gx-badge">${s}</span>`).join('')}
-                        </div>
-                      ` : ''}
+                      ${(() => {
+                        const entries = parseEffectsEntries(linggen && (linggen['special_effects'] ?? linggen['词条效果'] ?? linggen['词条']) || []);
+                        if (!entries.length) return '';
+                        return `<div class="attribute-item"><span class="attribute-name">词条</span><span class="attribute-value"></span></div>` +
+                          entries.map(([k, v]) => `<div class="attribute-item"><span class="attribute-name">${k || '条目'}</span><span class="attribute-value">${v}</span></div>`).join('');
+                      })()}
 
                     ` : '<div class="ability-empty">无</div>'
-                  }
+          }
                 </div>
               </div>
 
@@ -1716,116 +1854,115 @@
 
               <div class="gx-card ability-item">
                 <div class="section-title">当前状态</div>
-                ${
-                  (() => {
-                    const getStatuses = () => {
-                      let v = rel?.['当前状态'] ?? rel?.['状态'] ?? null;
-                      if (typeof v === 'string') {
-                        const s = v.trim();
-                        try { v = JSON.parse(s); } catch { v = [s]; }
-                      }
-                      if (Array.isArray(v) && v.length === 1 && typeof v[0] === 'string') {
-                        const s = v[0].trim();
-                        if ((s.startsWith('[') && s.endsWith(']')) || (s.startsWith('{') && s.endsWith('}'))) {
-                          try { v = JSON.parse(s); } catch {}
-                        }
-                      }
-                      if (Array.isArray(v) && v.length > 0 && Array.isArray(v[0])) v = v[0];
-                      if (v && !Array.isArray(v) && typeof v === 'object') v = [v];
-                      v = Array.isArray(v) ? v.filter(x => x && x !== '$__META_EXTENSIBLE__$' && x !== '...') : [];
-                      v = v.map(x => {
-                        if (typeof x === 'string') {
-                          const s = x.trim();
-                          if (s.startsWith('{') && s.endsWith('}')) { try { return JSON.parse(s); } catch { return null; } }
-                          return null;
-                        }
-                        return x;
-                      }).filter(Boolean);
-                      return v;
-                    };
-                    const list = getStatuses();
-                    if (!list.length) return '<div class="ability-empty">无</div>';
-                    const typeMap = { BUFF: '增益', DEBUFF: '减益', NEUTRAL: '中性', AURA: '领域', TERRAIN: '地形' };
-const renderEffects = (effRaw) => {
-  const clean = (s) => String(s).trim();
-  const tryParse = (s) => {
-    const t = clean(s);
-    if (!t) return s;
-    if ((t.startsWith('{') && t.endsWith('}')) || (t.startsWith('[') && t.endsWith(']'))) {
-      try { return JSON.parse(t); } catch { return s; }
-    }
-    return s;
-  };
-  let eff = effRaw;
+                ${(() => {
+            const getStatuses = () => {
+              let v = rel?.['当前状态'] ?? rel?.['状态'] ?? null;
+              if (typeof v === 'string') {
+                const s = v.trim();
+                try { v = JSON.parse(s); } catch { v = [s]; }
+              }
+              if (Array.isArray(v) && v.length === 1 && typeof v[0] === 'string') {
+                const s = v[0].trim();
+                if ((s.startsWith('[') && s.endsWith(']')) || (s.startsWith('{') && s.endsWith('}'))) {
+                  try { v = JSON.parse(s); } catch { }
+                }
+              }
+              if (Array.isArray(v) && v.length > 0 && Array.isArray(v[0])) v = v[0];
+              if (v && !Array.isArray(v) && typeof v === 'object') { v = Object.keys(v).filter(k => k !== '$meta' && k !== '$__META_EXTENSIBLE__$').map(k => v[k]); }
+              v = Array.isArray(v) ? v.filter(x => x && x !== '$__META_EXTENSIBLE__$' && x !== '...') : [];
+              v = v.map(x => {
+                if (typeof x === 'string') {
+                  const s = x.trim();
+                  if (s.startsWith('{') && s.endsWith('}')) { try { return JSON.parse(s); } catch { return null; } }
+                  return null;
+                }
+                return x;
+              }).filter(Boolean);
+              return v;
+            };
+            const list = getStatuses();
+            if (!list.length) return '<div class="ability-empty">无</div>';
+            const typeMap = { BUFF: '增益', DEBUFF: '减益', NEUTRAL: '中性', AURA: '领域', TERRAIN: '地形' };
+            const renderEffects = (effRaw) => {
+              const clean = (s) => String(s).trim();
+              const tryParse = (s) => {
+                const t = clean(s);
+                if (!t) return s;
+                if ((t.startsWith('{') && t.endsWith('}')) || (t.startsWith('[') && t.endsWith(']'))) {
+                  try { return JSON.parse(t); } catch { return s; }
+                }
+                return s;
+              };
+              let eff = effRaw;
 
-  // 兼容 Map：转为对象或键值对数组（参考 StatusesComponent._parseEffects）
-  try {
-    if (Object.prototype.toString.call(eff) === '[object Map]') {
-      const arr = Array.from(eff.entries());
-      const allStringKeys = arr.every(([k]) => typeof k === 'string');
-      eff = allStringKeys ? Object.fromEntries(arr) : arr.map(([k, v]) => ({ key: k, value: v }));
-    }
-  } catch (_) {}
+              // 兼容 Map：转为对象或键值对数组（参考 StatusesComponent._parseEffects）
+              try {
+                if (Object.prototype.toString.call(eff) === '[object Map]') {
+                  const arr = Array.from(eff.entries());
+                  const allStringKeys = arr.every(([k]) => typeof k === 'string');
+                  eff = allStringKeys ? Object.fromEntries(arr) : arr.map(([k, v]) => ({ key: k, value: v }));
+                }
+              } catch (_) { }
 
-  // 字符串：尝试 JSON 解析；失败则尝试解析 "A:10%; B:5%" 或多行 "A:10%\nB:5%"
-  if (typeof eff === 'string') {
-    const parsed = tryParse(eff);
-    if (parsed && typeof parsed === 'object') {
-      eff = parsed;
-    } else {
-      const obj = {};
-      const parts = eff.split(/[\n;,]+/).map(s => s.trim()).filter(Boolean);
-      let pairs = 0;
-      for (const p of parts) {
-        const m = p.match(/^([^:：]+)\s*[:：]\s*(.+)$/);
-        if (m) { obj[m[1].trim()] = m[2].trim(); pairs++; }
-      }
-      if (pairs > 0) eff = obj;
-    }
-  }
-                      if (Array.isArray(eff)) {
-                        const entries = [];
-                        eff.forEach(e => {
-                          if (e && typeof e === 'object' && !Array.isArray(e)) {
-                            Object.entries(e).forEach(([k,v]) => {
-                              if (v !== undefined && v !== null && clean(v) !== '') entries.push([k, v]);
-                            });
-                          } else if (e != null && clean(e) !== '') {
-                            entries.push([clean(e), '']);
-                          }
-                        });
-                        if (!entries.length) return '';
-                        return `<div class="attribute-item"><span class="attribute-name">效果</span><span class="attribute-value"></span></div>` +
-                               entries.map(([k,v]) => `<div class="attribute-item"><span class="attribute-name">${k}</span><span class="attribute-value">${v}</span></div>`).join('');
-                      }
-                      if (!eff || typeof eff !== 'object') return '';
-                      const items = Object.entries(eff).filter(([k,v]) => v !== undefined && v !== null && clean(v) !== '');
-                      if (!items.length) return '';
-                      return `<div class="attribute-item"><span class="attribute-name">效果</span><span class="attribute-value"></span></div>` +
-                             items.map(([k,v]) => `<div class="attribute-item"><span class="attribute-name">${k}</span><span class="attribute-value">${v}</span></div>`).join('');
-                    };
-                    return list.map(st => {
-                      const sName = h.SafeGetValue(st,'name','未知状态');
-                      const typeKey = String(h.SafeGetValue(st,'type','NEUTRAL')).toUpperCase();
-                      const sType = typeMap[typeKey] || h.SafeGetValue(st,'type','NEUTRAL');
-                      const sDur = h.SafeGetValue(st,'duration',0);
-                      const sDesc = h.SafeGetValue(st,'description','');
-                      let eff = h.SafeGetValue(st,'effects', h.SafeGetValue(st,'效果', h.SafeGetValue(st,'buffs', null)));
-                      const rawEffectsCandidate = st && (st.effects ?? st['effect'] ?? st['效果'] ?? st['buffs']);
-                      // 兼容字符串化 "[object Object]" 场景：用原始对象兜底（参考 StatusesComponent._normalizeOne）
-                      if (typeof eff === 'string' && eff.trim && eff.trim() === '[object Object]' && rawEffectsCandidate && typeof rawEffectsCandidate === 'object') {
-                        eff = rawEffectsCandidate;
-                      }
-                      // 特殊状态底色（AURA/TERRAIN等）
-                      const typeBg = {
-                        BUFF: 'background: rgba(76,175,80,0.10); border:1px solid rgba(76,175,80,0.35);',
-                        DEBUFF: 'background: rgba(220,20,60,0.10); border:1px solid rgba(220,20,60,0.35);',
-                        NEUTRAL: 'background: rgba(201,170,113,0.08); border:1px solid rgba(201,170,113,0.30);',
-                        AURA: 'background: rgba(138,43,226,0.12); border:1px solid rgba(138,43,226,0.35);',
-                        TERRAIN: 'background: rgba(184,134,11,0.12); border:1px solid rgba(184,134,11,0.35);'
-                      };
-                      const summaryStyle = typeBg[typeKey] || '';
-                      return `
+              // 字符串：尝试 JSON 解析；失败则尝试解析 "A:10%; B:5%" 或多行 "A:10%\nB:5%"
+              if (typeof eff === 'string') {
+                const parsed = tryParse(eff);
+                if (parsed && typeof parsed === 'object') {
+                  eff = parsed;
+                } else {
+                  const obj = {};
+                  const parts = eff.split(/[\n;,]+/).map(s => s.trim()).filter(Boolean);
+                  let pairs = 0;
+                  for (const p of parts) {
+                    const m = p.match(/^([^:：]+)\s*[:：]\s*(.+)$/);
+                    if (m) { obj[m[1].trim()] = m[2].trim(); pairs++; }
+                  }
+                  if (pairs > 0) eff = obj;
+                }
+              }
+              if (Array.isArray(eff)) {
+                const entries = [];
+                eff.forEach(e => {
+                  if (e && typeof e === 'object' && !Array.isArray(e)) {
+                    Object.entries(e).forEach(([k, v]) => {
+                      if (v !== undefined && v !== null && clean(v) !== '') entries.push([k, v]);
+                    });
+                  } else if (e != null && clean(e) !== '') {
+                    entries.push([clean(e), '']);
+                  }
+                });
+                if (!entries.length) return '';
+                return `<div class="attribute-item"><span class="attribute-name">效果</span><span class="attribute-value"></span></div>` +
+                  entries.map(([k, v]) => `<div class="attribute-item"><span class="attribute-name">${k}</span><span class="attribute-value">${v}</span></div>`).join('');
+              }
+              if (!eff || typeof eff !== 'object') return '';
+              const items = Object.entries(eff).filter(([k, v]) => v !== undefined && v !== null && clean(v) !== '');
+              if (!items.length) return '';
+              return `<div class="attribute-item"><span class="attribute-name">效果</span><span class="attribute-value"></span></div>` +
+                items.map(([k, v]) => `<div class="attribute-item"><span class="attribute-name">${k}</span><span class="attribute-value">${v}</span></div>`).join('');
+            };
+            return list.map(st => {
+              const sName = h.SafeGetValue(st, 'name', '未知状态');
+              const typeKey = String(h.SafeGetValue(st, 'type', 'NEUTRAL')).toUpperCase();
+              const sType = typeMap[typeKey] || h.SafeGetValue(st, 'type', 'NEUTRAL');
+              const sDur = h.SafeGetValue(st, 'duration', 0);
+              const sDesc = h.SafeGetValue(st, 'description', '');
+              let eff = h.SafeGetValue(st, 'effects', h.SafeGetValue(st, '效果', h.SafeGetValue(st, 'buffs', null)));
+              const rawEffectsCandidate = st && (st.effects ?? st['effect'] ?? st['效果'] ?? st['buffs']);
+              // 兼容字符串化 "[object Object]" 场景：用原始对象兜底（参考 StatusesComponent._normalizeOne）
+              if (typeof eff === 'string' && eff.trim && eff.trim() === '[object Object]' && rawEffectsCandidate && typeof rawEffectsCandidate === 'object') {
+                eff = rawEffectsCandidate;
+              }
+              // 特殊状态底色（AURA/TERRAIN等）
+              const typeBg = {
+                BUFF: 'background: rgba(76,175,80,0.10); border:1px solid rgba(76,175,80,0.35);',
+                DEBUFF: 'background: rgba(220,20,60,0.10); border:1px solid rgba(220,20,60,0.35);',
+                NEUTRAL: 'background: rgba(201,170,113,0.08); border:1px solid rgba(201,170,113,0.30);',
+                AURA: 'background: rgba(138,43,226,0.12); border:1px solid rgba(138,43,226,0.35);',
+                TERRAIN: 'background: rgba(184,134,11,0.12); border:1px solid rgba(184,134,11,0.35);'
+              };
+              const summaryStyle = typeBg[typeKey] || '';
+              return `
                         <details class="details-container status-card type-${typeKey.toLowerCase()}">
                           <summary class="status-summary" style="border-radius:8px; padding:6px 8px; ${summaryStyle}">
                             <span class="attribute-value">${sName}</span>
@@ -1837,9 +1974,9 @@ const renderEffects = (effRaw) => {
                           </div>
                         </details>
                       `;
-                    }).join('');
-                  })()
-                }
+            }).join('');
+          })()
+          }
               </div>
             </div>
           </div>
@@ -1853,7 +1990,7 @@ const renderEffects = (effRaw) => {
         try {
           const host = document.querySelector('#character-details-modal .modal-body') || document.body;
           // 宿主定位
-          try { const cs = getComputedStyle(host); if (cs && cs.position === 'static') host.style.position = 'relative'; } catch(_) {}
+          try { const cs = getComputedStyle(host); if (cs && cs.position === 'static') host.style.position = 'relative'; } catch (_) { }
           let equipTip = document.getElementById('npc-equip-tooltip');
           if (!equipTip) {
             equipTip = document.createElement('div');
@@ -1909,11 +2046,11 @@ const renderEffects = (effRaw) => {
               const slot = ev.target.closest('.equipment-slot.equipped');
               if (!slot) return;
               const raw = slot.getAttribute('data-item') || '';
-              let it = null; try { it = raw ? JSON.parse(raw.replace(/&#39;/g,"'")) : null; } catch {}
+              let it = null; try { it = raw ? JSON.parse(raw.replace(/&#39;/g, "'")) : null; } catch { }
               if (!it) return;
               const html = (window.GuixuRenderers && typeof window.GuixuRenderers.renderTooltipContent === 'function')
                 ? window.GuixuRenderers.renderTooltipContent(it)
-                : `<div class="tooltip-title">${window.GuixuHelpers.SafeGetValue(it,'name','未知')}</div>`;
+                : `<div class="tooltip-title">${window.GuixuHelpers.SafeGetValue(it, 'name', '未知')}</div>`;
               equipTip.innerHTML = html;
               reposition(equipTip, slot);
             }, true);
@@ -1937,12 +2074,12 @@ const renderEffects = (effRaw) => {
                 return;
               }
               const raw = slot.getAttribute('data-item') || '';
-              let it = null; 
-              try { it = raw ? JSON.parse(raw.replace(/&#39;/g,"'")) : null; } catch {}
+              let it = null;
+              try { it = raw ? JSON.parse(raw.replace(/&#39;/g, "'")) : null; } catch { }
               if (!it) { equipTip.style.display = 'none'; equipTip._locked = false; equipTip._anchor = null; return; }
               const html = (window.GuixuRenderers && typeof window.GuixuRenderers.renderTooltipContent === 'function')
                 ? window.GuixuRenderers.renderTooltipContent(it)
-                : `<div class="tooltip-title">${window.GuixuHelpers.SafeGetValue(it,'name','未知')}</div>`;
+                : `<div class="tooltip-title">${window.GuixuHelpers.SafeGetValue(it, 'name', '未知')}</div>`;
               equipTip.innerHTML = html;
               equipTip._locked = true;
               equipTip._anchor = slot;
@@ -1967,12 +2104,12 @@ const renderEffects = (effRaw) => {
               if (!slot) return;
               if (!slot.classList.contains('equipped')) return;
               const raw = slot.getAttribute('data-item') || '';
-              let it = null; 
-              try { it = raw ? JSON.parse(raw.replace(/&#39;/g,"'")) : null; } catch {}
+              let it = null;
+              try { it = raw ? JSON.parse(raw.replace(/&#39;/g, "'")) : null; } catch { }
               if (!it) return;
               const html = (window.GuixuRenderers && typeof window.GuixuRenderers.renderTooltipContent === 'function')
                 ? window.GuixuRenderers.renderTooltipContent(it)
-                : `<div class="tooltip-title">${window.GuixuHelpers.SafeGetValue(it,'name','未知')}</div>`;
+                : `<div class="tooltip-title">${window.GuixuHelpers.SafeGetValue(it, 'name', '未知')}</div>`;
               equipTip.innerHTML = html;
               equipTip._locked = true;
               equipTip._anchor = slot;
@@ -2086,7 +2223,7 @@ const renderEffects = (effRaw) => {
             const tRect = tip.getBoundingClientRect();
 
             let left = clientX - bodyRect.left + scrollLeft - (tRect.width / 2);
-            let top  = clientY - bodyRect.top  + scrollTop + 8;
+            let top = clientY - bodyRect.top + scrollTop + 8;
 
             const viewW = host.clientWidth || bodyRect.width;
             const viewH = host.clientHeight || bodyRect.height;
@@ -2101,10 +2238,10 @@ const renderEffects = (effRaw) => {
             }
 
             left = Math.min(Math.max(minLeft, left), maxLeft);
-            top  = Math.min(Math.max(minTop, top), maxTop);
+            top = Math.min(Math.max(minTop, top), maxTop);
 
             tip.style.left = left + 'px';
-            tip.style.top  = top  + 'px';
+            tip.style.top = top + 'px';
           };
 
           const rows = host.querySelectorAll('.stats-grid .stat-row');
@@ -2158,7 +2295,7 @@ const renderEffects = (effRaw) => {
               o = o[k];
             }
             o[keys[0]] = value;
-          } catch {}
+          } catch { }
           return obj;
         },
       };
@@ -2217,9 +2354,9 @@ const renderEffects = (effRaw) => {
         stat_data['人物关系列表'][0] = list;
       }
 
-        const updates = [{ message_id: currentId, data: currentMvuState }];
-        if (currentId !== 0) updates.push({ message_id: 0, data: currentMvuState });
-        await window.GuixuAPI.setChatMessages(updates, { refresh: 'none' });
+      const updates = [{ message_id: currentId, data: currentMvuState }];
+      if (currentId !== 0) updates.push({ message_id: 0, data: currentMvuState });
+      await window.GuixuAPI.setChatMessages(updates, { refresh: 'none' });
 
       // 刷新界面（若面板仍打开）
       await this._refreshAllRelatedUI();
@@ -2261,10 +2398,10 @@ const renderEffects = (effRaw) => {
         }
 
         // 对方可出售的物品 + 我方背包
-        const npcItems = Array.isArray(relNow?.物品列表) ? relNow.物品列表.filter(x => x && x !== '$__META_EXTENSIBLE__$') : [];
+        const npcItems = RelationshipsComponent._readNpcStorageAsArray(relNow);
         // 汇总玩家背包内所有列表为一并展示（只读）- 兼容对象MVU与旧数组包装
         const collectUserItems = (sd) => {
-          const lists = ['功法列表','武器列表','防具列表','饰品列表','法宝列表','丹药列表','其他列表'];
+          const lists = ['功法列表', '武器列表', '防具列表', '饰品列表', '法宝列表', '丹药列表', '其他列表'];
           const out = [];
           try {
             lists.forEach(key => {
@@ -2278,21 +2415,21 @@ const renderEffects = (effRaw) => {
                 });
               }
             });
-          } catch (_) {}
+          } catch (_) { }
           return out;
         };
         const userItems = collectUserItems(stat_data);
 
         // 获取玩家神海用于价格计算
         const playerShenhai = Number(h.SafeGetValue(stat_data, '神海', 0)) || 0;
-        
+
         const renderNpcItemRow = (it) => {
           const n = h.SafeGetValue(it, 'name', '未知物品');
           const id = h.SafeGetValue(it, 'id', h.SafeGetValue(it, 'uid', 'N/A'));
           const t = h.SafeGetValue(it, 'tier', '练气');
           const q = Number(h.SafeGetValue(it, 'quantity', 1)) || 1;
           const baseVal = Number(h.SafeGetValue(it, 'base_value', 0)) || 0;
-          
+
           // 使用新的价格计算器
           let buyPrice = baseVal;
           let sellPrice = baseVal;
@@ -2305,7 +2442,7 @@ const renderEffects = (effRaw) => {
               console.warn('[归墟] 价格计算失败:', e);
             }
           }
-          
+
           const tierStyle = h.getTierStyle(t);
           const meta = `品阶:${t} | 数量:${q} | 基础价值:${baseVal} | 买入价:${buyPrice}`;
           return `
@@ -2324,7 +2461,7 @@ const renderEffects = (effRaw) => {
           const t = h.SafeGetValue(it, 'tier', '无');
           const q = Number(h.SafeGetValue(it, 'quantity', 1)) || 1;
           const baseVal = Number(h.SafeGetValue(it, 'base_value', 0)) || 0;
-          
+
           // 使用新的价格计算器计算卖出价格
           let sellPrice = baseVal;
           if (window.GuixuTradeCalculator && baseVal > 0) {
@@ -2335,7 +2472,7 @@ const renderEffects = (effRaw) => {
               console.warn('[归墟] 价格计算失败:', e);
             }
           }
-          
+
           const tierStyle = h.getTierStyle(t);
           const meta = `品阶:${t} | 数量:${q} | 基础价值:${baseVal} | 卖出价:${sellPrice}`;
           return `
@@ -2429,15 +2566,15 @@ const renderEffects = (effRaw) => {
           const tabUser = document.getElementById('trade-tab-user');
           const shenhaiForCalc = playerShenhai;
           const normalizeItem = (raw) => { try { return typeof raw === 'string' ? JSON.parse(raw) : raw; } catch { return raw || {}; } };
-          const tierOrder = (t) => window.GuixuTradeCalculator?.getTierLevel ? window.GuixuTradeCalculator.getTierLevel(t||'练气') : (['练气','筑基','金丹','元婴','化神','合体','飞升','神桥'].indexOf(String(t)) + 1 || 1);
+          const tierOrder = (t) => window.GuixuTradeCalculator?.getTierLevel ? window.GuixuTradeCalculator.getTierLevel(t || '练气') : (['练气', '筑基', '金丹', '元婴', '化神', '合体', '飞升', '神桥'].indexOf(String(t)) + 1 || 1);
           const computePrices = (it) => {
-            const baseVal = Number(window.GuixuHelpers.SafeGetValue(it,'base_value',0))||0;
-            const tier = window.GuixuHelpers.SafeGetValue(it,'tier','练气');
+            const baseVal = Number(window.GuixuHelpers.SafeGetValue(it, 'base_value', 0)) || 0;
+            const tier = window.GuixuHelpers.SafeGetValue(it, 'tier', '练气');
             if (window.GuixuTradeCalculator && baseVal > 0) {
               try {
                 const p = window.GuixuTradeCalculator.computeTradePrices(baseVal, tier, shenhaiForCalc);
                 return { buy: p.buy_price, sell: p.sell_price };
-              } catch(e){}
+              } catch (e) { }
             }
             return { buy: baseVal, sell: baseVal };
           };
@@ -2445,29 +2582,29 @@ const renderEffects = (effRaw) => {
             const arr = Array.isArray(list) ? list : [];
             return arr.filter(x => x && x !== '$__META_EXTENSIBLE__$').map(raw => {
               const it = normalizeItem(raw);
-              const id = String(window.GuixuHelpers.SafeGetValue(it,'id', window.GuixuHelpers.SafeGetValue(it,'uid','N/A')));
-              const name = window.GuixuHelpers.SafeGetValue(it,'name','未知物品');
-              const tier = window.GuixuHelpers.SafeGetValue(it,'tier','练气');
-              const quantity = Number(window.GuixuHelpers.SafeGetValue(it,'quantity',1))||1;
-              const base = Number(window.GuixuHelpers.SafeGetValue(it,'base_value',0))||0;
+              const id = String(window.GuixuHelpers.SafeGetValue(it, 'id', window.GuixuHelpers.SafeGetValue(it, 'uid', 'N/A')));
+              const name = window.GuixuHelpers.SafeGetValue(it, 'name', '未知物品');
+              const tier = window.GuixuHelpers.SafeGetValue(it, 'tier', '练气');
+              const quantity = Number(window.GuixuHelpers.SafeGetValue(it, 'quantity', 1)) || 1;
+              const base = Number(window.GuixuHelpers.SafeGetValue(it, 'base_value', 0)) || 0;
               const price = computePrices(it);
               return { it, id, name, tier, quantity, base, buy: price.buy, sell: price.sell, isNpc };
             });
           };
-          let npcList = buildList(relNow?.物品列表, true);
+          let npcList = buildList(RelationshipsComponent._readNpcStorageAsArray(relNow), true);
           let userList = buildList(userItems, false);
           const applySort = (list) => {
             const key = state.sortKey;
             const dir = state.sortDir === 'asc' ? 1 : -1;
-            return list.slice().sort((a,b) => {
-              const va = key==='tier' ? tierOrder(a[key]) : (key==='name'? a[key] : Number(a[key]||0));
-              const vb = key==='tier' ? tierOrder(b[key]) : (key==='name'? b[key] : Number(b[key]||0));
-              if (va < vb) return -1*dir;
-              if (va > vb) return 1*dir;
+            return list.slice().sort((a, b) => {
+              const va = key === 'tier' ? tierOrder(a[key]) : (key === 'name' ? a[key] : Number(a[key] || 0));
+              const vb = key === 'tier' ? tierOrder(b[key]) : (key === 'name' ? b[key] : Number(b[key] || 0));
+              if (va < vb) return -1 * dir;
+              if (va > vb) return 1 * dir;
               return 0;
             });
           };
-          const escape = (s) => String(s).replace(/&/g,'&').replace(/</g,'<').replace(/>/g,'>');
+          const escape = (s) => String(s).replace(/&/g, '&').replace(/</g, '<').replace(/>/g, '>');
           const renderTable = () => {
             // 显示/同步当前单位与两侧余额
             const keep = (x) => {
@@ -2487,9 +2624,9 @@ const renderEffects = (effRaw) => {
               nSpan.textContent = `${keep(Curr.fromBase(base, state.unit))} ${state.unit}`;
             }
 
-            tabNpc?.classList.toggle('active', state.view==='npc');
-            tabUser?.classList.toggle('active', state.view==='user');
-            const source = state.view==='npc' ? npcList : userList;
+            tabNpc?.classList.toggle('active', state.view === 'npc');
+            tabUser?.classList.toggle('active', state.view === 'user');
+            const source = state.view === 'npc' ? npcList : userList;
             const kw = (state.keyword || '').trim().toLowerCase();
             const data = kw
               ? source.filter(row => row.name.toLowerCase().includes(kw) || String(row.tier).toLowerCase().includes(kw))
@@ -2499,8 +2636,8 @@ const renderEffects = (effRaw) => {
               const actionBtn = row.isNpc
                 ? `<button class="btn-purchase-item" data-item-id="${escape(row.id)}">购买</button>`
                 : `<button class="btn-sell-item" data-item-id="${escape(row.id)}">出售</button>`;
-              const itJson = JSON.stringify(row.it).replace(/'/g,"&#39;");
-              return `<tr class="trade-row" data-item-id="${escape(row.id)}" data-item-data='${itJson}'>
+              const itJson = JSON.stringify(row.it).replace(/'/g, "&#39;");
+              return `<tr class="trade-row" data-item-id="${escape(row.id === 'N/A' ? row.name : row.id)}" data-item-data='${itJson}'>
                 <td><span class="item-name item-clickable" style="${h.getTierStyle(row.tier)}" data-item-id="${escape(row.id)}">${escape(row.name)}</span></td>
                 <td>${escape(row.tier)}</td>
                 <td>${row.quantity}</td>
@@ -2511,8 +2648,8 @@ const renderEffects = (effRaw) => {
               </tr>`;
             }).join('');
           };
-          tabNpc?.addEventListener('click', () => { state.view='npc'; renderTable(); });
-          tabUser?.addEventListener('click', () => { state.view='user'; renderTable(); });
+          tabNpc?.addEventListener('click', () => { state.view = 'npc'; renderTable(); });
+          tabUser?.addEventListener('click', () => { state.view = 'user'; renderTable(); });
           const thead = document.querySelector('#trade-modal .trade-table thead');
           thead?.addEventListener('click', (ev) => {
             const th = ev.target.closest('th[data-sort]');
@@ -2523,7 +2660,7 @@ const renderEffects = (effRaw) => {
               state.sortDir = state.sortDir === 'asc' ? 'desc' : 'asc';
             } else {
               state.sortKey = key;
-              state.sortDir = key==='name' ? 'asc' : 'desc';
+              state.sortDir = key === 'name' ? 'asc' : 'desc';
             }
             renderTable();
           });
@@ -2554,7 +2691,14 @@ const renderEffects = (effRaw) => {
           }, { passive: true });
 
           renderTable();
-        } catch(e) {
+          const btnFix = document.getElementById('btn-batch-fix-items');
+          if (btnFix && !btnFix._bound) {
+            btnFix._bound = true;
+            btnFix.addEventListener('click', () => {
+              RelationshipsComponent._startBatchFix().catch(e => console.warn('[归墟] 批量修复失败:', e));
+            });
+          }
+        } catch (e) {
           console.warn('[归墟] trade table render init failed:', e);
         }
 
@@ -2573,7 +2717,7 @@ const renderEffects = (effRaw) => {
                 try {
                   const cs = window.getComputedStyle(host);
                   if (cs && cs.position === 'static') host.style.position = 'relative';
-                } catch (_) {}
+                } catch (_) { }
                 let tooltip = document.getElementById('trade-tooltip');
                 if (!tooltip) {
                   tooltip = document.createElement('div');
@@ -2590,13 +2734,13 @@ const renderEffects = (effRaw) => {
                   holder = nameEl.closest('.trade-row');
                 }
                 const rawData = holder?.getAttribute('data-item-data') || nameEl.getAttribute('data-item-data') || '';
-                try { it = rawData ? JSON.parse(rawData.replace(/&#39;/g,"'")) : null; } catch { it = null; }
+                try { it = rawData ? JSON.parse(rawData.replace(/&#39;/g, "'")) : null; } catch { it = null; }
                 const h = window.GuixuHelpers;
-                const title = h.SafeGetValue(it,'name','未知物品');
-                const tier = h.SafeGetValue(it,'tier','练气');
-                const desc = h.SafeGetValue(it,'description','');
-                const base = h.SafeGetValue(it,'base_value',0);
-                const qty = h.SafeGetValue(it,'quantity',1);
+                const title = h.SafeGetValue(it, 'name', '未知物品');
+                const tier = h.SafeGetValue(it, 'tier', '练气');
+                const desc = h.SafeGetValue(it, 'description', '');
+                const base = h.SafeGetValue(it, 'base_value', 0);
+                const qty = h.SafeGetValue(it, 'quantity', 1);
                 // 优先使用通用渲染器，展示固定加成/百分比加成/特殊词条，并按品阶渲染名称颜色
                 let html = '';
                 if (window.GuixuRenderers && typeof window.GuixuRenderers.renderTooltipContent === 'function') {
@@ -2613,13 +2757,13 @@ const renderEffects = (effRaw) => {
                       <p><strong>品阶:</strong> ${tier}</p>
                       <p><strong>数量:</strong> ${qty}</p>
                       <p><strong>基础价值:</strong> ${base}</p>
-                      ${desc? `<div class="tooltip-section">${desc}</div>`:''}
+                      ${desc ? `<div class="tooltip-section">${desc}</div>` : ''}
                       ${details ? `<div class="tooltip-section">${details}</div>` : ''}
                     </div>`;
                 }
                 tooltip.innerHTML = html;
                 // 为防止遮挡再次点击同一物品，允许点击穿透到名称元素，避免“点击被浮窗拦截”
-                try { tooltip.style.pointerEvents = 'none'; } catch (_) {}
+                try { tooltip.style.pointerEvents = 'none'; } catch (_) { }
                 // 定位：基于被点击元素，优先贴其下方，必要时向上翻转，并进行边界收敛
                 // 先显示以便测量
                 tooltip.style.display = 'block';
@@ -2659,7 +2803,7 @@ const renderEffects = (effRaw) => {
 
                     tooltip.style.left = relLeft + 'px';
                     tooltip.style.top = relTop + 'px';
-                  } catch (_) {}
+                  } catch (_) { }
                 };
 
                 positionTooltip();
@@ -2672,9 +2816,9 @@ const renderEffects = (effRaw) => {
                     const cs = getComputedStyle(el);
                     const ovY = cs.overflowY, ovX = cs.overflowX;
                     const isScrollable = (ovY === 'auto' || ovY === 'scroll' || ovY === 'overlay' ||
-                                          ovX === 'auto' || ovX === 'scroll' || ovX === 'overlay');
+                      ovX === 'auto' || ovX === 'scroll' || ovX === 'overlay');
                     if (isScrollable) scrollParents.push(el);
-                  } catch (_) {}
+                  } catch (_) { }
                 };
                 let pEl = nameEl.parentElement;
                 while (pEl && pEl !== host) { addIfScrollable(pEl); pEl = pEl.parentElement; }
@@ -2684,9 +2828,9 @@ const renderEffects = (effRaw) => {
                 const onResize = () => { positionTooltip(); };
 
                 const cleanup = () => {
-                  try { document.removeEventListener('click', onDocClick, true); } catch(_) {}
-                  try { window.removeEventListener('resize', onResize, true); } catch(_) {}
-                  try { scrollParents.forEach(sp => sp.removeEventListener('scroll', onAnyScroll, true)); } catch(_) {}
+                  try { document.removeEventListener('click', onDocClick, true); } catch (_) { }
+                  try { window.removeEventListener('resize', onResize, true); } catch (_) { }
+                  try { scrollParents.forEach(sp => sp.removeEventListener('scroll', onAnyScroll, true)); } catch (_) { }
                 };
 
                 const onDocClick = (e2) => {
@@ -2719,18 +2863,25 @@ const renderEffects = (effRaw) => {
               const rnameBuy = window.GuixuHelpers.SafeGetValue(rel, 'name', null);
               const relLatestBuy = arrBuy.map(x => { try { return typeof x === 'string' ? JSON.parse(x) : x; } catch { return null; } })
                 .find(o => o && ((ridBuy != null && window.GuixuHelpers.SafeGetValue(o, 'id', null) === ridBuy) || (rnameBuy && window.GuixuHelpers.SafeGetValue(o, 'name', null) === rnameBuy))) || rel;
-              const item = (() => {
-                const list = Array.isArray(relLatestBuy?.物品列表) ? relLatestBuy.物品列表 : [];
+              // 优先从当前行读取物品（避免依赖ID匹配）
+              let item = null;
+              try {
+                const tr = btnBuy.closest('.trade-row');
+                const raw = tr?.getAttribute('data-item-data') || '';
+                item = raw ? JSON.parse(raw.replace(/&#39;/g, "'")) : null;
+              } catch (_) { item = null; }
+              // 若行内缺失，再回退至 NPC 储物袋中查找
+              if (!item) {
+                const list = RelationshipsComponent._readNpcStorageAsArray(relLatestBuy);
                 for (const raw of list) {
                   let it;
                   try { it = typeof raw === 'string' ? JSON.parse(raw) : raw; } catch { it = raw; }
                   if (!it) continue;
                   const id = String(window.GuixuHelpers.SafeGetValue(it, 'id', window.GuixuHelpers.SafeGetValue(it, 'uid', '')));
                   const name = String(window.GuixuHelpers.SafeGetValue(it, 'name', ''));
-                  if (String(itemId) === id || (name && String(itemId) === name)) return it;
+                  if (String(itemId) === id || (name && String(itemId) === name)) { item = it; break; }
                 }
-                return null;
-              })();
+              }
               if (!item) {
                 console.error('[归墟] 购买失败：未找到该物品', { itemId, relLatestBuy });
                 window.GuixuHelpers.showTemporaryMessage('未找到该物品');
@@ -2743,12 +2894,12 @@ const renderEffects = (effRaw) => {
               if (maxQuantity > 1) {
                 purchaseQuantity = await (window.GuixuMain?.showNumberPrompt
                   ? window.GuixuMain.showNumberPrompt({
-                      title: '选择购买数量',
-                      message: `【${window.GuixuHelpers.SafeGetValue(item, 'name', '未知物品')}】库存：${maxQuantity}，请选择购买数量`,
-                      min: 1,
-                      max: maxQuantity,
-                      defaultValue: 1,
-                    })
+                    title: '选择购买数量',
+                    message: `【${window.GuixuHelpers.SafeGetValue(item, 'name', '未知物品')}】库存：${maxQuantity}，请选择购买数量`,
+                    min: 1,
+                    max: maxQuantity,
+                    defaultValue: 1,
+                  })
                   : Promise.resolve(parseInt(prompt(`请输入购买数量（库存：${maxQuantity}）`, '1') || '1', 10)));
                 if (!Number.isFinite(purchaseQuantity) || purchaseQuantity <= 0 || purchaseQuantity > maxQuantity) {
                   window.GuixuHelpers.showTemporaryMessage('已取消或无效的数量');
@@ -2783,21 +2934,22 @@ const renderEffects = (effRaw) => {
                 } catch (_) { /* ignore */ }
               }
               recommendedTotalBuy = Math.max(1, Number(recommendedTotalBuy) || 1);
+              const unit = Curr.getPreferredUnit();
               const offer = await (window.GuixuMain?.showNumberPrompt
                 ? window.GuixuMain.showNumberPrompt({
-                    title: `出价（${state.unit}）`,
-                    message: `为【${window.GuixuHelpers.SafeGetValue(item, 'name', '未知物品')} x${purchaseQuantity}】出价（推荐买入价：${Curr.formatFromBase(recommendedTotalBuy, state.unit)} ${state.unit}）`,
-                    min: 1,
-                    max: 999999,
-                    defaultValue: Math.max(1, Math.round(Curr.fromBase(recommendedTotalBuy, state.unit)) || 1),
-                  })
+                  title: `出价（${unit}）`,
+                  message: `为【${window.GuixuHelpers.SafeGetValue(item, 'name', '未知物品')} x${purchaseQuantity}】出价（推荐买入价：${Curr.formatFromBase(recommendedTotalBuy, unit)} ${unit}）`,
+                  min: 1,
+                  max: 999999,
+                  defaultValue: Math.max(1, Math.round(Curr.fromBase(recommendedTotalBuy, unit)) || 1),
+                })
                 : Promise.resolve(parseInt(
-                    prompt(
-                      `请输入总出价（推荐买入价：${recommendedTotalBuy}，数量：${purchaseQuantity}）`,
-                      String(recommendedTotalBuy || 1)
-                    ) || '0',
-                    10
-                  )));
+                  prompt(
+                    `请输入总出价（推荐买入价：${recommendedTotalBuy}，数量：${purchaseQuantity}）`,
+                    String(recommendedTotalBuy || 1)
+                  ) || '0',
+                  10
+                )));
               if (!Number.isFinite(offer) || offer <= 0) {
                 window.GuixuHelpers.showTemporaryMessage('已取消或无效的出价');
                 return;
@@ -2807,7 +2959,7 @@ const renderEffects = (effRaw) => {
               const messagesNow = await window.GuixuAPI.getChatMessages(window.GuixuAPI.getCurrentMessageId());
               const currentStat = (messagesNow?.[0]?.data?.stat_data) || {};
               const myStones = Number(window.GuixuHelpers.SafeGetValue(currentStat, '灵石', 0)) || 0;
-              const offerBase = Curr.toBase(offer, state.unit);
+              const offerBase = Curr.toBase(offer, Curr.getPreferredUnit());
               if (offerBase > myStones) {
                 window.GuixuHelpers.showTemporaryMessage('灵石不足，无法完成交易');
                 return;
@@ -2815,7 +2967,7 @@ const renderEffects = (effRaw) => {
 
               // 获取玩家当前神海
               const playerShenhai = Number(window.GuixuHelpers.SafeGetValue(currentStat, '神海', 0)) || 0;
-              
+
               // 将购买数量传给成功率计算（用于按数量缩放推荐价）
               item.purchaseQuantity = purchaseQuantity;
               // 使用新的交易成功率计算
@@ -2832,7 +2984,7 @@ const renderEffects = (effRaw) => {
               try {
                 await RelationshipsComponent._applyTradeTransaction(rel, item, offerBase, purchaseQuantity);
                 window.GuixuHelpers.showTemporaryMessage('交易成功！物品已入账');
-                
+
                 // 将交易写入指令中心（提醒 LLM：发生了购买互动）
                 try {
                   const stateObj = window.GuixuState?.getState?.();
@@ -2846,10 +2998,10 @@ const renderEffects = (effRaw) => {
                     window.GuixuState.update('pendingActions', pending);
                   }
                 } catch (e) { console.warn('[归墟] 购买交易写入指令中心失败:', e); }
-                
+
                 // 实时刷新相关界面
                 await RelationshipsComponent._refreshAllRelatedUI();
-                
+
                 // 重新打开交易面板显示最新数据
                 await RelationshipsComponent.openTradePanel(rel);
               } catch (err) {
@@ -2859,24 +3011,32 @@ const renderEffects = (effRaw) => {
               return;
             }
 
-              // 出售我方物品
+            // 出售我方物品
             const btnSell = ev.target.closest('.btn-sell-item');
             if (btnSell) {
               const itemId = btnSell.dataset.itemId;
               // 重新获取最新数据，避免使用缓存的旧数据
               const messagesLatest = await window.GuixuAPI.getChatMessages(window.GuixuAPI.getCurrentMessageId());
               const latestStatData = (messagesLatest?.[0]?.data?.stat_data) || {};
-              
+
               // 从玩家背包合并清单中查找（与渲染列表保持一致）
               // 改进：查找玩家物品时同时返回原数组索引与原始条目，避免后续写回时找不到对应位置
               const findUserItemById = () => {
-                const lists = ['功法列表','武器列表','防具列表','饰品列表','法宝列表','丹药列表','其他列表'];
+                const lists = ['功法列表', '武器列表', '防具列表', '饰品列表', '法宝列表', '丹药列表', '其他列表'];
                 const normalize = (v) => {
                   if (v === null || v === undefined) return '';
                   try { return String(v).trim().toLowerCase(); } catch { return ''; }
                 };
                 const needle = normalize(itemId);
                 const H = window.GuixuHelpers;
+                // 从表格行兜底读取名称（用于无ID的单件物品）
+                let fallbackNameNorm = '';
+                try {
+                  const tr = btnSell.closest('.trade-row');
+                  const raw = tr?.getAttribute('data-item-data') || '';
+                  const obj = raw ? JSON.parse(raw.replace(/&#39;/g, "'")) : null;
+                  fallbackNameNorm = normalize(H.SafeGetValue(obj, 'name', ''));
+                } catch (_) {}
                 try {
                   for (const k of lists) {
                     const arr = (H && typeof H.readList === 'function') ? H.readList(latestStatData, k) : (latestStatData?.[k]?.[0] || []);
@@ -2895,7 +3055,7 @@ const renderEffects = (effRaw) => {
                         }
                         const id = normalize(H.SafeGetValue(it, 'id', H.SafeGetValue(it, 'uid', '')));
                         const name = normalize(H.SafeGetValue(it, 'name', ''));
-                        if (needle && (id === needle || name === needle)) {
+                        if ((needle && (id === needle || name === needle)) || (fallbackNameNorm && name === fallbackNameNorm)) {
                           return { listKey: k, listIndex: i, originalEntry: raw, parsedEntry: it };
                         }
                         if (needle && (name && name.includes(needle))) {
@@ -2906,7 +3066,7 @@ const renderEffects = (effRaw) => {
                           if (needle && rawPreview.includes(needle)) {
                             return { listKey: k, listIndex: i, originalEntry: raw, parsedEntry: it };
                           }
-                        } catch (_) {}
+                        } catch (_) { }
                       }
                     }
                   }
@@ -2923,7 +3083,7 @@ const renderEffects = (effRaw) => {
                         items.push({
                           id: H.SafeGetValue(parsed, 'id', H.SafeGetValue(parsed, 'uid', '')),
                           name: H.SafeGetValue(parsed, 'name', ''),
-                          rawPreview: (typeof rawEntry === 'string' ? (rawEntry.length > 120 ? rawEntry.slice(0,120) + '...' : rawEntry) : JSON.stringify(parsed).slice(0,120))
+                          rawPreview: (typeof rawEntry === 'string' ? (rawEntry.length > 120 ? rawEntry.slice(0, 120) + '...' : rawEntry) : JSON.stringify(parsed).slice(0, 120))
                         });
                       }
                     }
@@ -2939,7 +3099,7 @@ const renderEffects = (effRaw) => {
                 return;
               }
               // 将解析后的物品对象传给后端处理，并保留原引用信息以便写回
-              const item = Object.assign({}, (typeof userItemRef.parsedEntry === 'string' ? (function(){ try { return JSON.parse(userItemRef.parsedEntry); } catch { return { name: userItemRef.parsedEntry }; } })() : userItemRef.parsedEntry), { __userRef: { listKey: userItemRef.listKey, uIdx: userItemRef.listIndex } });
+              const item = Object.assign({}, (typeof userItemRef.parsedEntry === 'string' ? (function () { try { return JSON.parse(userItemRef.parsedEntry); } catch { return { name: userItemRef.parsedEntry }; } })() : userItemRef.parsedEntry), { __userRef: { listKey: userItemRef.listKey, uIdx: userItemRef.listIndex } });
               if (!item) {
                 window.GuixuHelpers.showTemporaryMessage('未找到要出售的物品');
                 return;
@@ -2951,12 +3111,12 @@ const renderEffects = (effRaw) => {
               if (itemQuantity > 1) {
                 sellQuantity = await (window.GuixuMain?.showNumberPrompt
                   ? window.GuixuMain.showNumberPrompt({
-                      title: '选择出售数量',
-                      message: `【${window.GuixuHelpers.SafeGetValue(item, 'name', '未知物品')}】拥有：${itemQuantity}，请选择出售数量`,
-                      min: 1,
-                      max: itemQuantity,
-                      defaultValue: 1,
-                    })
+                    title: '选择出售数量',
+                    message: `【${window.GuixuHelpers.SafeGetValue(item, 'name', '未知物品')}】拥有：${itemQuantity}，请选择出售数量`,
+                    min: 1,
+                    max: itemQuantity,
+                    defaultValue: 1,
+                  })
                   : Promise.resolve(parseInt(prompt(`请输入出售数量（拥有：${itemQuantity}）`, '1') || '1', 10)));
                 if (!Number.isFinite(sellQuantity) || sellQuantity <= 0 || sellQuantity > itemQuantity) {
                   window.GuixuHelpers.showTemporaryMessage('已取消或无效的数量');
@@ -2976,21 +3136,22 @@ const renderEffects = (effRaw) => {
                   recommendedTotalSell = Math.max(1, Number(priceInfo?.sell_price || baseVal)) * sellQuantity;
                 } catch (e) { /* ignore, fallback to base */ }
               }
+              const unit = Curr.getPreferredUnit();
               const offer = await (window.GuixuMain?.showNumberPrompt
                 ? window.GuixuMain.showNumberPrompt({
-                    title: `出售价格（${state.unit}）`,
-                    message: `为【${window.GuixuHelpers.SafeGetValue(item, 'name', '未知物品')} x${sellQuantity}】标价（推荐卖出价：${Curr.formatFromBase(recommendedTotalSell, state.unit)} ${state.unit}）`,
-                    min: 1,
-                    max: 999999,
-                    defaultValue: Math.max(1, Math.round(Curr.fromBase(recommendedTotalSell, state.unit)) || 1),
-                  })
+                  title: `出售价格（${unit}）`,
+                  message: `为【${window.GuixuHelpers.SafeGetValue(item, 'name', '未知物品')} x${sellQuantity}】标价（推荐卖出价：${Curr.formatFromBase(recommendedTotalSell, unit)} ${unit}）`,
+                  min: 1,
+                  max: 999999,
+                  defaultValue: Math.max(1, Math.round(Curr.fromBase(recommendedTotalSell, unit)) || 1),
+                })
                 : Promise.resolve(parseInt(
-                    prompt(
-                      `请输入总标价（推荐卖出价：${recommendedTotalSell}，数量：${sellQuantity}）`,
-                      String(recommendedTotalSell || 1)
-                    ) || '0',
-                    10
-                  )));
+                  prompt(
+                    `请输入总标价（推荐卖出价：${recommendedTotalSell}，数量：${sellQuantity}）`,
+                    String(recommendedTotalSell || 1)
+                  ) || '0',
+                  10
+                )));
               if (!Number.isFinite(offer) || offer <= 0) {
                 window.GuixuHelpers.showTemporaryMessage('已取消或无效的标价');
                 return;
@@ -3009,14 +3170,14 @@ const renderEffects = (effRaw) => {
               const relLatest = arr2.map(x => { try { return typeof x === 'string' ? JSON.parse(x) : x; } catch { return null; } })
                 .find(o => o && ((rid2 != null && window.GuixuHelpers.SafeGetValue(o, 'id', null) === rid2) || (rname2 && window.GuixuHelpers.SafeGetValue(o, 'name', null) === rname2))) || rel;
               const theirStonesNow = Number(window.GuixuHelpers.SafeGetValue(relLatest, '灵石', 0)) || 0;
-              const offerBase = Curr.toBase(offer, state.unit);
+              const offerBase = Curr.toBase(offer, Curr.getPreferredUnit());
               if (offerBase > theirStonesNow) {
                 window.GuixuHelpers.showTemporaryMessage('对方灵石不足，无法成交');
                 return;
               }
               // 获取玩家当前神海
               const playerShenhai2 = Number(window.GuixuHelpers.SafeGetValue(sd2, '神海', 0)) || 0;
-              
+
               // 使用新的出售成功率计算
               const ok = RelationshipsComponent._computeSellSuccess(offerBase, item, favorability, playerShenhai2);
               if (!ok) {
@@ -3031,7 +3192,7 @@ const renderEffects = (effRaw) => {
               try {
                 await RelationshipsComponent._applySellTransaction(rel, item, offerBase);
                 window.GuixuHelpers.showTemporaryMessage('出售成功！灵石已入账');
-                
+
                 // 将交易写入指令中心（提醒 LLM：发生了出售互动）
                 try {
                   const stateObj = window.GuixuState?.getState?.();
@@ -3046,10 +3207,10 @@ const renderEffects = (effRaw) => {
                     window.GuixuState.update('pendingActions', pending);
                   }
                 } catch (e) { console.warn('[归墟] 出售交易写入指令中心失败:', e); }
-                
+
                 // 实时刷新相关界面
                 await RelationshipsComponent._refreshAllRelatedUI();
-                
+
                 // 重新打开交易面板显示最新数据
                 await RelationshipsComponent.openTradePanel(rel);
               } catch (err) {
@@ -3147,7 +3308,7 @@ const renderEffects = (effRaw) => {
         // NPC可接受的最高价：推荐卖出价 * (1 + 好感度加成)，但有上限
         const favBonus = Math.min(0.4, fav * 0.001); // 每点好感度0.1%加成，最多40%
         const maxAcceptablePrice = Math.floor(recommendedPrice * (1 + favBonus));
-        
+
         // 最终判断：出价不能超过NPC可接受的最高价
         return offer <= maxAcceptablePrice;
       } catch (error) {
@@ -3174,19 +3335,19 @@ const renderEffects = (effRaw) => {
         if (s && typeof s.tradeAbuseCounters === 'object' && s.tradeAbuseCounters !== null) {
           return { ...s.tradeAbuseCounters };
         }
-      } catch (_) {}
+      } catch (_) { }
       try {
         const raw = localStorage.getItem('guixu_trade_abuse_counters');
         if (raw) {
           const parsed = JSON.parse(raw);
           if (parsed && typeof parsed === 'object') return { ...parsed };
         }
-      } catch (_) {}
+      } catch (_) { }
       return { ...(this._abuseCountersMemory || {}) };
     },
     _setAbuseCounters(map) {
-      try { window.GuixuState?.update?.('tradeAbuseCounters', map || {}); } catch (_) {}
-      try { localStorage.setItem('guixu_trade_abuse_counters', JSON.stringify(map || {})); } catch (_) {}
+      try { window.GuixuState?.update?.('tradeAbuseCounters', map || {}); } catch (_) { }
+      try { localStorage.setItem('guixu_trade_abuse_counters', JSON.stringify(map || {})); } catch (_) { }
       this._abuseCountersMemory = { ...(map || {}) };
     },
     _incrementAbuseCounter(rel) {
@@ -3206,7 +3367,7 @@ const renderEffects = (effRaw) => {
           delete map[key];
           this._setAbuseCounters(map);
         }
-      } catch (_) {}
+      } catch (_) { }
     },
     async _applyTradeAbusePenalty(rel, attempts) {
       const _ = window.GuixuAPI?.lodash || window._ || {
@@ -3226,7 +3387,7 @@ const renderEffects = (effRaw) => {
               o = o[k];
             }
             o[keys[0]] = value;
-          } catch {}
+          } catch { }
           return obj;
         },
       };
@@ -3267,7 +3428,7 @@ const renderEffects = (effRaw) => {
           const ev = Array.isArray(relObj.event_history) ? relObj.event_history : [];
           ev.push(reason);
           relObj.event_history = ev;
-        } catch (_) {}
+        } catch (_) { }
         container[matchKey] = (typeof originalRelEntry === 'string') ? JSON.stringify(relObj) : relObj;
       } else {
         const list = (stat_data?.['人物关系列表']?.[0]) || [];
@@ -3293,7 +3454,7 @@ const renderEffects = (effRaw) => {
           const ev = Array.isArray(relObj.event_history) ? relObj.event_history : [];
           ev.push(reason);
           relObj.event_history = ev;
-        } catch (_) {}
+        } catch (_) { }
         list[idx] = (typeof originalRelEntry === 'string') ? JSON.stringify(relObj) : relObj;
         stat_data['人物关系列表'][0] = list;
       }
@@ -3326,7 +3487,7 @@ const renderEffects = (effRaw) => {
         }
         // 刷新列表以反映 allow_trade=false
         await this._refreshAllRelatedUI();
-      } catch (_) {}
+      } catch (_) { }
 
       // 重置计数并提示
       this._resetAbuseCounter(rel);
@@ -3365,7 +3526,7 @@ const renderEffects = (effRaw) => {
               o = o[k];
             }
             o[keys[0]] = value;
-          } catch {}
+          } catch { }
           return obj;
         },
       };
@@ -3430,13 +3591,13 @@ const renderEffects = (effRaw) => {
         if (explicitType && explicitType !== '其他') {
           return explicitType;
         }
-        
+
         // 基于名称和描述进行智能分类（与购买逻辑保持一致）
         const itemName = (h.SafeGetValue(item, 'name', '') || '').toLowerCase();
         const itemDesc = (h.SafeGetValue(item, 'description', '') || '').toLowerCase();
         const itemEffect = (h.SafeGetValue(item, 'effect', '') || '').toLowerCase();
         const text = `${itemName} ${itemDesc} ${itemEffect}`;
-        
+
         // 物品分类关键词匹配
         const categoryKeywords = {
           '丹药': ['丹', '药', '丹药', '灵药', '仙丹', '药丸', '药液', '药膏', '疗伤', '回血', '回蓝', '恢复'],
@@ -3447,10 +3608,10 @@ const renderEffects = (effRaw) => {
           '功法': ['功法', '心法', '秘籍', '经', '诀', '术', '功', '法', '真经', '宝典'],
           '材料': ['材料', '矿', '石', '木', '草', '花', '兽', '皮', '骨', '精', '血', '矿石', '灵草']
         };
-        
+
         // 按优先级检查分类（丹药优先级最高，因为最容易误分类）
         const priorityOrder = ['丹药', '武器', '防具', '饰品', '法宝', '功法', '材料'];
-        
+
         for (const category of priorityOrder) {
           const keywords = categoryKeywords[category];
           for (const keyword of keywords) {
@@ -3459,7 +3620,7 @@ const renderEffects = (effRaw) => {
             }
           }
         }
-        
+
         return '其他';
       };
 
@@ -3541,11 +3702,12 @@ const renderEffects = (effRaw) => {
       _.set(stat_data, userListPath, userArr);
 
       // NPC 物品列表加入/叠加
-      // 确保 NPC 物品列表是数组，如果不存在则初始化
-      if (!Array.isArray(relObj.物品列表)) {
+      // 统一 NPC 物品容器
+      const useBag = relObj && typeof relObj['储物袋'] === 'object' && relObj['储物袋'] !== null;
+      if (!useBag && !Array.isArray(relObj.物品列表)) {
         relObj.物品列表 = [];
       }
-      const npcItems = relObj.物品列表;
+      const npcItems = useBag ? RelationshipsComponent._readNpcStorageAsArray(relObj) : relObj.物品列表;
 
       // 查找是否已存在同ID/同名物品（兼容字符串化条目），并保持原始存储格式（字符串或对象）
       let nIdx = -1;
@@ -3594,6 +3756,16 @@ const renderEffects = (effRaw) => {
           npcItems.push(pushItem);
         }
       }
+      if (useBag) {
+        const newBag = {};
+        npcItems.forEach(entry => {
+          let it = entry;
+          try { it = (typeof entry === 'string') ? JSON.parse(entry) : entry; } catch (_) { }
+          const k = window.GuixuHelpers.SafeGetValue(it, 'name', window.GuixuHelpers.SafeGetValue(it, 'id', '物品'));
+          newBag[k] = it;
+        });
+        relObj['储物袋'] = newBag;
+      }
       // relObj.物品列表 已经通过引用被修改
 
       // 写回人物（保持与原类型一致）
@@ -3617,7 +3789,7 @@ const renderEffects = (effRaw) => {
         await window.GuixuAPI.setChatMessages(updates, { refresh: 'none' });
       } catch (err) {
         console.error('[归墟] setChatMessages 失败（出售操作）：', err, '准备写入：', updates);
-        try { window.GuixuHelpers.showTemporaryMessage('保存数据失败：' + (err && err.message ? err.message : '未知错误')); } catch(e){}
+        try { window.GuixuHelpers.showTemporaryMessage('保存数据失败：' + (err && err.message ? err.message : '未知错误')); } catch (e) { }
         // 抛出以便调用处（UI）能显示失败信息
         throw err;
       }
@@ -3626,19 +3798,19 @@ const renderEffects = (effRaw) => {
     // 智能物品分类函数 - 统一的分类逻辑
     _getItemCategory(item) {
       const h = window.GuixuHelpers;
-      
+
       // 优先使用显式的 type 字段
       const explicitType = h.SafeGetValue(item, 'type', null);
       if (explicitType && explicitType !== '其他') {
         return explicitType;
       }
-      
+
       // 基于名称和描述进行智能分类
       const itemName = (h.SafeGetValue(item, 'name', '') || '').toLowerCase();
       const itemDesc = (h.SafeGetValue(item, 'description', '') || '').toLowerCase();
       const itemEffect = (h.SafeGetValue(item, 'effect', '') || '').toLowerCase();
       const text = `${itemName} ${itemDesc} ${itemEffect}`;
-      
+
       // 物品分类关键词匹配
       const categoryKeywords = {
         '丹药': ['丹', '药', '丹药', '灵药', '仙丹', '药丸', '药液', '药膏', '疗伤', '回血', '回蓝', '恢复'],
@@ -3649,10 +3821,10 @@ const renderEffects = (effRaw) => {
         '功法': ['功法', '心法', '秘籍', '经', '诀', '术', '功', '法', '真经', '宝典'],
         '材料': ['材料', '矿', '石', '木', '草', '花', '兽', '皮', '骨', '精', '血', '矿石', '灵草']
       };
-      
+
       // 按优先级检查分类（丹药优先级最高，因为最容易误分类）
       const priorityOrder = ['丹药', '武器', '防具', '饰品', '法宝', '功法', '材料'];
-      
+
       for (const category of priorityOrder) {
         const keywords = categoryKeywords[category];
         for (const keyword of keywords) {
@@ -3661,21 +3833,49 @@ const renderEffects = (effRaw) => {
           }
         }
       }
-      
+
       return '其他';
+    },
+
+    // 统一读取 NPC 携带物品（支持 新：储物袋{名称:对象} / 旧：物品列表[]）
+    _readNpcStorageAsArray(npc) {
+      try {
+        const bag = npc && npc['储物袋'];
+        if (bag && typeof bag === 'object') {
+          return Object.keys(bag)
+            .filter(k => k !== '$meta' && k !== '$__META_EXTENSIBLE__$')
+            .map(k => {
+              let val = bag[k];
+              if (!val) return null;
+              if (typeof val === 'string') {
+                try { val = JSON.parse(val); } catch (_) { val = { name: k }; }
+              }
+              if (val && typeof val === 'object') {
+                if (!Object.prototype.hasOwnProperty.call(val, 'name') || !val.name) val.name = k;
+                return val;
+              }
+              return null;
+            })
+            .filter(Boolean);
+        }
+        const arr = Array.isArray(npc?.物品列表) ? npc.物品列表 : [];
+        return arr.filter(x => x && x !== '$__META_EXTENSIBLE__$');
+      } catch (_) {
+        return [];
+      }
     },
 
     // 自动修复物品的type字段
     _fixItemType(item) {
       const h = window.GuixuHelpers;
       const currentType = h.SafeGetValue(item, 'type', null);
-      
+
       // 如果没有type字段或type为"其他"，则自动分类
       if (!currentType || currentType === '其他') {
         const correctType = this._getItemCategory(item);
         item.type = correctType;
       }
-      
+
       return item;
     },
 
@@ -3701,15 +3901,15 @@ const renderEffects = (effRaw) => {
             for (let i = 0; i < items.length; i++) {
               const rawItem = items[i];
               if (!rawItem || rawItem === '$__META_EXTENSIBLE__$') continue;
-              
+
               try {
                 let item = typeof rawItem === 'string' ? JSON.parse(rawItem) : rawItem;
                 const originalType = h.SafeGetValue(item, 'type', null);
-                
+
                 // 修复type字段
                 item = this._fixItemType(item);
                 const newType = item.type;
-                
+
                 if (originalType !== newType) {
                   // 将修改后的物品写回
                   items[i] = typeof rawItem === 'string' ? JSON.stringify(item) : item;
@@ -3730,7 +3930,7 @@ const renderEffects = (effRaw) => {
           await window.GuixuAPI.setChatMessages(updates, { refresh: 'none' });
           return true;
         }
-        
+
         return false;
       } catch (error) {
         console.error('[归墟] 批量修复玩家物品type字段失败:', error);
@@ -3745,7 +3945,7 @@ const renderEffects = (effRaw) => {
         if (window.GuixuMain?.updateDynamicData) {
           window.GuixuMain.updateDynamicData();
         }
-        
+
         // 刷新背包界面（如果已打开）
         const inventoryModal = document.getElementById('inventory-modal');
         if (inventoryModal && inventoryModal.style.display !== 'none') {
@@ -3753,13 +3953,13 @@ const renderEffects = (effRaw) => {
             setTimeout(() => window.InventoryComponent.show(), 100);
           }
         }
-        
+
         // 刷新人物关系界面本身（如果已打开）
         const relationshipsModal = document.getElementById('relationships-modal');
         if (relationshipsModal && relationshipsModal.style.display !== 'none') {
           setTimeout(() => this.show(), 100);
         }
-        
+
         console.log('[归墟] 已刷新所有相关UI界面');
       } catch (error) {
         console.error('[归墟] 刷新UI界面时出错:', error);
@@ -3790,23 +3990,23 @@ const renderEffects = (effRaw) => {
 
           try {
             let rel = typeof rawRel === 'string' ? JSON.parse(rawRel) : rawRel;
-            
+
             // 检查NPC的物品列表
             if (Array.isArray(rel.物品列表)) {
               let npcItemsChanged = false;
-              
+
               for (let j = 0; j < rel.物品列表.length; j++) {
                 const rawItem = rel.物品列表[j];
                 if (!rawItem || rawItem === '$__META_EXTENSIBLE__$') continue;
-                
+
                 try {
                   let item = typeof rawItem === 'string' ? JSON.parse(rawItem) : rawItem;
                   const originalType = h.SafeGetValue(item, 'type', null);
-                  
+
                   // 修复type字段
                   item = this._fixItemType(item);
                   const newType = item.type;
-                  
+
                   if (originalType !== newType) {
                     rel.物品列表[j] = typeof rawItem === 'string' ? JSON.stringify(item) : item;
                     npcItemsChanged = true;
@@ -3834,7 +4034,7 @@ const renderEffects = (effRaw) => {
           await window.GuixuAPI.setChatMessages(updates, { refresh: 'none' });
           return true;
         }
-        
+
         return false;
       } catch (error) {
         console.error('[归墟] 批量修复NPC物品type字段失败:', error);
@@ -3846,10 +4046,10 @@ const renderEffects = (effRaw) => {
     async _startBatchFix() {
       try {
         window.GuixuHelpers.showTemporaryMessage('开始批量修复物品分类...');
-        
+
         const playerFixed = await this._fixPlayerInventoryTypes();
         const npcFixed = await this._fixNpcInventoryTypes();
-        
+
         if (playerFixed || npcFixed) {
           window.GuixuHelpers.showTemporaryMessage('物品分类修复完成！请刷新界面查看效果。');
           // 刷新相关界面
@@ -3886,7 +4086,7 @@ const renderEffects = (effRaw) => {
               o = o[k];
             }
             o[keys[0]] = value;
-          } catch {}
+          } catch { }
           return obj;
         },
       };
@@ -3945,7 +4145,8 @@ const renderEffects = (effRaw) => {
       relObj['灵石'] = npcStones + offer;
 
       const itemId = h.SafeGetValue(item, 'id', h.SafeGetValue(item, 'uid', ''));
-      const npcItems = Array.isArray(relObj.物品列表) ? relObj.物品列表 : [];
+      const useBag = relObj && typeof relObj['储物袋'] === 'object' && relObj['储物袋'] !== null;
+      const npcItems = useBag ? RelationshipsComponent._readNpcStorageAsArray(relObj) : (Array.isArray(relObj.物品列表) ? relObj.物品列表 : []);
       // 在 NPC 物品列表中定位目标条目（兼容字符串化条目）
       let itIndex = -1;
       try {
@@ -3973,7 +4174,18 @@ const renderEffects = (effRaw) => {
       } else {
         npcItems.splice(itIndex, 1);
       }
-      relObj.物品列表 = npcItems;
+      if (useBag) {
+        const newBag = {};
+        npcItems.forEach(entry => {
+          let it = entry;
+          try { it = (typeof entry === 'string') ? JSON.parse(entry) : entry; } catch (_) { }
+          const k = window.GuixuHelpers.SafeGetValue(it, 'name', window.GuixuHelpers.SafeGetValue(it, 'id', '物品'));
+          newBag[k] = it;
+        });
+        relObj['储物袋'] = newBag;
+      } else {
+        relObj.物品列表 = npcItems;
+      }
 
       // 将更新后的 relObj 写回（保持与原类型一致）
       if (containerType === 'object') {
@@ -3987,10 +4199,10 @@ const renderEffects = (effRaw) => {
       }
 
       // 3) 加入玩家对应分类列表（使用统一的分类逻辑并自动修复type字段）
-      
+
       // 自动修复购买物品的type字段（防护机制）
       const fixedBought = this._fixItemType(JSON.parse(JSON.stringify(bought)));
-      
+
       // 使用修复后的type字段进行分类
       const mapTypeToListKey = (typ) => {
         switch (String(typ || '其他')) {
@@ -4005,7 +4217,7 @@ const renderEffects = (effRaw) => {
           default: return '其他列表';
         }
       };
-      
+
       const itemType = fixedBought.type;
       const userListKey = mapTypeToListKey(itemType);
       const userListPath = `${userListKey}.0`;
@@ -4068,7 +4280,7 @@ const renderEffects = (effRaw) => {
         await window.GuixuAPI.setChatMessages(updates, { refresh: 'none' });
       } catch (err) {
         console.error('[归墟] setChatMessages 失败（购买操作）：', err, '准备写入：', updates);
-        try { window.GuixuHelpers.showTemporaryMessage('保存数据失败：' + (err && err.message ? err.message : '未知错误')); } catch(e){}
+        try { window.GuixuHelpers.showTemporaryMessage('保存数据失败：' + (err && err.message ? err.message : '未知错误')); } catch (e) { }
         throw err;
       }
     },
@@ -4077,7 +4289,7 @@ const renderEffects = (effRaw) => {
         const k = 'guixu_rel_marked_names';
         const arr = JSON.parse(localStorage.getItem(k) || '[]');
         return Array.isArray(arr) && arr.includes(String(name));
-      } catch(_) { return false; }
+      } catch (_) { return false; }
     },
     _toggleMarked(name) {
       try {
@@ -4089,17 +4301,17 @@ const renderEffects = (effRaw) => {
         else arr.push(s);
         localStorage.setItem(k, JSON.stringify(arr));
         return arr.includes(s);
-      } catch(_) { return false; }
+      } catch (_) { return false; }
     },
     _getExtractSettings() {
       try {
         const def = { autoExtract: false, threshold: 10, autoDeleteAfterExtract: true };
         const raw = JSON.parse(localStorage.getItem('guixu_rel_extract_settings') || 'null');
         return Object.assign({}, def, raw || {});
-      } catch(_) { return { autoExtract: false, threshold: 10, autoDeleteAfterExtract: true }; }
+      } catch (_) { return { autoExtract: false, threshold: 10, autoDeleteAfterExtract: true }; }
     },
     _saveExtractSettings(s) {
-      try { localStorage.setItem('guixu_rel_extract_settings', JSON.stringify(s || this._getExtractSettings())); } catch(_) {}
+      try { localStorage.setItem('guixu_rel_extract_settings', JSON.stringify(s || this._getExtractSettings())); } catch (_) { }
     },
     _initRelSettingsControls(relationships) {
       try {
@@ -4128,13 +4340,13 @@ const renderEffects = (effRaw) => {
         const btnClear = document.getElementById('rel-clear-character-entries');
         btnClear?.addEventListener('click', async () => {
           try {
-            const confirmed = await new Promise(resolve => 
+            const confirmed = await new Promise(resolve =>
               window.GuixuMain?.showCustomConfirm
                 ? window.GuixuMain.showCustomConfirm(
-                    '确定要清空角色目录中所有“角色:*”的世界书条目吗？此操作不可逆。',
-                    () => resolve(true),
-                    () => resolve(false)
-                  )
+                  '确定要清空角色目录中所有“角色:*”的世界书条目吗？此操作不可逆。',
+                  () => resolve(true),
+                  () => resolve(false)
+                )
                 : resolve(confirm('确定要清空角色目录（世界书）吗？此操作不可逆。'))
             );
             if (!confirmed) {
@@ -4143,7 +4355,7 @@ const renderEffects = (effRaw) => {
             }
             await this._clearAllCharacterEntries();
             window.GuixuHelpers?.showTemporaryMessage?.('已清空角色目录条目');
-          } catch(e) {
+          } catch (e) {
             window.GuixuHelpers?.showTemporaryMessage?.('清空失败');
           }
         });
@@ -4171,18 +4383,18 @@ const renderEffects = (effRaw) => {
             if (s.autoDeleteAfterExtract) {
               toDelete.push(rel);
             }
-          } catch (_) {}
+          } catch (_) { }
         }
 
         if (s.autoDeleteAfterExtract && toDelete.length > 0) {
           // 仅提示一次
           const confirmMsg = `将删除 ${toDelete.length} 条关系记录（已提取到世界书）。是否继续？此操作不可逆。`;
-          const confirmed = await new Promise(resolve => 
+          const confirmed = await new Promise(resolve =>
             window.GuixuMain.showCustomConfirm(confirmMsg, () => resolve(true), () => resolve(false))
           );
           if (confirmed) {
             for (const rel of toDelete) {
-              try { await this.deleteRelationship(rel, { silent: true }); } catch (_) {}
+              try { await this.deleteRelationship(rel, { silent: true }); } catch (_) { }
             }
           } else {
             window.GuixuHelpers.showTemporaryMessage('已取消自动删除，仅完成提取。');
@@ -4285,7 +4497,7 @@ const renderEffects = (effRaw) => {
         // 四维（当前 / 加成后）
         const totalAttrs = normalizeField(rel?.['四维属性'] ?? {}) || {};
         const curAttrs = normalizeField(rel?.['当前四维属性'] ?? {}) || {};
-        const keys = ['法力','神海','道心','空速'];
+        const keys = ['法力', '神海', '道心', '空速'];
         const toNum = (v) => { const n = Number(v); return Number.isFinite(n) ? n : 0; };
         const fourDimParts = keys.map(k => `${k}:${toNum(curAttrs[k])}/${toNum(totalAttrs[k])}`);
         if (fourDimParts.some(p => /:/.test(p))) {
@@ -4294,13 +4506,13 @@ const renderEffects = (effRaw) => {
         // 基础四维属性
         try {
           const base = normalizeField(rel?.['基础四维属性'] ?? {}) || {};
-          const keysBase = ['法力','神海','道心','空速'];
+          const keysBase = ['法力', '神海', '道心', '空速'];
           const kvBase = keysBase
             .filter(k => base[k] != null && String(base[k]).trim() !== '')
             .map(k => `${k}:${base[k]}`)
             .join('；');
           if (kvBase) lines.push(`基础四维|${kvBase}`);
-        } catch (_) {}
+        } catch (_) { }
 
         // 装备槽（提取到世界书：主修/辅修/武器/防具/饰品/法宝，含明细）
         try {
@@ -4316,8 +4528,8 @@ const renderEffects = (effRaw) => {
           slotDefsExtract.forEach(def => {
             const it = window.GuixuHelpers.readEquipped(rel, def.key) || (def.legacy ? window.GuixuHelpers.readEquipped(rel, def.legacy) : null);
             if (it && typeof it === 'object') {
-              const n = h.SafeGetValue(it,'name', h.SafeGetValue(it,'名称', def.label));
-              const t = h.SafeGetValue(it,'tier', h.SafeGetValue(it,'品阶','凡品'));
+              const n = h.SafeGetValue(it, 'name', h.SafeGetValue(it, '名称', def.label));
+              const t = h.SafeGetValue(it, 'tier', h.SafeGetValue(it, '品阶', '凡品'));
               const label = def.label;
               parts.push(`${label}:【${t}】${n}`);
               const ab = normalizeField(it['attributes_bonus'] ?? it['属性加成'] ?? {}) || {};
@@ -4325,11 +4537,11 @@ const renderEffects = (effRaw) => {
               const se = (() => {
                 const v = normalizeField(it['special_effects'] ?? it['词条效果'] ?? it['词条'] ?? []);
                 if (Array.isArray(v)) return v.filter(x => x && x !== '$__META_EXTENSIBLE__$' && x !== '...');
-                if (typeof v === 'string') return v.split(/[，,、\n]+/).map(s=>s.trim()).filter(Boolean);
+                if (typeof v === 'string') return v.split(/[，,、\n]+/).map(s => s.trim()).filter(Boolean);
                 return [];
               })();
-              const kvAb = Object.entries(ab || {}).filter(([k,v]) => v != null && String(v).trim() !== '').map(([k,v]) => `${k}:${v}`).join('；');
-              const kvPb = Object.entries(pb || {}).filter(([k,v]) => v != null && String(v).trim() !== '').map(([k,v]) => `${k}:${v}`).join('；');
+              const kvAb = Object.entries(ab || {}).filter(([k, v]) => v != null && String(v).trim() !== '').map(([k, v]) => `${k}:${v}`).join('；');
+              const kvPb = Object.entries(pb || {}).filter(([k, v]) => v != null && String(v).trim() !== '').map(([k, v]) => `${k}:${v}`).join('；');
               if (kvAb) lines.push(`装备:${label}-属性加成|${kvAb}`);
               if (kvPb) lines.push(`装备:${label}-百分比加成|${kvPb}`);
               if (se.length) lines.push(`装备:${label}-词条|${se.join('；')}`);
@@ -4338,7 +4550,7 @@ const renderEffects = (effRaw) => {
           if (parts.length) {
             lines.push(`装备|${parts.join('；')}`);
           }
-        } catch (_) {}
+        } catch (_) { }
         // 取“内在能力”容器（灵根/功法/天赋）
         const inhRaw = (rel?.['inherent_abilities'] ?? rel?.['内在能力'] ?? {});
         const inh = (() => {
@@ -4352,7 +4564,7 @@ const renderEffects = (effRaw) => {
           const lgRaw = inh['灵根'] || inh['灵根列表'] || inh['linggen'] || inh['灵根'] || {};
           if (Array.isArray(lgRaw) && lgRaw.length > 0) linggen = parseMaybeJson(lgRaw[0]) || {};
           else linggen = normalizeField(lgRaw) || {};
-        } catch {}
+        } catch { }
         if (linggen && (linggen.名称 || linggen.name)) {
           const lgName = linggen.名称 || linggen.name || '未知灵根';
           const lgTier = linggen.品阶 || linggen.tier || '凡品';
@@ -4385,7 +4597,7 @@ const renderEffects = (effRaw) => {
             const parsed = normalizeField(gfRaw);
             gongfaList = Array.isArray(parsed) ? safeList(parsed).map(parseMaybeJson) : (parsed ? [parsed] : []);
           }
-        } catch {}
+        } catch { }
 
         // 天赋列表
         let talentList = [];
@@ -4396,7 +4608,7 @@ const renderEffects = (effRaw) => {
             const parsed = normalizeField(tRaw);
             talentList = Array.isArray(parsed) ? safeList(parsed).map(parseMaybeJson) : (parsed ? [parsed] : []);
           }
-        } catch {}
+        } catch { }
         if (talentList.length) {
           const tLines = talentList.map(it => {
             const n = h.SafeGetValue(it, 'name', h.SafeGetValue(it, '名称', '未知天赋'));
@@ -4425,18 +4637,18 @@ const renderEffects = (effRaw) => {
                 }
                 return [];
               })();
-              const kvAb = Object.entries(ab).filter(([k,v]) => v != null && String(v).trim() !== '').map(([k,v]) => `${k}:${v}`).join('；');
-              const kvPb = Object.entries(pb).filter(([k,v]) => v != null && String(v).trim() !== '').map(([k,v]) => `${k}:${v}`).join('；');
+              const kvAb = Object.entries(ab).filter(([k, v]) => v != null && String(v).trim() !== '').map(([k, v]) => `${k}:${v}`).join('；');
+              const kvPb = Object.entries(pb).filter(([k, v]) => v != null && String(v).trim() !== '').map(([k, v]) => `${k}:${v}`).join('；');
               if (kvAb) lines.push(`天赋:${n}-属性加成|${kvAb}`);
               if (kvPb) lines.push(`天赋:${n}-百分比加成|${kvPb}`);
               if (specials.length) lines.push(`天赋:${n}-词条|${specials.join('；')}`);
-            } catch (_) {}
+            } catch (_) { }
           });
         }
 
-        // 携带物品（若存在）
-        if (Array.isArray(rel?.物品列表) && rel.物品列表.length) {
-          const items = safeList(rel.物品列表).map(x => {
+        // 携带物品（统一读取 储物袋/物品列表）
+        {
+          const items = RelationshipsComponent._readNpcStorageAsArray(rel).map(x => {
             try { return typeof x === 'string' ? JSON.parse(x) : x; } catch { return x; }
           });
           if (items.length) {
@@ -4478,7 +4690,7 @@ const renderEffects = (effRaw) => {
           const exists = (target.content || '').includes(content);
           if (!exists) {
             const merged = (target.content ? (target.content + '\n\n') : '') + content;
-            await window.GuixuAPI.setLorebookEntries(book, [{ uid: target.uid, content: merged, keys: Array.from(new Set([...(target.keys||[]), name])) }]);
+            await window.GuixuAPI.setLorebookEntries(book, [{ uid: target.uid, content: merged, keys: Array.from(new Set([...(target.keys || []), name])) }]);
           }
         } else {
           await window.GuixuAPI.createLorebookEntries(book, [{
