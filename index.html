@@ -6,7 +6,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>归墟 - 宿命轮回</title>
-  <link rel="stylesheet" href="https://sparkling-hummingbird-1a2fc4.netlify.app/归墟/css/guixu.css" />
+  <!-- 切换到 @v3.1.5 以确保对象字典 MVU 兼容性（readList/SafeGetValue/readEquipped 等），并附带缓存参数 -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/slot181/GuiXu@v3.1.5/css/guixu.css?v=20250825" />
 </head>
 
 <body>
@@ -475,34 +476,34 @@
   </div>
 
   <!-- 加载模块化脚本（按依赖顺序） -->
-  <script src="https://sparkling-hummingbird-1a2fc4.netlify.app/归墟/js/utils/constants.js"></script>
-  <script src="https://sparkling-hummingbird-1a2fc4.netlify.app/归墟/js/utils/tradeCalculator.js"></script>
-  <script src="https://sparkling-hummingbird-1a2fc4.netlify.app/归墟/js/utils/dom.js"></script>
-  <script src="https://sparkling-hummingbird-1a2fc4.netlify.app/归墟/js/utils/helpers.js"></script>
-  <script src="https://sparkling-hummingbird-1a2fc4.netlify.app/归墟/js/utils/renderers.js"></script>
-  <script src="https://sparkling-hummingbird-1a2fc4.netlify.app/归墟/js/core/TavernAPI.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/slot181/GuiXu@v3.1.5/js/utils/constants.js?v=20250825"></script>
+  <script src="https://cdn.jsdelivr.net/gh/slot181/GuiXu@v3.1.5/js/utils/tradeCalculator.js?v=20250825"></script>
+  <script src="https://cdn.jsdelivr.net/gh/slot181/GuiXu@v3.1.5/js/utils/dom.js?v=20250825"></script>
+  <script src="https://cdn.jsdelivr.net/gh/slot181/GuiXu@v3.1.5/js/utils/helpers.js?v=20250825"></script>
+  <script src="https://cdn.jsdelivr.net/gh/slot181/GuiXu@v3.1.5/js/utils/renderers.js?v=20250825"></script>
+  <script src="https://cdn.jsdelivr.net/gh/slot181/GuiXu@v3.1.5/js/core/TavernAPI.js?v=20250825"></script>
   
   <!-- 加载服务层脚本 -->
-  <script src="https://sparkling-hummingbird-1a2fc4.netlify.app/归墟/js/services/state.js"></script>
-  <script src="https://sparkling-hummingbird-1a2fc4.netlify.app/归墟/js/services/attributes.js"></script>
-  <script src="https://sparkling-hummingbird-1a2fc4.netlify.app/归墟/js/services/lorebook.js"></script>
-  <script src="https://sparkling-hummingbird-1a2fc4.netlify.app/归墟/js/services/action.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/slot181/GuiXu@v3.1.5/js/services/state.js?v=20250825"></script>
+  <script src="https://cdn.jsdelivr.net/gh/slot181/GuiXu@v3.1.5/js/services/attributes.js?v=20250825"></script>
+  <script src="https://cdn.jsdelivr.net/gh/slot181/GuiXu@v3.1.5/js/services/lorebook.js?v=20250825"></script>
+  <script src="https://cdn.jsdelivr.net/gh/slot181/GuiXu@v3.1.5/js/services/action.js?v=20250825"></script>
 
   <!-- 组件脚本（在 UI 协调器之前加载） -->
-  <script src="https://sparkling-hummingbird-1a2fc4.netlify.app/归墟/js/components/modal.js"></script>
-  <script src="https://sparkling-hummingbird-1a2fc4.netlify.app/归墟/js/components/settings.js"></script>
-  <script src="https://sparkling-hummingbird-1a2fc4.netlify.app/归墟/js/components/statuses.js"></script>
-  <script src="https://sparkling-hummingbird-1a2fc4.netlify.app/归墟/js/components/inventory.js"></script>
-  <script src="https://sparkling-hummingbird-1a2fc4.netlify.app/归墟/js/components/relationships.js"></script>
-  <script src="https://sparkling-hummingbird-1a2fc4.netlify.app/归墟/js/components/command-center.js"></script>
-  <script src="https://sparkling-hummingbird-1a2fc4.netlify.app/归墟/js/components/extracted-content.js"></script>
-  <script src="https://sparkling-hummingbird-1a2fc4.netlify.app/归墟/js/components/guixu-system.js"></script>
-  <script src="https://sparkling-hummingbird-1a2fc4.netlify.app/归墟/js/components/journey.js"></script>
-  <script src="https://sparkling-hummingbird-1a2fc4.netlify.app/归墟/js/components/past-lives.js"></script>
-  <script src="https://sparkling-hummingbird-1a2fc4.netlify.app/归墟/js/components/cultivation-panel.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/slot181/GuiXu@v3.1.5/js/components/modal.js?v=20250825"></script>
+  <script src="https://cdn.jsdelivr.net/gh/slot181/GuiXu@v3.1.5/js/components/settings.js?v=20250825"></script>
+  <script src="https://cdn.jsdelivr.net/gh/slot181/GuiXu@v3.1.5/js/components/statuses.js?v=20250825"></script>
+  <script src="https://cdn.jsdelivr.net/gh/slot181/GuiXu@v3.1.5/js/components/inventory.js?v=20250825"></script>
+  <script src="https://cdn.jsdelivr.net/gh/slot181/GuiXu@v3.1.5/js/components/relationships.js?v=20250825"></script>
+  <script src="https://cdn.jsdelivr.net/gh/slot181/GuiXu@v3.1.5/js/components/command-center.js?v=20250825"></script>
+  <script src="https://cdn.jsdelivr.net/gh/slot181/GuiXu@v3.1.5/js/components/extracted-content.js?v=20250825"></script>
+  <script src="https://cdn.jsdelivr.net/gh/slot181/GuiXu@v3.1.5/js/components/guixu-system.js?v=20250825"></script>
+  <script src="https://cdn.jsdelivr.net/gh/slot181/GuiXu@v3.1.5/js/components/journey.js?v=20250825"></script>
+  <script src="https://cdn.jsdelivr.net/gh/slot181/GuiXu@v3.1.5/js/components/past-lives.js?v=20250825"></script>
+  <script src="https://cdn.jsdelivr.net/gh/slot181/GuiXu@v3.1.5/js/components/cultivation-panel.js?v=20250825"></script>
 
-  <script src="https://sparkling-hummingbird-1a2fc4.netlify.app/归墟/js/components/intro-modal.js"></script>
-  <script src="https://sparkling-hummingbird-1a2fc4.netlify.app/归墟/js/main.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/slot181/GuiXu@v3.1.5/js/components/intro-modal.js?v=20250825"></script>
+  <script src="https://cdn.jsdelivr.net/gh/slot181/GuiXu@v3.1.5/js/main.js?v=20250825"></script>
 </body>
 
 </html>

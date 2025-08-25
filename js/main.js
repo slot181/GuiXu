@@ -67,6 +67,7 @@
           '防具',
           '饰品',
           '法宝栏1',
+          '法宝',
           // 人物关系与背包各列表
           '人物关系列表.0',
           '功法列表.0',
@@ -82,15 +83,21 @@
         // 2) 列表项内部的“词条数组”（special_effects）保底（用于 LLM 追加新词条）
         const ensureItemSpecialEffects = (arr) => {
           if (!Array.isArray(arr)) return;
+          const EXT = this._EXT;
           arr.forEach((it, idx) => {
-            if (it && typeof it === 'object' && Array.isArray(it.special_effects)) {
-              arr[idx].special_effects = this._ensureMetaExtensibleArray(it.special_effects);
+            if (it && typeof it === 'object') {
+              if (Array.isArray(it.special_effects)) {
+                arr[idx].special_effects = this._ensureMetaExtensibleArray(it.special_effects);
+              } else if (it.special_effects == null && it['词条效果'] == null && it['词条'] == null) {
+                // 若不存在任何词条字段，则补一个占位的 special_effects
+                arr[idx].special_effects = [EXT];
+              }
             }
           });
         };
 
         // 针对装备/功法等（数组 -> 对象 -> special_effects）
-        ['武器','主修功法','辅修心法','防具','饰品','法宝栏1'].forEach(p => {
+        ['武器','主修功法','辅修心法','防具','饰品','法宝','法宝栏1'].forEach(p => {
           const a = _?.get(statData, p);
           if (Array.isArray(a)) ensureItemSpecialEffects(a);
         });
@@ -108,12 +115,43 @@
           if (Array.isArray(a)) ensureItemSpecialEffects(a);
         });
 
-        // 人物关系列表内的过往事件(event_history)也补占位符
+        // 人物关系列表内子列表补占位符（event_history / 当前状态 / 物品列表 / inherent_abilities）
         const rels = _?.get(statData, '人物关系列表.0');
         if (Array.isArray(rels)) {
+          const EXT = this._EXT;
           rels.forEach((rel, idx) => {
-            if (rel && typeof rel === 'object' && Array.isArray(rel.event_history)) {
+            if (!rel || typeof rel !== 'object') return;
+
+            // 过往交集
+            if (Array.isArray(rel.event_history)) {
               rels[idx].event_history = this._ensureMetaExtensibleArray(rel.event_history);
+            }
+
+            // 当前状态
+            if (Array.isArray(rel['当前状态'])) {
+              rels[idx]['当前状态'] = this._ensureMetaExtensibleArray(rel['当前状态']);
+            }
+
+            // 物品列表（并确保内部条目的 special_effects）
+            if (Array.isArray(rel['物品列表'])) {
+              rels[idx]['物品列表'] = this._ensureMetaExtensibleArray(rel['物品列表']);
+              ensureItemSpecialEffects(rels[idx]['物品列表']);
+            }
+
+            // inherent_abilities: 天赋（数组）和 灵根.special_effects
+            const inh = rel['inherent_abilities'] || rel['内在能力'];
+            if (inh && typeof inh === 'object') {
+              if (Array.isArray(inh['天赋'])) {
+                inh['天赋'] = this._ensureMetaExtensibleArray(inh['天赋']);
+                ensureItemSpecialEffects(inh['天赋']);
+              }
+              if (inh['灵根'] && typeof inh['灵根'] === 'object') {
+                if (Array.isArray(inh['灵根'].special_effects)) {
+                  inh['灵根'].special_effects = this._ensureMetaExtensibleArray(inh['灵根'].special_effects);
+                } else if (inh['灵根'].special_effects == null && inh['灵根']['词条效果'] == null && inh['灵根']['词条'] == null) {
+                  inh['灵根'].special_effects = [EXT];
+                }
+              }
             }
           });
         }
@@ -1378,18 +1416,34 @@ if (!document.getElementById('guixu-font-override-style')) {
     async updateDynamicData() {
       const $ = (sel, ctx = document) => ctx.querySelector(sel);
       try {
-        const messages = await window.GuixuAPI.getChatMessages(window.GuixuAPI.getCurrentMessageId());
-        if (Array.isArray(messages) && messages.length > 0 && messages[0].data) {
-          const rawState = messages[0].data;
-          const normalizedState = (window.GuixuActionService && typeof window.GuixuActionService.normalizeMvuState === 'function')
-            ? window.GuixuActionService.normalizeMvuState(rawState)
-            : rawState;
-// 修复：确保 MVU 列表占位符存在，避免后续写入丢失 __META_EXTENSIBLE__
-try { this._ensureExtensibleMarkers(normalizedState.stat_data); } catch(_) {}
+        const currentId = window.GuixuAPI.getCurrentMessageId();
+        let messages = await window.GuixuAPI.getChatMessages(currentId);
+        let rawState = messages?.[0]?.data || null;
+
+        // 若当前楼层缺少 mvu/stat_data，则回退到 0 楼只读渲染（对齐 guimi.html 策略）
+        if (!rawState || !rawState.stat_data || Object.keys(rawState.stat_data || {}).length === 0) {
+          try {
+            const msgs0 = await window.GuixuAPI.getChatMessages(0);
+            const alt = msgs0?.[0]?.data || null;
+            if (alt && alt.stat_data && Object.keys(alt.stat_data || {}).length > 0) {
+              rawState = alt;
+              messages = msgs0;
+              console.info('[归墟] 使用 0 楼 mvu 数据进行只读渲染。');
+            }
+          } catch (_) {}
+        }
+
+        if (rawState) {
+          const normalizedState = rawState;
           // 渲染用：深度过滤掉占位符，避免任何界面看到占位符
           const toRender = this._deepStripMeta(normalizedState.stat_data);
 
           window.GuixuState.update('currentMvuState', normalizedState);
+          // 便捷调试/外部页面自检：暴露当前MVU与其 stat_data（参考 guimi.html 的做法）
+          try {
+            window.currentMvuState = normalizedState;
+            window.currentStatData = toRender;
+          } catch (_) {}
           this.renderUI(toRender);
 
           // 同步填充右下角提取区文本
@@ -1454,8 +1508,10 @@ try { this._ensureExtensibleMarkers(normalizedState.stat_data); } catch(_) {}
       // 状态效果
       const statusWrapper = document.getElementById('status-effects-wrapper');
       if (statusWrapper) {
-        const statuses = window.GuixuAPI.lodash.get(data, '当前状态.0', []);
-        if (Array.isArray(statuses) && statuses.length > 0 && statuses[0] !== '$__META_EXTENSIBLE__$') {
+        const statuses = (window.GuixuHelpers && typeof window.GuixuHelpers.readList === 'function')
+          ? window.GuixuHelpers.readList(data, '当前状态')
+          : [];
+        if (Array.isArray(statuses) && statuses.length > 0) {
           statusWrapper.innerHTML = statuses
             .map(s => {
               let name = '未知状态';
@@ -1498,6 +1554,7 @@ try { this._ensureExtensibleMarkers(normalizedState.stat_data); } catch(_) {}
         辅修心法: 'fuxiuXinfa',
         防具: 'fangju',
         饰品: 'shipin',
+        法宝: 'fabao1',
         法宝栏1: 'fabao1',
       };
       const defaultTextMap = {
@@ -1513,9 +1570,9 @@ try { this._ensureExtensibleMarkers(normalizedState.stat_data); } catch(_) {}
         const slot = $(`#equip-${slotKey}`);
         if (!slot) continue;
 
-        const itemArray = window.GuixuAPI.lodash.get(data, mvuKey, null);
-        const list = Array.isArray(itemArray) ? itemArray.filter(x => x !== this._EXT) : [];
-        const item = list.length > 0 ? list[0] : null;
+        const item = (window.GuixuHelpers && typeof window.GuixuHelpers.readEquipped === 'function')
+          ? window.GuixuHelpers.readEquipped(data, mvuKey)
+          : null;
 
         if (item && typeof item === 'object') {
           const tier = window.GuixuHelpers.SafeGetValue(item, 'tier', '凡品');
@@ -1540,10 +1597,12 @@ try { this._ensureExtensibleMarkers(normalizedState.stat_data); } catch(_) {}
 
       // 灵根列表
       try {
-        const linggenList = window.GuixuAPI.lodash.get(data, '灵根列表.0', []);
+        const linggenList = (window.GuixuHelpers && typeof window.GuixuHelpers.readList === 'function')
+          ? window.GuixuHelpers.readList(data, '灵根列表')
+          : [];
         if (Array.isArray(linggenList) && linggenList.length > 0) {
           const parsed = [];
-          const source = linggenList.filter(x => x !== '$__META_EXTENSIBLE__$');
+          const source = Array.isArray(linggenList) ? linggenList : [];
 
           // 简易 YAML/文本解析器：将松散格式解析为对象，尽可能捕捉 attributes_bonus / 百分比加成 / special_effects
           const parseLooseLinggen = (text) => {
@@ -1713,23 +1772,37 @@ try { this._ensureExtensibleMarkers(normalizedState.stat_data); } catch(_) {}
         console.warn('[归墟] 渲染灵根失败:', e);
       }
 
-      // 天赋列表
+      // 天赋列表（仅读取本项目的“天赋列表”，不引入其它项目字段）
       try {
-        const talents = window.GuixuAPI.lodash.get(data, '天赋列表.0', []);
+        const readList = (k) => (window.GuixuHelpers && typeof window.GuixuHelpers.readList === 'function')
+          ? window.GuixuHelpers.readList(data, k)
+          : [];
+        const talents = readList('天赋列表');
+        const talentLabel = '天赋';
         if (Array.isArray(talents) && talents.length > 0) {
           const parsed = [];
-          const source = talents.filter(x => x !== '$__META_EXTENSIBLE__$');
+          const source = talents;
+          const gv = (obj, candidates, def = '') => {
+            for (const p of candidates) {
+              const v = window.GuixuHelpers.SafeGetValue(obj, p, 'N/A');
+              if (v !== 'N/A' && v !== '' && v != null) return v;
+            }
+            return def;
+          };
           source.forEach(raw => {
             try {
-              const obj = typeof raw === 'string' ? JSON.parse(raw) : raw;
+              let obj = raw;
+              if (typeof raw === 'string') {
+                try { obj = JSON.parse(raw); } catch { obj = { name: raw }; }
+              }
               if (obj && typeof obj === 'object') {
-                parsed.push(obj);
-              } else if (typeof raw === 'string') {
-                // 兜底：无法解析为 JSON 时，将整串作为名称展示
-                parsed.push({ name: raw, tier: '凡品', description: '' });
+                // 统一映射到 name/tier/description
+                const name = gv(obj, ['name', '名称', 'title', 'data.名称', 'data.name'], '未知天赋');
+                const tier = gv(obj, ['tier', '等阶', '等级', 'rank', 'data.品阶', 'data.tier'], '凡品');
+                const desc = gv(obj, ['description', '描述', '说明', 'data.描述', 'data.description'], '无描述');
+                parsed.push({ ...obj, name, tier, description: desc });
               }
             } catch (e) {
-              console.warn('[归墟] 解析天赋失败:', raw, e);
               if (typeof raw === 'string') {
                 parsed.push({ name: raw, tier: '凡品', description: '' });
               }
@@ -1747,7 +1820,7 @@ try { this._ensureExtensibleMarkers(normalizedState.stat_data); } catch(_) {}
             html += `
               <details class="details-container">
                 <summary>
-                  <span class="attribute-name">天赋</span>
+                  <span class="attribute-name">${talentLabel}</span>
                   <span class="attribute-value" style="${color}">【${tier}】 ${name}</span>
                 </summary>
                 <div class="details-content">
@@ -1766,7 +1839,7 @@ try { this._ensureExtensibleMarkers(normalizedState.stat_data); } catch(_) {}
           `;
         }
       } catch (e) {
-        console.warn('[归墟] 渲染天赋失败:', e);
+        console.warn('[归墟] 渲染天赋/特性失败:', e);
       }
 
       container.innerHTML = html;

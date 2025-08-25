@@ -30,6 +30,8 @@
     lastExtractedNovelText: null,
     lastExtractedCharacterCard: null,
     lastExtractedVariables: null,
+    lastExtractedThinking: '',
+    lastActionGuidelines: [],
     
     // --- 写入世界书状态追踪 ---
     lastWrittenJourney: null,
@@ -46,6 +48,7 @@
     isAutoSaveEnabled: false,
     isAutoTrimEnabled: false,
     isStreamingEnabled: false,
+    currencyUnit: '下品灵石',
     userPreferences: {
       backgroundUrl: '',
       bgMaskOpacity: 0.7,
@@ -74,6 +77,14 @@
       this.loadStateFromStorage('guixu_auto_trim_enabled', 'isAutoTrimEnabled', false);
       this.loadStateFromStorage('guixu_streaming_enabled', 'isStreamingEnabled', false);
       this.loadStateFromStorage('guixu_user_preferences', 'userPreferences', { backgroundUrl: '', bgMaskOpacity: 0.7, storyFontSize: 14, bgFitMode: 'cover' });
+      this.loadStateFromStorage('guixu_currency_unit', 'currencyUnit', '下品灵石');
+      this.loadStateFromStorage('guixu_action_guidelines', 'lastActionGuidelines', []);
+      this.loadStateFromStorage('guixu_last_thinking', 'lastExtractedThinking', '');
+
+      // 类型归一化
+      if (!Array.isArray(this.lastActionGuidelines)) this.lastActionGuidelines = [];
+      if (typeof this.lastExtractedThinking !== 'string') this.lastExtractedThinking = '';
+      if (typeof this.currencyUnit !== 'string') this.currencyUnit = '下品灵石';
     },
 
     // --- 状态存取辅助函数 ---
@@ -186,6 +197,9 @@
                 tradeAbuseCounters: 'guixu_trade_abuse_counters',
                 userPreferences: 'guixu_user_preferences',
                 isStreamingEnabled: 'guixu_streaming_enabled',
+                currencyUnit: 'guixu_currency_unit',
+                lastActionGuidelines: 'guixu_action_guidelines',
+                lastExtractedThinking: 'guixu_last_thinking',
             };
             if (storageMap[key]) {
                 let valueToStore = value;

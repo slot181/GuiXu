@@ -98,11 +98,11 @@
 
       // 基础属性
       const baseAttrs = {
-        fali: parseInt(H.SafeGetValue(stat_data, '基础法力.0', 0), 10) || 0,
-        shenhai: parseInt(H.SafeGetValue(stat_data, '基础神海.0', 0), 10) || 0,
-        daoxin: parseInt(H.SafeGetValue(stat_data, '基础道心.0', 0), 10) || 0,
-        kongsu: parseInt(H.SafeGetValue(stat_data, '基础空速.0', 0), 10) || 0,
-        qiyun: parseInt(H.SafeGetValue(stat_data, '基础气运.0', 0), 10) || 0,
+        fali: parseInt(H.SafeGetValue(stat_data, '基础法力', 0), 10) || 0,
+        shenhai: parseInt(H.SafeGetValue(stat_data, '基础神海', 0), 10) || 0,
+        daoxin: parseInt(H.SafeGetValue(stat_data, '基础道心', 0), 10) || 0,
+        kongsu: parseInt(H.SafeGetValue(stat_data, '基础空速', 0), 10) || 0,
+        qiyun: parseInt(H.SafeGetValue(stat_data, '基础气运', 0), 10) || 0,
       };
 
       // 全来源加成（含明细）
@@ -122,10 +122,10 @@
 
       // 当前值（不超过上限）
       const currentAttrs = {
-        fali: Math.min(parseInt(H.SafeGetValue(stat_data, '当前法力.0', 0), 10) || 0, calculatedMaxAttrs.fali),
-        shenhai: Math.min(parseInt(H.SafeGetValue(stat_data, '当前神海.0', 0), 10) || 0, calculatedMaxAttrs.shenhai),
-        daoxin: Math.min(parseInt(H.SafeGetValue(stat_data, '当前道心.0', 0), 10) || 0, calculatedMaxAttrs.daoxin),
-        kongsu: Math.min(parseInt(H.SafeGetValue(stat_data, '当前空速.0', 0), 10) || 0, calculatedMaxAttrs.kongsu),
+        fali: Math.min(parseInt(H.SafeGetValue(stat_data, '当前法力', 0), 10) || 0, calculatedMaxAttrs.fali),
+        shenhai: Math.min(parseInt(H.SafeGetValue(stat_data, '当前神海', 0), 10) || 0, calculatedMaxAttrs.shenhai),
+        daoxin: Math.min(parseInt(H.SafeGetValue(stat_data, '当前道心', 0), 10) || 0, calculatedMaxAttrs.daoxin),
+        kongsu: Math.min(parseInt(H.SafeGetValue(stat_data, '当前空速', 0), 10) || 0, calculatedMaxAttrs.kongsu),
       };
 
       return { current: currentAttrs, max: calculatedMaxAttrs, base: baseAttrs };
@@ -151,9 +151,9 @@
         }
       } catch (_) {}
 
-      // 天赋
+      // 天赋（兼容对象列表）
       try {
-        const tianfuList = _.get(stat_data, '天赋列表.0', []);
+        const tianfuList = H.readList(stat_data, '天赋列表');
         Array.isArray(tianfuList) && tianfuList.forEach(tf => {
           if (!tf || tf === '$__META_EXTENSIBLE__$') return;
           const obj = typeof tf === 'string' ? (function(){ try { return JSON.parse(tf); } catch { return null; } })() : tf;
@@ -161,9 +161,9 @@
         });
       } catch (_) {}
 
-      // 灵根
+      // 灵根（兼容对象列表）
       try {
-        const linggenList = _.get(stat_data, '灵根列表.0', []);
+        const linggenList = H.readList(stat_data, '灵根列表');
         Array.isArray(linggenList) && linggenList.forEach(lg => {
           if (!lg || lg === '$__META_EXTENSIBLE__$') return;
           const obj = typeof lg === 'string' ? (function(){ try { return JSON.parse(lg); } catch { return null; } })() : lg;
@@ -189,11 +189,11 @@
       const stat_data = st.currentMvuState?.stat_data || {};
 
       const base = {
-        fali: parseInt(H.SafeGetValue(stat_data, '基础法力.0', 0), 10) || 0,
-        shenhai: parseInt(H.SafeGetValue(stat_data, '基础神海.0', 0), 10) || 0,
-        daoxin: parseInt(H.SafeGetValue(stat_data, '基础道心.0', 0), 10) || 0,
-        kongsu: parseInt(H.SafeGetValue(stat_data, '基础空速.0', 0), 10) || 0,
-        qiyun: parseInt(H.SafeGetValue(stat_data, '基础气运.0', 0), 10) || 0,
+        fali: parseInt(H.SafeGetValue(stat_data, '基础法力', 0), 10) || 0,
+        shenhai: parseInt(H.SafeGetValue(stat_data, '基础神海', 0), 10) || 0,
+        daoxin: parseInt(H.SafeGetValue(stat_data, '基础道心', 0), 10) || 0,
+        kongsu: parseInt(H.SafeGetValue(stat_data, '基础空速', 0), 10) || 0,
+        qiyun: parseInt(H.SafeGetValue(stat_data, '基础气运', 0), 10) || 0,
       };
 
       const sources = [];
@@ -211,9 +211,9 @@
         Object.values(eq).forEach(it => { if (it) pushItem('物品', it); });
       } catch (_) {}
 
-      // 天赋
+      // 天赋（兼容对象列表）
       try {
-        const tianfuList = _.get(stat_data, '天赋列表.0', []);
+        const tianfuList = H.readList(stat_data, '天赋列表');
         Array.isArray(tianfuList) && tianfuList.forEach(tf => {
           if (!tf || tf === '$__META_EXTENSIBLE__$') return;
           const obj = typeof tf === 'string' ? (function(){ try { return JSON.parse(tf); } catch { return null; } })() : tf;
@@ -221,9 +221,9 @@
         });
       } catch (_) {}
 
-      // 灵根
+      // 灵根（兼容对象列表）
       try {
-        const linggenList = _.get(stat_data, '灵根列表.0', []);
+        const linggenList = H.readList(stat_data, '灵根列表');
         Array.isArray(linggenList) && linggenList.forEach(lg => {
           if (!lg || lg === '$__META_EXTENSIBLE__$') return;
           const obj = typeof lg === 'string' ? (function(){ try { return JSON.parse(lg); } catch { return null; } })() : lg;

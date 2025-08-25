@@ -153,8 +153,7 @@
                     await Promise.race([mvuPromise, timeoutPromise]);
 
                     if (inputData.new_variables) {
-                        const normalized = this.normalizeMvuState(inputData.new_variables);
-                        state.update('currentMvuState', normalized);
+                        state.update('currentMvuState', inputData.new_variables);
                     } else {
                         throw new Error('mvu 未返回新状态。');
                     }
@@ -162,8 +161,7 @@
                     console.warn('[归墟] 调用 mag_invoke_mvu 失败，尝试前端备用方案:', eventError);
                     const modifiedState = GuixuHelpers.applyUpdateFallback(updateScript, state.currentMvuState);
                     if (modifiedState) {
-                        const normalized = this.normalizeMvuState(modifiedState);
-                        state.update('currentMvuState', normalized);
+                        state.update('currentMvuState', modifiedState);
                         console.log('[归墟-备用方案] 前端模拟更新成功。');
                     }
                 }
@@ -431,6 +429,22 @@
                         sd[slotKey] = [ normalizeOneItem(w) ];
                     }
                 });
+                // 4.1) 对象化装备槽：将槽位规范为对象或 null；同时迁移“法宝栏1”到“法宝”（保留旧键兼容）
+                try {
+                  const toObj = (v) => {
+                    if (v && typeof v === 'object' && !Array.isArray(v)) return v;
+                    if (Array.isArray(v)) {
+                      const first = v.find(x => x && x !== '$__META_EXTENSIBLE__$');
+                      return (first && typeof first === 'object') ? first : null;
+                    }
+                    return null;
+                  };
+                  // 规范化常规槽位
+                  ['武器','主修功法','辅修心法','防具','饰品'].forEach(k => { sd[k] = toObj(sd[k]); });
+                  // 法宝优先新键，兼容迁移自旧键
+                  const fabaoObj = toObj(sd['法宝']) ?? toObj(sd['法宝栏1']);
+                  if (fabaoObj !== undefined) sd['法宝'] = fabaoObj;
+                } catch (_) {}
 
                 // 5) 顶层各“物品/能力”列表的每个元素内部字段去重（不改变列表层的去重结果）
                 const perItemNormalizeTargets = [
@@ -542,7 +556,8 @@
             if (messages && messages.length > 0) {
                 const messageZero = messages[0];
                 messageZero.message = aiResponse;
-                messageZero.data = state.currentMvuState;
+                const safeState = JSON.parse(JSON.stringify(state.currentMvuState || {}));
+                messageZero.data = safeState;
                 await GuixuAPI.setChatMessages([messageZero], { refresh: 'none' });
                 console.log('[归墟] 已静默更新第0层。');
             } else {

@@ -18,8 +18,23 @@
       body.innerHTML = '<p class="modal-placeholder" style="text-align:center; color:#8b7355; font-size:12px;">正在清点行囊...</p>';
 
       try {
-        const messages = await window.GuixuAPI.getChatMessages(window.GuixuAPI.getCurrentMessageId());
+        const currentId = window.GuixuAPI.getCurrentMessageId();
+        let messages = await window.GuixuAPI.getChatMessages(currentId);
         let stat_data = messages?.[0]?.data?.stat_data;
+
+        // 楼层回退：当前楼层无 stat_data 时，回退读取 0 楼用于只读展示（对齐 guimi.html）
+        if (!stat_data || (typeof stat_data === 'object' && Object.keys(stat_data).length === 0)) {
+          try {
+            const msgs0 = await window.GuixuAPI.getChatMessages(0);
+            const sd0 = msgs0?.[0]?.data?.stat_data;
+            if (sd0 && Object.keys(sd0).length > 0) {
+              messages = msgs0;
+              stat_data = sd0;
+              console.info('[归墟] 背包：使用 0 楼 mvu 数据只读展示。');
+            }
+          } catch (_) {}
+        }
+
         if (window.GuixuMain && typeof window.GuixuMain._deepStripMeta === 'function') {
           stat_data = window.GuixuMain._deepStripMeta(stat_data);
         }
@@ -117,7 +132,7 @@
       const counts = {};
       let totalCount = 0;
       categories.forEach(cat => {
-        const rawItems = stat_data?.[cat.key]?.[0];
+        const rawItems = (window.GuixuHelpers?.readList ? window.GuixuHelpers.readList(stat_data, cat.key) : (stat_data?.[cat.key]?.[0] || []));
         const c = getDisplayableCount(rawItems, cat.title);
         counts[cat.title] = c;
         totalCount += c;
@@ -236,7 +251,7 @@
       `;
 
       categories.forEach(cat => {
-        const rawItems = stat_data?.[cat.key]?.[0];
+        const rawItems = (window.GuixuHelpers?.readList ? window.GuixuHelpers.readList(stat_data, cat.key) : (stat_data?.[cat.key]?.[0] || []));
 
         html += `<details class="inventory-category" data-cat='${cat.title}' open>`;
         html += `<summary class="inventory-category-title">${cat.title}</summary>`;
@@ -859,26 +874,48 @@
           '饰品': '饰品列表', '法宝': '法宝列表', '丹药': '丹药列表', '杂物': '其他列表'
         };
         const listKey = categoryMap[category];
-        if (!listKey || !stat_data[listKey] || !Array.isArray(stat_data[listKey][0])) {
+        if (!listKey || !stat_data[listKey]) {
           throw new Error(`找不到对应的物品列表: ${listKey}`);
         }
 
-        const list = stat_data[listKey][0];
-        const itemIndex = list.findIndex(i => {
-          const parsed = typeof i === 'string' ? JSON.parse(i) : i;
-          // 优先使用ID匹配，如果ID不存在或不匹配，则使用名称进行模糊匹配
-          if (itemId && itemId !== 'N/A') {
-            return parsed.id === itemId;
-          }
-          return parsed.name === itemName;
-        });
+        let deleted = false;
+        if (Array.isArray(stat_data[listKey][0])) {
+          const list = stat_data[listKey][0];
+          const itemIndex = list.findIndex(i => {
+            const parsed = typeof i === 'string' ? JSON.parse(i) : i;
+            // 优先使用ID匹配，如果ID不存在或不匹配，则使用名称进行模糊匹配
+            if (itemId && itemId !== 'N/A') {
+              return parsed.id === itemId;
+            }
+            return parsed.name === itemName;
+          });
 
-        if (itemIndex === -1) {
-          throw new Error(`在列表中未找到物品: ${itemName}`);
+          if (itemIndex !== -1) {
+            // 从数组中移除
+            list.splice(itemIndex, 1);
+            deleted = true;
+          }
+        } else if (typeof stat_data[listKey] === 'object') {
+          // 新对象字典结构：按 id 或 name 定位 key 并删除
+          const obj = stat_data[listKey];
+          const keys = Object.keys(obj).filter(k => k !== '$meta');
+          for (const k of keys) {
+            try {
+              const v = obj[k];
+              const parsed = typeof v === 'string' ? JSON.parse(v) : v;
+              if (!parsed || typeof parsed !== 'object') continue;
+              if ((itemId && itemId !== 'N/A' && parsed.id === itemId) || parsed.name === itemName) {
+                delete obj[k];
+                deleted = true;
+                break;
+              }
+            } catch (_) {}
+          }
         }
 
-        // 从数组中移除
-        list.splice(itemIndex, 1);
+        if (!deleted) {
+          throw new Error(`在列表中未找到物品: ${itemName}`);
+        }
 
         // 3. 将修改后的数据写回
         await window.GuixuAPI.setChatMessages([{
@@ -936,7 +973,7 @@
       }
     },
 
-    // 将装备变动实时写入到酒馆变量（当前楼层与第0楼）
+    // 将装备变动实时写入到酒馆变量（当前楼层与第0楼）- 对象MVU写法
     async persistEquipmentToVariables(slotKey, itemOrNull) {
       try {
         const currentId = window.GuixuAPI.getCurrentMessageId();
@@ -944,17 +981,17 @@
         if (!messages || !messages[0]) return;
         const currentMvuState = messages[0].data || {};
         currentMvuState.stat_data = currentMvuState.stat_data || {};
-        const mvuKey = this.getMvuKeyForSlotKey(slotKey);
+        const mvuKey = this.getMvuKeyForSlotKey(slotKey, currentMvuState.stat_data);
         if (!mvuKey) return;
 
-        // 设置或清空装备
-        if (itemOrNull) {
-          currentMvuState.stat_data[mvuKey] = [itemOrNull];
+        // 对象化写入：槽位为对象或 null（不再数组包装）
+        if (itemOrNull && typeof itemOrNull === 'object') {
+          currentMvuState.stat_data[mvuKey] = itemOrNull;
         } else {
-          currentMvuState.stat_data[mvuKey] = [];
+          currentMvuState.stat_data[mvuKey] = null;
         }
 
-        // 写回当前楼层与第0楼
+        // 写回当前楼层与第0楼（保持双写）
         const updates = [{ message_id: currentId, data: currentMvuState }];
         if (currentId !== 0) updates.push({ message_id: 0, data: currentMvuState });
         await window.GuixuAPI.setChatMessages(updates, { refresh: 'none' });
@@ -966,15 +1003,24 @@
       }
     },
 
-    getMvuKeyForSlotKey(slotKey) {
+    getMvuKeyForSlotKey(slotKey, stat_data) {
       const map = {
         wuqi: '武器',
         zhuxiuGongfa: '主修功法',
         fuxiuXinfa: '辅修心法',
         fangju: '防具',
         shipin: '饰品',
-        fabao1: '法宝栏1',
+        fabao1: '法宝',
       };
+      // 兼容旧存档：若新键“法宝”不存在而旧键“法宝栏1”存在，则回退
+      try {
+        const sd = stat_data || (window.GuixuState?.getState()?.currentMvuState?.stat_data) || {};
+        if (slotKey === 'fabao1') {
+          const hasFabao = Object.prototype.hasOwnProperty.call(sd, '法宝');
+          const hasLegacy = Object.prototype.hasOwnProperty.call(sd, '法宝栏1');
+          if (!hasFabao && hasLegacy) return '法宝栏1';
+        }
+      } catch (_) {}
       return map[slotKey] || null;
     },
   };

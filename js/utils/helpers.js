@@ -20,33 +20,139 @@
      * @returns {*} 获取到的值或默认值.
      */
     SafeGetValue(obj, path, defaultValue = 'N/A') {
-      let keys = Array.isArray(path) ? path : path.split('.');
-      let current = obj;
-      for (let i = 0; i < keys.length; i++) {
-        if (
-          current === undefined ||
-          current === null ||
-          typeof current !== 'object' ||
-          !current.hasOwnProperty(keys[i])
-        ) {
-          return defaultValue;
+      // 兼容新旧两种MVU路径：
+      // - 旧：点路径 + 末尾 ".0" 表示数组首元素
+      // - 新：对象/列表对象（{$meta:{extensible:true}, ...}）
+      try {
+        const tryResolve = (root, keys) => {
+          let cur = root;
+          for (let i = 0; i < keys.length; i++) {
+            if (
+              cur === undefined ||
+              cur === null ||
+              typeof cur !== 'object' ||
+              !Object.prototype.hasOwnProperty.call(cur, keys[i])
+            ) {
+              return { found: false, value: undefined };
+            }
+            cur = cur[keys[i]];
+          }
+          return { found: true, value: cur };
+        };
+
+        const toScalar = (val) => {
+          if (val === undefined || val === null) return defaultValue;
+          if (Array.isArray(val)) {
+            if (val.length === 0) return defaultValue;
+            const first = val[0];
+            if (typeof first === 'boolean') return first;
+            return String(first);
+          }
+          if (typeof val === 'boolean') return val;
+          if (typeof val === 'object') {
+            // 兼容：对象字典（无论是否带 $meta）
+            const entries = Object.keys(val)
+              .filter(k => k !== '$meta' && k !== '$__META_EXTENSIBLE__$')
+              .map(k => val[k]);
+            if (entries.length > 0) {
+              let first = entries[0];
+              // 尝试解析字符串化 JSON
+              if (typeof first === 'string') {
+                try { first = JSON.parse(first); } catch (_) {}
+              }
+              if (typeof first === 'boolean') return first;
+              if (first == null) return defaultValue;
+              return typeof first === 'object' ? JSON.stringify(first) : String(first);
+            }
+            // 非字典对象，字符串化返回
+            try { return JSON.stringify(val); } catch { return String(val); }
+          }
+          return String(val);
+        };
+
+        const rawPath = Array.isArray(path) ? path : String(path).split('.');
+        // 尝试原路径
+        let r = tryResolve(obj, rawPath);
+        if (r.found) return toScalar(r.value);
+
+        // 若末尾为 “.0”，尝试去掉末尾的 0 再取（新对象结构的容错）
+        if (rawPath.length && rawPath[rawPath.length - 1] === '0') {
+          const alt = rawPath.slice(0, -1);
+          r = tryResolve(obj, alt);
+          if (r.found) return toScalar(r.value);
         }
-        current = current[keys[i]];
-      }
-      if (current === undefined || current === null) {
+        return defaultValue;
+      } catch (_) {
         return defaultValue;
       }
-      if (Array.isArray(current)) {
-        if (current.length > 0) {
-          const actualValue = current[0];
-          if (typeof actualValue === 'boolean') return actualValue;
-          return String(actualValue);
-        } else {
-          return defaultValue;
+    },
+
+    /**
+     * 读取“列表”字段为数组视图（兼容旧数组包装与新对象字典）
+     * - 旧：stat[key] 为数组包装，实际数组在 [0]
+     * - 新：stat[key] 为对象字典（含 $meta:{extensible:true}）
+     *   - 返回值为 values()，并且保留条目键：
+     *     · 若条目缺少 name，则自动注入 name=字典键
+     *     · 总是附加 __key=字典键，供需要时使用（不破坏旧用法）
+     */
+    readList(stat, key) {
+      try {
+        const v = stat && stat[key];
+        // 旧：数组包装 -> 取第0项数组，并过滤占位符
+        if (Array.isArray(v)) {
+          const arr = v[0] || [];
+          return Array.isArray(arr) ? arr.filter(x => x !== '$__META_EXTENSIBLE__$') : [];
         }
+        // 新：对象字典（兼容是否存在 $meta）
+        if (v && typeof v === 'object') {
+          return Object.keys(v)
+            .filter(k => k !== '$meta' && k !== '$__META_EXTENSIBLE__$')
+            .map(k => {
+              let val = v[k];
+              // 尝试解析字符串化 JSON
+              if (typeof val === 'string') {
+                try { val = JSON.parse(val); } catch (_) {}
+              }
+              // 对象型条目注入 name/__key
+              if (val && typeof val === 'object') {
+                const out = Array.isArray(val) ? val.slice() : { ...val };
+                try {
+                  if (!Object.prototype.hasOwnProperty.call(out, 'name') || out.name == null || out.name === '' || out.name === 'N/A') {
+                    out.name = k;
+                  }
+                } catch (_) {}
+                try { out.__key = k; } catch (_) {}
+                return out;
+              }
+              return val;
+            });
+        }
+        return [];
+      } catch (_) {
+        return [];
       }
-      if (typeof current === 'boolean') return current;
-      return String(current);
+    },
+
+    /**
+     * 读取“装备槽”字段为单个对象（兼容旧数组包装与新对象）
+     * - 旧：stat[slotKey] 为 [ item ] 或 [ '$__META_EXTENSIBLE__$' ]
+     * - 新：stat[slotKey] 为对象或 null
+     */
+    readEquipped(stat, slotKey) {
+      try {
+        const v = stat && stat[slotKey];
+        if (Array.isArray(v)) {
+          const first = v[0];
+          if (!first || first === '$__META_EXTENSIBLE__$') return null;
+          return typeof first === 'object' ? first : null;
+        }
+        if (v && typeof v === 'object' && !v.$meta) {
+          return v;
+        }
+        return null;
+      } catch (_) {
+        return null;
+      }
     },
 
     /**

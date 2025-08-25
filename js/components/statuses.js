@@ -74,9 +74,9 @@
           }
         } catch (_) {}
 
-        const lodash = window.GuixuAPI?.lodash;
-        let raw = lodash ? lodash.get(statData, '当前状态.0', []) : (statData && statData['当前状态'] ? statData['当前状态'][0] : []);
-        if (!Array.isArray(raw)) raw = [];
+        const raw = (window.GuixuHelpers && typeof window.GuixuHelpers.readList === 'function')
+          ? window.GuixuHelpers.readList(statData, '当前状态')
+          : [];
 
         // 过滤元标记
         const cleaned = raw.filter(x => x && x !== '$__META_EXTENSIBLE__$' && x !== '...');

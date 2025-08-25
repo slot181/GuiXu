@@ -18,8 +18,23 @@
       body.innerHTML = '<p class="modal-placeholder" style="text-align:center; color:#8b7355; font-size:12px;">正在梳理人脉...</p>';
 
       try {
-        const messages = await window.GuixuAPI.getChatMessages(window.GuixuAPI.getCurrentMessageId());
+        const currentId = window.GuixuAPI.getCurrentMessageId();
+        let messages = await window.GuixuAPI.getChatMessages(currentId);
         let stat_data = messages?.[0]?.data?.stat_data;
+
+        // 楼层回退：当前楼层无 stat_data 时，回退读取 0 楼用于只读展示（对齐 guimi.html）
+        if (!stat_data || (typeof stat_data === 'object' && Object.keys(stat_data).length === 0)) {
+          try {
+            const msgs0 = await window.GuixuAPI.getChatMessages(0);
+            const sd0 = msgs0?.[0]?.data?.stat_data;
+            if (sd0 && Object.keys(sd0).length > 0) {
+              messages = msgs0;
+              stat_data = sd0;
+              console.info('[归墟] 人物关系：使用 0 楼 mvu 数据只读展示。');
+            }
+          } catch (_) {}
+        }
+
         if (window.GuixuMain && typeof window.GuixuMain._deepStripMeta === 'function') {
           stat_data = window.GuixuMain._deepStripMeta(stat_data);
         }
@@ -37,7 +52,7 @@
           return;
         }
 
-        let relationships = stat_data['人物关系列表']?.[0];
+        let relationships = window.GuixuHelpers.readList(stat_data, '人物关系列表');
 
         // 兼容：字符串化 JSON
         if (typeof relationships === 'string') {
@@ -300,7 +315,7 @@
               try {
                 const messages = await window.GuixuAPI.getChatMessages(window.GuixuAPI.getCurrentMessageId());
                 const sd = (messages?.[0]?.data?.stat_data) || {};
-                const arr = (sd?.['人物关系列表']?.[0]) || [];
+                const arr = window.GuixuHelpers.readList(sd, '人物关系列表');
                 const h = window.GuixuHelpers;
                 const rid = h.SafeGetValue(relData, 'id', null);
                 const rname = h.SafeGetValue(relData, 'name', null);
@@ -383,23 +398,35 @@
             const stat_data = currentMvuState.stat_data;
 
             const listKey = '人物关系列表';
-            if (!stat_data[listKey] || !Array.isArray(stat_data[listKey][0])) {
-                throw new Error('找不到人物关系列表。');
+            const container = stat_data[listKey];
+
+            if (container && typeof container === 'object' && container.$meta && container.$meta.extensible === true) {
+              // 新：对象字典形式
+              const entries = Object.entries(container).filter(([k]) => k !== '$meta');
+              const matchKey = entries.find(([k, v]) => {
+                try {
+                  const obj = typeof v === 'string' ? JSON.parse(v) : v;
+                  return window.GuixuHelpers.SafeGetValue(obj, 'name', null) === relName;
+                } catch { return false; }
+              })?.[0];
+              if (!matchKey) throw new Error(`在列表中未找到人物: ${relName}`);
+              delete container[matchKey];
+            } else if (Array.isArray(container) && Array.isArray(container[0])) {
+              // 旧：数组包装形式
+              const list = container[0];
+              const relIndex = list.findIndex(r => {
+                  const parsed = typeof r === 'string' ? JSON.parse(r) : r;
+                  return parsed.name === relName;
+              });
+              if (relIndex === -1) {
+                  throw new Error(`在列表中未找到人物: ${relName}`);
+              }
+              list.splice(relIndex, 1);
+            } else {
+              throw new Error('找不到人物关系列表。');
             }
 
-            const list = stat_data[listKey][0];
-            const relIndex = list.findIndex(r => {
-                const parsed = typeof r === 'string' ? JSON.parse(r) : r;
-                return parsed.name === relName;
-            });
-
-            if (relIndex === -1) {
-                throw new Error(`在列表中未找到人物: ${relName}`);
-            }
-
-            list.splice(relIndex, 1);
-
-            await window.GuixuAPI.setChatMessages([{
+                    await window.GuixuAPI.setChatMessages([{
                 message_id: 0,
                 data: currentMvuState,
             }], { refresh: 'none' });
@@ -450,34 +477,50 @@
         currentMvuState.stat_data = currentMvuState.stat_data || {};
         const stat_data = currentMvuState.stat_data;
 
-        const relListPath = '人物关系列表.0';
-        const list = _.get(stat_data, relListPath, []);
-        if (!Array.isArray(list)) throw new Error('人物关系列表结构异常');
-
+        const container = stat_data['人物关系列表'];
         const relId = h.SafeGetValue(relRef, 'id', null);
         const relName = h.SafeGetValue(relRef, 'name', null);
-        const idx = list.findIndex(entry => {
-          try {
-            const obj = typeof entry === 'string' ? JSON.parse(entry) : entry;
-            if (relId != null) return h.SafeGetValue(obj, 'id', null) === relId;
-            return h.SafeGetValue(obj, 'name', null) === relName;
-          } catch { return false; }
-        });
-        if (idx === -1) throw new Error('在人物关系列表中未找到该角色');
 
-        const originalRelEntry = list[idx];
-        const relObj = (typeof originalRelEntry === 'string') ? JSON.parse(originalRelEntry) : (originalRelEntry || {});
+        if (container && typeof container === 'object' && container.$meta && container.$meta.extensible === true) {
+          // 对象列表
+          const entries = Object.entries(container).filter(([k]) => k !== '$meta');
+          const found = entries.find(([k, v]) => {
+            try {
+              const obj = typeof v === 'string' ? JSON.parse(v) : v;
+              if (relId != null) return h.SafeGetValue(obj, 'id', null) === relId;
+              return h.SafeGetValue(obj, 'name', null) === relName;
+            } catch { return false; }
+          });
+          if (!found) throw new Error('在人物关系列表中未找到该角色');
+          const [matchKey, originalRelEntry] = found;
+          const relObj = (typeof originalRelEntry === 'string') ? JSON.parse(originalRelEntry) : (originalRelEntry || {});
+          if (!Array.isArray(relObj.event_history)) relObj.event_history = [];
+          const i = Math.max(0, parseInt(evIndex, 10) || 0);
+          while (relObj.event_history.length <= i) relObj.event_history.push('');
+          relObj.event_history[i] = String(newText || '').trim();
+          container[matchKey] = (typeof originalRelEntry === 'string') ? JSON.stringify(relObj) : relObj;
+        } else {
+          // 数组包装
+          const list = (stat_data?.['人物关系列表']?.[0]) || [];
+          if (!Array.isArray(list)) throw new Error('人物关系列表结构异常');
+          const idx = list.findIndex(entry => {
+            try {
+              const obj = typeof entry === 'string' ? JSON.parse(entry) : entry;
+              if (relId != null) return h.SafeGetValue(obj, 'id', null) === relId;
+              return h.SafeGetValue(obj, 'name', null) === relName;
+            } catch { return false; }
+          });
+          if (idx === -1) throw new Error('在人物关系列表中未找到该角色');
 
-        // 确保 event_history 为数组
-        if (!Array.isArray(relObj.event_history)) relObj.event_history = [];
-        // 写入对应索引（允许越界时扩展）
-        const i = Math.max(0, parseInt(evIndex, 10) || 0);
-        while (relObj.event_history.length <= i) relObj.event_history.push('');
-        relObj.event_history[i] = String(newText || '').trim();
-
-        // 写回并保存（保持原条目类型）
-        list[idx] = (typeof originalRelEntry === 'string') ? JSON.stringify(relObj) : relObj;
-        _.set(stat_data, relListPath, list);
+          const originalRelEntry = list[idx];
+          const relObj = (typeof originalRelEntry === 'string') ? JSON.parse(originalRelEntry) : (originalRelEntry || {});
+          if (!Array.isArray(relObj.event_history)) relObj.event_history = [];
+          const i = Math.max(0, parseInt(evIndex, 10) || 0);
+          while (relObj.event_history.length <= i) relObj.event_history.push('');
+          relObj.event_history[i] = String(newText || '').trim();
+          list[idx] = (typeof originalRelEntry === 'string') ? JSON.stringify(relObj) : relObj;
+          stat_data['人物关系列表'][0] = list;
+        }
 
         const updates = [{ message_id: currentId, data: currentMvuState }];
         if (currentId !== 0) updates.push({ message_id: 0, data: currentMvuState });
@@ -501,8 +544,23 @@
       body.innerHTML = '<p class="modal-placeholder" style="text-align:center; color:#8b7355; font-size:12px;">正在梳理人脉...</p>';
 
       try {
-        const messages = await window.GuixuAPI.getChatMessages(window.GuixuAPI.getCurrentMessageId());
+        const currentId = window.GuixuAPI.getCurrentMessageId();
+        let messages = await window.GuixuAPI.getChatMessages(currentId);
         let stat_data = messages?.[0]?.data?.stat_data;
+
+        // 楼层回退：当前楼层无 stat_data 时，回退读取 0 楼用于只读展示（对齐 guimi.html）
+        if (!stat_data || (typeof stat_data === 'object' && Object.keys(stat_data).length === 0)) {
+          try {
+            const msgs0 = await window.GuixuAPI.getChatMessages(0);
+            const sd0 = msgs0?.[0]?.data?.stat_data;
+            if (sd0 && Object.keys(sd0).length > 0) {
+              messages = msgs0;
+              stat_data = sd0;
+              console.info('[归墟] 人物关系：使用 0 楼 mvu 数据只读展示。');
+            }
+          } catch (_) {}
+        }
+
         if (window.GuixuMain && typeof window.GuixuMain._deepStripMeta === 'function') {
           stat_data = window.GuixuMain._deepStripMeta(stat_data);
         }
@@ -520,7 +578,7 @@
           return;
         }
 
-        let relationships = stat_data['人物关系列表']?.[0];
+        let relationships = window.GuixuHelpers.readList(stat_data, '人物关系列表');
 
         if (typeof relationships === 'string') {
           try {
@@ -988,7 +1046,7 @@
         try {
           const msgs = await window.GuixuAPI.getChatMessages(window.GuixuAPI.getCurrentMessageId());
           const sd = (msgs?.[0]?.data?.stat_data) || {};
-          const arr = (sd?.['人物关系列表']?.[0]) || [];
+          const arr = window.GuixuHelpers.readList(sd, '人物关系列表');
           const rid = h.SafeGetValue(rel, 'id', null);
           const rname = h.SafeGetValue(rel, 'name', null);
           const full = arr.map(x => { try { return typeof x === 'string' ? JSON.parse(x) : x; } catch { return null; } })
@@ -1056,7 +1114,7 @@
           return (n && typeof n === 'object' && !Array.isArray(n)) ? n : {};
         })();
 
-        // 灵根有时为对象或数组，优先取第一个元素并解析
+        // 灵根有时为对象或数组，优先取第一个元素并解析；若 inh 缺失则回退到 NPC 顶层“灵根列表”（对象MVU）
         let linggen = {};
         try {
           const lgRaw = inh['灵根'] || inh['灵根列表'] || inh['linggen'] || inh['灵根'] || {};
@@ -1064,6 +1122,18 @@
             linggen = parseMaybeJson(lgRaw[0]) || {};
           } else {
             linggen = normalizeField(lgRaw) || {};
+          }
+          // 对象MVU回退：从顶层“灵根列表”读取第一条
+          if (!linggen || typeof linggen !== 'object' || Object.keys(linggen).length === 0) {
+            const topLinggens = (window.GuixuHelpers && typeof window.GuixuHelpers.readList === 'function')
+              ? window.GuixuHelpers.readList(rel, '灵根列表')
+              : [];
+            if (Array.isArray(topLinggens) && topLinggens.length > 0) {
+              const first = topLinggens.find(x => x && x !== '$__META_EXTENSIBLE__$');
+              if (first) {
+                try { linggen = typeof first === 'string' ? JSON.parse(first) : first; } catch { linggen = first; }
+              }
+            }
           }
         } catch (e) { linggen = {}; }
 
@@ -1079,6 +1149,7 @@
           }
         } catch (e) { gongfaList = []; }
 
+        // 天赋列表：合并 inh['天赋'] 与 顶层“天赋列表”（对象MVU），按 id/name 去重
         let talentList = [];
         try {
           const tRaw = inh['天赋'] || inh['talent'] || [];
@@ -1088,7 +1159,29 @@
             const parsed = normalizeField(tRaw);
             talentList = Array.isArray(parsed) ? parsed.map(x => parseMaybeJson(x)).filter(Boolean) : (parsed ? [parsed] : []);
           }
-        } catch (e) { talentList = []; }
+          // 合并顶层“天赋列表”
+          const topTalents = (window.GuixuHelpers && typeof window.GuixuHelpers.readList === 'function')
+            ? window.GuixuHelpers.readList(rel, '天赋列表')
+            : [];
+          const parsedTop = Array.isArray(topTalents)
+            ? topTalents
+                .filter(x => x && x !== '$__META_EXTENSIBLE__$')
+                .map(x => { try { return typeof x === 'string' ? JSON.parse(x) : x; } catch { return x; } })
+                .filter(Boolean)
+            : [];
+          const seen = new Set();
+          const keyOf = (o) => {
+            const id = window.GuixuHelpers.SafeGetValue(o, 'id', '');
+            const nm = window.GuixuHelpers.SafeGetValue(o, 'name', '');
+            return id && id !== 'N/A' ? `id:${id}` : `name:${nm}`;
+          };
+          const out = [];
+          [...talentList, ...parsedTop].forEach(o => {
+            const k = keyOf(o);
+            if (!seen.has(k)) { seen.add(k); out.push(o); }
+          });
+          talentList = out;
+        } catch (e) { talentList = Array.isArray(talentList) ? talentList : []; }
 
         // 小工具：渲染KV
         const renderKV = (obj) => {
@@ -1269,12 +1362,19 @@
           mergeCN(totalPercentCN, percent);
         };
         // 装备槽（兼容对象/数组包裹/字符串化）
-        const slotKeys = ['主修功法','辅修心法','武器','防具','饰品','法宝栏1'];
-        slotKeys.forEach(sk => {
-          const it = normalizeField(rel?.[sk]);
+        const slotDefsForCalc = [
+          { key: '主修功法', label: '主修功法' },
+          { key: '辅修心法', label: '辅修心法' },
+          { key: '武器', label: '武器' },
+          { key: '防具', label: '防具' },
+          { key: '饰品', label: '饰品' },
+          { key: '法宝', legacy: '法宝栏1', label: '法宝' }
+        ];
+        slotDefsForCalc.forEach(def => {
+          const it = window.GuixuHelpers.readEquipped(rel, def.key) || (def.legacy ? window.GuixuHelpers.readEquipped(rel, def.legacy) : null);
           if (it && typeof it === 'object') {
-            const n = window.GuixuHelpers.SafeGetValue(it, 'name', window.GuixuHelpers.SafeGetValue(it, '名称', sk));
-            pushSource('物品', n || sk, it);
+            const n = window.GuixuHelpers.SafeGetValue(it, 'name', window.GuixuHelpers.SafeGetValue(it, '名称', def.label));
+            pushSource('物品', n || def.label, it);
           }
         });
         // 灵根
@@ -1560,10 +1660,10 @@
                       { key: '武器', label: '武器' },
                       { key: '防具', label: '防具' },
                       { key: '饰品', label: '饰品' },
-                      { key: '法宝栏1', label: '法宝' }
+                      { key: '法宝', legacy: '法宝栏1', label: '法宝' }
                     ];
                     return slotDefs.map(def => {
-                      const it = normalizeField(rel?.[def.key]);
+                      const it = window.GuixuHelpers.readEquipped(rel, def.key) || (def.legacy ? window.GuixuHelpers.readEquipped(rel, def.legacy) : null);
                       if (it && typeof it === 'object') {
                         const n = h.SafeGetValue(it, 'name', h.SafeGetValue(it, '名称', def.label));
                         const t = h.SafeGetValue(it, 'tier', h.SafeGetValue(it, '品阶', '凡品'));
@@ -2071,36 +2171,55 @@ const renderEffects = (effRaw) => {
       currentMvuState.stat_data = currentMvuState.stat_data || {};
       const stat_data = currentMvuState.stat_data;
 
-      const relListPath = '人物关系列表.0';
-      const list = _.get(stat_data, relListPath, []);
-      if (!Array.isArray(list)) throw new Error('人物关系列表结构异常');
-
+      const container = stat_data['人物关系列表'];
       const relId = h.SafeGetValue(relRef, 'id', null);
       const relName = h.SafeGetValue(relRef, 'name', null);
-      const idx = list.findIndex(entry => {
-        try {
-          const obj = typeof entry === 'string' ? JSON.parse(entry) : entry;
-          if (relId != null) return h.SafeGetValue(obj, 'id', null) === relId;
-          return h.SafeGetValue(obj, 'name', null) === relName;
-        } catch { return false; }
-      });
-      if (idx === -1) throw new Error('在人物关系列表中未找到该角色');
 
-      const originalRelEntry = list[idx];
-      const relObj = (typeof originalRelEntry === 'string') ? JSON.parse(originalRelEntry) : (originalRelEntry || {});
-      if (!Array.isArray(relObj.event_history)) relObj.event_history = [];
+      if (container && typeof container === 'object' && container.$meta && container.$meta.extensible === true) {
+        const entries = Object.entries(container).filter(([k]) => k !== '$meta');
+        const found = entries.find(([k, v]) => {
+          try {
+            const obj = typeof v === 'string' ? JSON.parse(v) : v;
+            if (relId != null) return h.SafeGetValue(obj, 'id', null) === relId;
+            return h.SafeGetValue(obj, 'name', null) === relName;
+          } catch { return false; }
+        });
+        if (!found) throw new Error('在人物关系列表中未找到该角色');
+        const [matchKey, originalRelEntry] = found;
+        const relObj = (typeof originalRelEntry === 'string') ? JSON.parse(originalRelEntry) : (originalRelEntry || {});
+        if (!Array.isArray(relObj.event_history)) relObj.event_history = [];
+        const i = Math.max(0, parseInt(evIndex, 10) || 0);
+        if (i >= 0 && i < relObj.event_history.length) {
+          relObj.event_history.splice(i, 1);
+        }
+        container[matchKey] = (typeof originalRelEntry === 'string') ? JSON.stringify(relObj) : relObj;
+      } else {
+        const list = (stat_data?.['人物关系列表']?.[0]) || [];
+        if (!Array.isArray(list)) throw new Error('人物关系列表结构异常');
 
-      const i = Math.max(0, parseInt(evIndex, 10) || 0);
-      if (i >= 0 && i < relObj.event_history.length) {
-        relObj.event_history.splice(i, 1);
+        const idx = list.findIndex(entry => {
+          try {
+            const obj = typeof entry === 'string' ? JSON.parse(entry) : entry;
+            if (relId != null) return h.SafeGetValue(obj, 'id', null) === relId;
+            return h.SafeGetValue(obj, 'name', null) === relName;
+          } catch { return false; }
+        });
+        if (idx === -1) throw new Error('在人物关系列表中未找到该角色');
+
+        const originalRelEntry = list[idx];
+        const relObj = (typeof originalRelEntry === 'string') ? JSON.parse(originalRelEntry) : (originalRelEntry || {});
+        if (!Array.isArray(relObj.event_history)) relObj.event_history = [];
+        const i = Math.max(0, parseInt(evIndex, 10) || 0);
+        if (i >= 0 && i < relObj.event_history.length) {
+          relObj.event_history.splice(i, 1);
+        }
+        list[idx] = (typeof originalRelEntry === 'string') ? JSON.stringify(relObj) : relObj;
+        stat_data['人物关系列表'][0] = list;
       }
 
-      list[idx] = (typeof originalRelEntry === 'string') ? JSON.stringify(relObj) : relObj;
-      _.set(stat_data, relListPath, list);
-
-      const updates = [{ message_id: currentId, data: currentMvuState }];
-      if (currentId !== 0) updates.push({ message_id: 0, data: currentMvuState });
-      await window.GuixuAPI.setChatMessages(updates, { refresh: 'none' });
+        const updates = [{ message_id: currentId, data: currentMvuState }];
+        if (currentId !== 0) updates.push({ message_id: 0, data: currentMvuState });
+        await window.GuixuAPI.setChatMessages(updates, { refresh: 'none' });
 
       // 刷新界面（若面板仍打开）
       await this._refreshAllRelatedUI();
@@ -2119,7 +2238,7 @@ const renderEffects = (effRaw) => {
         // 获取最新NPC对象（避免面板复用导致的旧数据）
         const findRelNow = (sd) => {
           try {
-            const arr = (sd?.['人物关系列表']?.[0]) || [];
+            const arr = window.GuixuHelpers.readList(sd, '人物关系列表');
             const rid = h.SafeGetValue(rel, 'id', null);
             const rname = h.SafeGetValue(rel, 'name', null);
             const found = arr.map(x => { try { return typeof x === 'string' ? JSON.parse(x) : x; } catch { return null; } })
@@ -2143,13 +2262,15 @@ const renderEffects = (effRaw) => {
 
         // 对方可出售的物品 + 我方背包
         const npcItems = Array.isArray(relNow?.物品列表) ? relNow.物品列表.filter(x => x && x !== '$__META_EXTENSIBLE__$') : [];
-        // 汇总玩家背包内所有列表为一并展示（只读）
+        // 汇总玩家背包内所有列表为一并展示（只读）- 兼容对象MVU与旧数组包装
         const collectUserItems = (sd) => {
           const lists = ['功法列表','武器列表','防具列表','饰品列表','法宝列表','丹药列表','其他列表'];
           const out = [];
           try {
             lists.forEach(key => {
-              const arr = sd?.[key]?.[0];
+              const arr = (window.GuixuHelpers && typeof window.GuixuHelpers.readList === 'function')
+                ? window.GuixuHelpers.readList(sd, key)
+                : (sd?.[key]?.[0] || []);
               if (Array.isArray(arr)) {
                 arr.forEach(raw => {
                   if (!raw || raw === '$__META_EXTENSIBLE__$') return;
@@ -2157,7 +2278,7 @@ const renderEffects = (effRaw) => {
                 });
               }
             });
-          } catch {}
+          } catch (_) {}
           return out;
         };
         const userItems = collectUserItems(stat_data);
@@ -2593,7 +2714,7 @@ const renderEffects = (effRaw) => {
               // 使用最新 NPC 数据定位物品，避免使用旧的 rel 导致找不到
               const messagesBuy = await window.GuixuAPI.getChatMessages(window.GuixuAPI.getCurrentMessageId());
               const sdBuy = (messagesBuy?.[0]?.data?.stat_data) || {};
-              const arrBuy = (sdBuy?.['人物关系列表']?.[0]) || [];
+              const arrBuy = window.GuixuHelpers.readList(sdBuy, '人物关系列表');
               const ridBuy = window.GuixuHelpers.SafeGetValue(rel, 'id', null);
               const rnameBuy = window.GuixuHelpers.SafeGetValue(rel, 'name', null);
               const relLatestBuy = arrBuy.map(x => { try { return typeof x === 'string' ? JSON.parse(x) : x; } catch { return null; } })
@@ -2755,9 +2876,10 @@ const renderEffects = (effRaw) => {
                   try { return String(v).trim().toLowerCase(); } catch { return ''; }
                 };
                 const needle = normalize(itemId);
+                const H = window.GuixuHelpers;
                 try {
                   for (const k of lists) {
-                    const arr = (latestStatData?.[k]?.[0]) || [];
+                    const arr = (H && typeof H.readList === 'function') ? H.readList(latestStatData, k) : (latestStatData?.[k]?.[0] || []);
                     if (Array.isArray(arr)) {
                       for (let i = 0; i < arr.length; i++) {
                         const raw = arr[i];
@@ -2765,47 +2887,24 @@ const renderEffects = (effRaw) => {
                         let it;
                         try { it = typeof raw === 'string' ? JSON.parse(raw) : raw; } catch { it = raw; }
                         if (!it && typeof raw === 'string') {
-                          // 纯文本条目，尝试简单匹配
                           const rawStr = raw.toLowerCase();
                           if (needle && rawStr.includes(needle)) {
-                            return {
-                              listKey: k,
-                              listIndex: i,
-                              originalEntry: raw,
-                              parsedEntry: typeof raw === 'string' ? raw : it,
-                            };
+                            return { listKey: k, listIndex: i, originalEntry: raw, parsedEntry: typeof raw === 'string' ? raw : it };
                           }
                           continue;
                         }
-                        const id = normalize(window.GuixuHelpers.SafeGetValue(it, 'id', window.GuixuHelpers.SafeGetValue(it, 'uid', '')));
-                        const name = normalize(window.GuixuHelpers.SafeGetValue(it, 'name', ''));
-                        // 精确 id/name 匹配
+                        const id = normalize(H.SafeGetValue(it, 'id', H.SafeGetValue(it, 'uid', '')));
+                        const name = normalize(H.SafeGetValue(it, 'name', ''));
                         if (needle && (id === needle || name === needle)) {
-                          return {
-                            listKey: k,
-                            listIndex: i,
-                            originalEntry: raw,
-                            parsedEntry: it,
-                          };
+                          return { listKey: k, listIndex: i, originalEntry: raw, parsedEntry: it };
                         }
-                        // 宽松匹配：name 包含 needle 或 raw 字符串包含 needle（最后保底）
                         if (needle && (name && name.includes(needle))) {
-                          return {
-                            listKey: k,
-                            listIndex: i,
-                            originalEntry: raw,
-                            parsedEntry: it,
-                          };
+                          return { listKey: k, listIndex: i, originalEntry: raw, parsedEntry: it };
                         }
                         try {
                           const rawPreview = (typeof raw === 'string') ? raw.toLowerCase() : JSON.stringify(it).toLowerCase();
                           if (needle && rawPreview.includes(needle)) {
-                            return {
-                              listKey: k,
-                              listIndex: i,
-                              originalEntry: raw,
-                              parsedEntry: it,
-                            };
+                            return { listKey: k, listIndex: i, originalEntry: raw, parsedEntry: it };
                           }
                         } catch (_) {}
                       }
@@ -2813,10 +2912,8 @@ const renderEffects = (effRaw) => {
                   }
                 } catch (e) { /* ignore */ }
                 try {
-                  // 更详细的调试信息：列出各个背包列表内的条目 id/name 快照，便于定位匹配失败的原因
-                  const lists = ['功法列表','武器列表','防具列表','饰品列表','法宝列表','丹药列表','其他列表'];
                   const snapshot = lists.map(k => {
-                    const arr = stat_data?.[k]?.[0] || [];
+                    const arr = (H && typeof H.readList === 'function') ? H.readList(stat_data, k) : (stat_data?.[k]?.[0] || []);
                     const items = [];
                     if (Array.isArray(arr)) {
                       for (const rawEntry of arr) {
@@ -2824,8 +2921,8 @@ const renderEffects = (effRaw) => {
                         let parsed;
                         try { parsed = typeof rawEntry === 'string' ? JSON.parse(rawEntry) : rawEntry; } catch { parsed = rawEntry; }
                         items.push({
-                          id: window.GuixuHelpers.SafeGetValue(parsed, 'id', window.GuixuHelpers.SafeGetValue(parsed, 'uid', '')),
-                          name: window.GuixuHelpers.SafeGetValue(parsed, 'name', ''),
+                          id: H.SafeGetValue(parsed, 'id', H.SafeGetValue(parsed, 'uid', '')),
+                          name: H.SafeGetValue(parsed, 'name', ''),
                           rawPreview: (typeof rawEntry === 'string' ? (rawEntry.length > 120 ? rawEntry.slice(0,120) + '...' : rawEntry) : JSON.stringify(parsed).slice(0,120))
                         });
                       }
@@ -2906,7 +3003,7 @@ const renderEffects = (effRaw) => {
               // 读取最新 NPC 灵石（避免使用旧的 rel 值）
               const messagesNow2 = await window.GuixuAPI.getChatMessages(window.GuixuAPI.getCurrentMessageId());
               const sd2 = (messagesNow2?.[0]?.data?.stat_data) || {};
-              const arr2 = (sd2?.['人物关系列表']?.[0]) || [];
+              const arr2 = window.GuixuHelpers.readList(sd2, '人物关系列表');
               const rid2 = window.GuixuHelpers.SafeGetValue(rel, 'id', null);
               const rname2 = window.GuixuHelpers.SafeGetValue(rel, 'name', null);
               const relLatest = arr2.map(x => { try { return typeof x === 'string' ? JSON.parse(x) : x; } catch { return null; } })
@@ -3142,41 +3239,64 @@ const renderEffects = (effRaw) => {
       const stat_data = currentMvuState.stat_data;
 
       // 定位 NPC
-      const relListPath = '人物关系列表.0';
-      const list = _.get(stat_data, relListPath, []);
-      if (!Array.isArray(list)) throw new Error('人物关系列表结构异常');
+      const container = stat_data['人物关系列表'];
       const relId = h.SafeGetValue(rel, 'id', null);
       const relName = h.SafeGetValue(rel, 'name', null);
-      const idx = list.findIndex(entry => {
+      let newFavor = 0;
+
+      if (container && typeof container === 'object' && container.$meta && container.$meta.extensible === true) {
+        const entries = Object.entries(container).filter(([k]) => k !== '$meta');
+        const found = entries.find(([k, v]) => {
+          try {
+            const obj = typeof v === 'string' ? JSON.parse(v) : v;
+            if (relId != null) return h.SafeGetValue(obj, 'id', null) === relId;
+            return h.SafeGetValue(obj, 'name', null) === relName;
+          } catch { return false; }
+        });
+        if (!found) throw new Error('在人物关系列表中未找到该角色');
+        const [matchKey, originalRelEntry] = found;
+        const relObj = (typeof originalRelEntry === 'string') ? JSON.parse(originalRelEntry) : (originalRelEntry || {});
+        const deduct = Number(this._TRADE_ABUSE_FAVOR_DEDUCT || 0) || 0;
+        const origFavor = Number(h.SafeGetValue(relObj, 'favorability', 0)) || 0;
+        newFavor = Math.max(0, origFavor - deduct);
+        relObj['favorability'] = newFavor;
+        relObj['allow_trade'] = false;
         try {
-          const obj = typeof entry === 'string' ? JSON.parse(entry) : entry;
-          if (relId != null) return h.SafeGetValue(obj, 'id', null) === relId;
-          return h.SafeGetValue(obj, 'name', null) === relName;
-        } catch { return false; }
-      });
-      if (idx === -1) throw new Error('在人物关系列表中未找到该角色');
-
-      const originalRelEntry = list[idx];
-      const relObj = (typeof originalRelEntry === 'string') ? JSON.parse(originalRelEntry) : (originalRelEntry || {});
-
-      // 扣减好感度并封禁交易
-      const deduct = Number(this._TRADE_ABUSE_FAVOR_DEDUCT || 0) || 0;
-      const origFavor = Number(h.SafeGetValue(relObj, 'favorability', 0)) || 0;
-      const newFavor = Math.max(0, origFavor - deduct);
-      relObj['favorability'] = newFavor;
-      relObj['allow_trade'] = false;
-
-      // 事件历史记录
-      try {
-        const npcName = h.SafeGetValue(relObj, 'name', '未知之人');
-        const reason = `玩家多次尝试低买/高卖，已触怒【${npcName}】，好感度-${deduct}（累计违规${attempts}次），已拒绝交易。`;
-        const ev = Array.isArray(relObj.event_history) ? relObj.event_history : [];
-        ev.push(reason);
-        relObj.event_history = ev;
-      } catch (_) {}
-
-      // 写回
-      list[idx] = (typeof originalRelEntry === 'string') ? JSON.stringify(relObj) : relObj;
+          const npcName = h.SafeGetValue(relObj, 'name', '未知之人');
+          const reason = `玩家多次尝试低买/高卖，已触怒【${npcName}】，好感度-${deduct}（累计违规${attempts}次），已拒绝交易。`;
+          const ev = Array.isArray(relObj.event_history) ? relObj.event_history : [];
+          ev.push(reason);
+          relObj.event_history = ev;
+        } catch (_) {}
+        container[matchKey] = (typeof originalRelEntry === 'string') ? JSON.stringify(relObj) : relObj;
+      } else {
+        const list = (stat_data?.['人物关系列表']?.[0]) || [];
+        if (!Array.isArray(list)) throw new Error('人物关系列表结构异常');
+        const idx = list.findIndex(entry => {
+          try {
+            const obj = typeof entry === 'string' ? JSON.parse(entry) : entry;
+            if (relId != null) return h.SafeGetValue(obj, 'id', null) === relId;
+            return h.SafeGetValue(obj, 'name', null) === relName;
+          } catch { return false; }
+        });
+        if (idx === -1) throw new Error('在人物关系列表中未找到该角色');
+        const originalRelEntry = list[idx];
+        const relObj = (typeof originalRelEntry === 'string') ? JSON.parse(originalRelEntry) : (originalRelEntry || {});
+        const deduct = Number(this._TRADE_ABUSE_FAVOR_DEDUCT || 0) || 0;
+        const origFavor = Number(h.SafeGetValue(relObj, 'favorability', 0)) || 0;
+        newFavor = Math.max(0, origFavor - deduct);
+        relObj['favorability'] = newFavor;
+        relObj['allow_trade'] = false;
+        try {
+          const npcName = h.SafeGetValue(relObj, 'name', '未知之人');
+          const reason = `玩家多次尝试低买/高卖，已触怒【${npcName}】，好感度-${deduct}（累计违规${attempts}次），已拒绝交易。`;
+          const ev = Array.isArray(relObj.event_history) ? relObj.event_history : [];
+          ev.push(reason);
+          relObj.event_history = ev;
+        } catch (_) {}
+        list[idx] = (typeof originalRelEntry === 'string') ? JSON.stringify(relObj) : relObj;
+        stat_data['人物关系列表'][0] = list;
+      }
 
       const updates = [{ message_id: currentId, data: currentMvuState }];
       if (currentId !== 0) updates.push({ message_id: 0, data: currentMvuState });
@@ -3263,23 +3383,42 @@ const renderEffects = (effRaw) => {
       _.set(stat_data, '灵石', myStones + offer);
 
       // NPC 定位与 - 灵石
-      const relListPath = '人物关系列表.0';
-      const list = _.get(stat_data, relListPath, []);
-      if (!Array.isArray(list)) throw new Error('人物关系列表结构异常');
-
+      const container = stat_data['人物关系列表'];
       const relId = h.SafeGetValue(rel, 'id', null);
       const relName = h.SafeGetValue(rel, 'name', null);
-      const idx = list.findIndex(entry => {
-        try {
-          const obj = typeof entry === 'string' ? JSON.parse(entry) : entry;
-          if (relId != null) return h.SafeGetValue(obj, 'id', null) === relId;
-          return h.SafeGetValue(obj, 'name', null) === relName;
-        } catch { return false; }
-      });
-      if (idx === -1) throw new Error('在人物关系列表中未找到该角色');
+      let relObj, originalRelEntry, containerType = 'array', matchKeyOrIdx = -1;
 
-      const originalRelEntry = list[idx];
-      const relObj = (typeof originalRelEntry === 'string') ? JSON.parse(originalRelEntry) : (originalRelEntry || {});
+      if (container && typeof container === 'object' && container.$meta && container.$meta.extensible === true) {
+        containerType = 'object';
+        const entries = Object.entries(container).filter(([k]) => k !== '$meta');
+        const found = entries.findIndex(([k, v]) => {
+          try {
+            const obj = typeof v === 'string' ? JSON.parse(v) : v;
+            if (relId != null) return h.SafeGetValue(obj, 'id', null) === relId;
+            return h.SafeGetValue(obj, 'name', null) === relName;
+          } catch { return false; }
+        });
+        if (found === -1) throw new Error('在人物关系列表中未找到该角色');
+        const [mk, ov] = entries[found];
+        matchKeyOrIdx = mk;
+        originalRelEntry = ov;
+        relObj = (typeof ov === 'string') ? JSON.parse(ov) : (ov || {});
+      } else {
+        const list = (stat_data?.['人物关系列表']?.[0]) || [];
+        if (!Array.isArray(list)) throw new Error('人物关系列表结构异常');
+        const idx = list.findIndex(entry => {
+          try {
+            const obj = typeof entry === 'string' ? JSON.parse(entry) : entry;
+            if (relId != null) return h.SafeGetValue(obj, 'id', null) === relId;
+            return h.SafeGetValue(obj, 'name', null) === relName;
+          } catch { return false; }
+        });
+        if (idx === -1) throw new Error('在人物关系列表中未找到该角色');
+        matchKeyOrIdx = idx;
+        originalRelEntry = list[idx];
+        relObj = (typeof originalRelEntry === 'string') ? JSON.parse(originalRelEntry) : (originalRelEntry || {});
+      }
+
       const npcStones = Number(h.SafeGetValue(relObj, '灵石', 0)) || 0;
       if (offer > npcStones) throw new Error('对方灵石不足');
       relObj['灵石'] = npcStones - offer;
@@ -3458,7 +3597,18 @@ const renderEffects = (effRaw) => {
       // relObj.物品列表 已经通过引用被修改
 
       // 写回人物（保持与原类型一致）
-      list[idx] = (typeof originalRelEntry === 'string') ? JSON.stringify(relObj) : relObj;
+      if (containerType === 'object') {
+        stat_data['人物关系列表'][matchKeyOrIdx] = undefined; // no-op to avoid accidental creation
+        const v = (typeof originalRelEntry === 'string') ? JSON.stringify(relObj) : relObj;
+        stat_data['人物关系列表'][matchKeyOrIdx] = v; // for completeness if engine supports bracket access
+        // 直接修改 container
+        const cont = stat_data['人物关系列表'];
+        cont[matchKeyOrIdx] = v;
+      } else {
+        const list = stat_data['人物关系列表'][0];
+        list[matchKeyOrIdx] = (typeof originalRelEntry === 'string') ? JSON.stringify(relObj) : relObj;
+        stat_data['人物关系列表'][0] = list;
+      }
 
       // 保存（当前楼层 + 0 楼），带错误捕获与调试输出
       const updates = [{ message_id: currentId, data: currentMvuState }];
@@ -3755,23 +3905,42 @@ const renderEffects = (effRaw) => {
       _.set(stat_data, '灵石', myStones - offer);
 
       // 2) 增对方灵石 + 减少/移除对方物品
-      const relListPath = '人物关系列表.0';
-      const list = _.get(stat_data, relListPath, []);
-      if (!Array.isArray(list)) throw new Error('人物关系列表结构异常');
-
+      const container = stat_data['人物关系列表'];
       const relId = h.SafeGetValue(rel, 'id', null);
       const relName = h.SafeGetValue(rel, 'name', null);
-      const idx = list.findIndex(entry => {
-        try {
-          const obj = typeof entry === 'string' ? JSON.parse(entry) : entry;
-          if (relId != null) return h.SafeGetValue(obj, 'id', null) === relId;
-          return h.SafeGetValue(obj, 'name', null) === relName;
-        } catch { return false; }
-      });
-      if (idx === -1) throw new Error('在人物关系列表中未找到该角色');
+      let relObj, originalRelEntry, containerType = 'array', matchKeyOrIdx = -1;
 
-      const originalRelEntry = list[idx];
-      const relObj = (typeof originalRelEntry === 'string') ? JSON.parse(originalRelEntry) : (originalRelEntry || {});
+      if (container && typeof container === 'object' && container.$meta && container.$meta.extensible === true) {
+        containerType = 'object';
+        const entries = Object.entries(container).filter(([k]) => k !== '$meta');
+        const found = entries.findIndex(([k, v]) => {
+          try {
+            const obj = typeof v === 'string' ? JSON.parse(v) : v;
+            if (relId != null) return h.SafeGetValue(obj, 'id', null) === relId;
+            return h.SafeGetValue(obj, 'name', null) === relName;
+          } catch { return false; }
+        });
+        if (found === -1) throw new Error('在人物关系列表中未找到该角色');
+        const [mk, ov] = entries[found];
+        matchKeyOrIdx = mk;
+        originalRelEntry = ov;
+        relObj = (typeof ov === 'string') ? JSON.parse(ov) : (ov || {});
+      } else {
+        const list = (stat_data?.['人物关系列表']?.[0]) || [];
+        if (!Array.isArray(list)) throw new Error('人物关系列表结构异常');
+        const idx = list.findIndex(entry => {
+          try {
+            const obj = typeof entry === 'string' ? JSON.parse(entry) : entry;
+            if (relId != null) return h.SafeGetValue(obj, 'id', null) === relId;
+            return h.SafeGetValue(obj, 'name', null) === relName;
+          } catch { return false; }
+        });
+        if (idx === -1) throw new Error('在人物关系列表中未找到该角色');
+        matchKeyOrIdx = idx;
+        originalRelEntry = list[idx];
+        relObj = (typeof originalRelEntry === 'string') ? JSON.parse(originalRelEntry) : (originalRelEntry || {});
+      }
+
       const npcStones = Number(h.SafeGetValue(relObj, '灵石', 0)) || 0;
       relObj['灵石'] = npcStones + offer;
 
@@ -3807,7 +3976,15 @@ const renderEffects = (effRaw) => {
       relObj.物品列表 = npcItems;
 
       // 将更新后的 relObj 写回（保持与原类型一致）
-      list[idx] = (typeof originalRelEntry === 'string') ? JSON.stringify(relObj) : relObj;
+      if (containerType === 'object') {
+        const v = (typeof originalRelEntry === 'string') ? JSON.stringify(relObj) : relObj;
+        const cont = stat_data['人物关系列表'];
+        cont[matchKeyOrIdx] = v;
+      } else {
+        const list = stat_data['人物关系列表'][0];
+        list[matchKeyOrIdx] = (typeof originalRelEntry === 'string') ? JSON.stringify(relObj) : relObj;
+        stat_data['人物关系列表'][0] = list;
+      }
 
       // 3) 加入玩家对应分类列表（使用统一的分类逻辑并自动修复type字段）
       
@@ -4020,10 +4197,7 @@ const renderEffects = (effRaw) => {
         if (window.GuixuMain && typeof window.GuixuMain._deepStripMeta === 'function') {
           stat_data = window.GuixuMain._deepStripMeta(stat_data);
         }
-        let relationships = stat_data?.['人物关系列表']?.[0] || [];
-        if (typeof relationships === 'string') {
-          try { relationships = JSON.parse(relationships); } catch(_) {}
-        }
+        let relationships = window.GuixuHelpers.readList(stat_data, '人物关系列表');
         await this._maybeAutoExtract(relationships);
       } catch (e) {
         console.warn('[归墟] 自动提取触发失败:', e);
@@ -4130,14 +4304,21 @@ const renderEffects = (effRaw) => {
 
         // 装备槽（提取到世界书：主修/辅修/武器/防具/饰品/法宝，含明细）
         try {
-          const equipSlots = ['主修功法','辅修心法','武器','防具','饰品','法宝栏1'];
+          const slotDefsExtract = [
+            { key: '主修功法', label: '主修功法' },
+            { key: '辅修心法', label: '辅修心法' },
+            { key: '武器', label: '武器' },
+            { key: '防具', label: '防具' },
+            { key: '饰品', label: '饰品' },
+            { key: '法宝', legacy: '法宝栏1', label: '法宝' }
+          ];
           const parts = [];
-          equipSlots.forEach(sk => {
-            const it = normalizeField(rel?.[sk]);
+          slotDefsExtract.forEach(def => {
+            const it = window.GuixuHelpers.readEquipped(rel, def.key) || (def.legacy ? window.GuixuHelpers.readEquipped(rel, def.legacy) : null);
             if (it && typeof it === 'object') {
-              const n = h.SafeGetValue(it,'name', h.SafeGetValue(it,'名称', sk));
+              const n = h.SafeGetValue(it,'name', h.SafeGetValue(it,'名称', def.label));
               const t = h.SafeGetValue(it,'tier', h.SafeGetValue(it,'品阶','凡品'));
-              const label = sk === '法宝栏1' ? '法宝' : sk;
+              const label = def.label;
               parts.push(`${label}:【${t}】${n}`);
               const ab = normalizeField(it['attributes_bonus'] ?? it['属性加成'] ?? {}) || {};
               const pb = normalizeField(it['百分比加成'] ?? it['percent_bonus'] ?? {}) || {};
