@@ -232,6 +232,182 @@
       return { base, sources };
     },
 
+    // 简易转义（避免 tooltip 文本破坏 HTML）
+    _esc(text) {
+      const map = { '&': '&', '<': '<', '>': '>', '"': '"', "'": '&#39;' };
+      return String(text).replace(/[&<>"']/g, (ch) => map[ch] || ch);
+    },
+
+    // 规范化一个词条值为可展示文本（支持 number/string/object 常见结构）
+    _formatEffectValue(v) {
+      try {
+        if (v == null) return '';
+        if (typeof v === 'number') return String(v);
+        if (typeof v === 'string') return v;
+
+        // [value, unit] 或 [key, value]
+        if (Array.isArray(v)) {
+          if (v.length === 2) {
+            const [a, b] = v;
+            if (typeof a === 'string' && (typeof b === 'number' || typeof b === 'string')) return String(b);
+            if ((typeof a === 'number' || typeof a === 'string') && typeof b === 'string') return `${a}${b}`;
+          }
+          return v.map(x => this._formatEffectValue(x)).filter(Boolean).join(' / ');
+        }
+
+        if (typeof v === 'object') {
+          if (typeof v.percent !== 'undefined') return typeof v.percent === 'number' ? `${v.percent}%` : String(v.percent);
+          if (typeof v.amount !== 'undefined') return `${v.amount}${typeof v.unit === 'string' ? v.unit : ''}`;
+          if (typeof v.value !== 'undefined') {
+            const unit = typeof v.unit === 'string' ? v.unit : (v.isPercent ? '%' : '');
+            return `${v.value}${unit || ''}`;
+          }
+          if (typeof v.val !== 'undefined') return `${v.val}${typeof v.unit === 'string' ? v.unit : ''}`;
+          if (typeof v.rate !== 'undefined') return typeof v.rate === 'number' ? `${v.rate}%` : String(v.rate);
+          if (typeof v.magnitude !== 'undefined') return `${v.magnitude}${typeof v.unit === 'string' ? v.unit : ''}`;
+          try { return JSON.stringify(v); } catch (_) { return String(v); }
+        }
+      } catch (_) {}
+      return String(v);
+    },
+
+    // 解析一个条目的 special_effects（支持对象/数组/字符串）
+    _extractEffectsFromItem(item) {
+      try {
+        if (!item || typeof item !== 'object') return [];
+        let eff = item.special_effects ?? item['词条效果'] ?? item['词条'];
+        if (eff == null) return [];
+
+        // 字符串：尝试 JSON，否则按多行/分号/逗号切
+        if (typeof eff === 'string') {
+          const t = eff.trim();
+          if (!t) return [];
+          try {
+            if ((t.startsWith('{') && t.endsWith('}')) || (t.startsWith('[') && t.endsWith(']'))) {
+              const parsed = JSON.parse(t);
+              eff = parsed;
+            }
+          } catch (_) {}
+          if (typeof eff === 'string') {
+            const parts = eff.split(/[\n;,]+/).map(s => s.trim()).filter(Boolean);
+            const out = [];
+            parts.forEach(p => {
+              const m = p.match(/^([^:：]+)\s*[:：]\s*(.+)$/);
+              if (m) out.push({ key: m[1].trim(), value: m[2].trim() });
+              else out.push({ key: '', value: p });
+            });
+            return out;
+          }
+        }
+
+        // 数组
+        if (Array.isArray(eff)) {
+          return eff
+            .filter(x => !!x && x !== '$__META_EXTENSIBLE__$' && x !== '...')
+            .map(entry => {
+              if (typeof entry === 'string') {
+                const m = entry.match(/^([^:：]+)\s*[:：]\s*(.+)$/);
+                if (m) return { key: m[1].trim(), value: m[2].trim() };
+                return { key: '', value: entry };
+              }
+              if (Array.isArray(entry)) {
+                if (entry.length >= 2) return { key: String(entry[0] ?? ''), value: entry[1] };
+                return { key: '', value: entry.map(x => this._formatEffectValue(x)).join(' / ') };
+              }
+              if (entry && typeof entry === 'object') {
+                const k = entry.key ?? entry.k ?? entry.name ?? entry.label ?? entry.title ?? entry.desc ?? entry.description ?? '';
+                const v = typeof entry.value !== 'undefined'
+                  ? entry.value
+                  : (entry.v ?? entry.val ?? entry.amount ?? entry.percent ?? entry.rate ?? entry.magnitude ?? entry);
+                return { key: String(k || ''), value: v };
+              }
+              return { key: '', value: entry };
+            });
+        }
+
+        // 对象：键-值对
+        if (typeof eff === 'object') {
+          return Object.entries(eff)
+            .filter(([k]) => k !== '$meta' && k !== '$__META_EXTENSIBLE__$')
+            .map(([k, v]) => ({ key: String(k), value: v }));
+        }
+
+        return [{ key: '', value: eff }];
+      } catch (_) {
+        return [];
+      }
+    },
+
+    // 汇总“词条效果”到简短列表（类型-名称：键 值）
+    _renderSpecialEffectsSummary() {
+      try {
+        const st = window.GuixuState.getState();
+        const sd = st.currentMvuState?.stat_data || {};
+        const Hh = window.GuixuHelpers;
+
+        const lines = [];
+
+        const pushItem = (type, item) => {
+          if (!item || typeof item !== 'object') return;
+          const name = Hh.SafeGetValue(item, 'name', Hh.SafeGetValue(item, '名称', '未知')) || '未知';
+          const entries = this._extractEffectsFromItem(item);
+          entries.forEach(({ key, value }) => {
+            const label = key ? `${type}-${name}：${key}` : `${type}-${name}`;
+            lines.push({ label, value: this._formatEffectValue(value) });
+          });
+        };
+
+        // 装备
+        try {
+          const eq = st.equippedItems || {};
+          Object.values(eq).forEach(it => { if (it) pushItem('物品', it); });
+        } catch (_) {}
+
+        // 天赋
+        try {
+          const tianfuList = Hh.readList(sd, '天赋列表');
+          Array.isArray(tianfuList) && tianfuList.forEach(tf => {
+            const obj = typeof tf === 'string' ? (function(){ try { return JSON.parse(tf); } catch { return null; } })() : tf;
+            if (obj) pushItem('天赋', obj);
+          });
+        } catch (_) {}
+
+        // 灵根
+        try {
+          const linggenList = Hh.readList(sd, '灵根列表');
+          Array.isArray(linggenList) && linggenList.forEach(lg => {
+            const obj = typeof lg === 'string' ? (function(){ try { return JSON.parse(lg); } catch { return null; } })() : lg;
+            if (obj) pushItem('灵根', obj);
+          });
+        } catch (_) {}
+
+        if (!lines.length) return '';
+
+        // 限制最多展示若干条，避免超长
+        const maxShow = 24;
+        const shown = lines.slice(0, maxShow);
+        const more = lines.length > maxShow ? `<div class="attr-break-item"><span class="attr-break-name">……</span><span class="attr-break-val">其余 ${lines.length - maxShow} 条</span></div>` : '';
+
+        return `
+          <div class="attr-break-group">
+            <div class="attr-break-title">词条效果</div>
+            <div class="attr-break-items">
+              ${shown.map(x => `
+                <div class="attr-break-item">
+                  <span class="attr-break-name">${this._esc(x.label)}</span>
+                  <span class="attr-break-val"><strong>${this._esc(x.value)}</strong></span>
+                </div>
+              `).join('')}
+              ${more}
+            </div>
+          </div>
+        `;
+      } catch (e) {
+        console.warn('[归墟] 词条效果分解渲染失败:', e);
+        return '';
+      }
+    },
+
     // 渲染“属性+修为”合并模块（进度条显示 + 点击浮窗分解）
     renderUnifiedPanel() {
       const container = document.querySelector('.character-panel');
@@ -398,6 +574,7 @@
             ${renderGroup('灵根', groups['灵根'])}
             ${renderGroup('天赋', groups['天赋'])}
             ${renderGroup('物品', groups['物品'])}
+            ${this._renderSpecialEffectsSummary()}
           </div>
         `;
 
