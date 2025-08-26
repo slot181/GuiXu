@@ -1,5 +1,3 @@
-// /js/services/action.js
-// 类脑/旅程梦星作品，禁止二传，禁止商业化，均无偿免费开源分享
 (function (window) {
     'use strict';
 

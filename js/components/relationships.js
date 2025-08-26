@@ -1,4 +1,3 @@
-// 类脑/旅程梦星作品，禁止二传，禁止商业化，均无偿免费开源分享
 (function (window) {
   'use strict';
 
@@ -735,17 +734,6 @@
 
             .rel-content { display: flex; flex-direction: column; gap: 10px; }
             .rel-toolbar { display:flex; }
-            #rel-search-input {
-              width: 100%;
-              border: 1px solid rgba(201,170,113,0.35);
-              background: rgba(26,26,46,0.5);
-              color: #e8e3d6;
-              border-radius: 8px;
-              padding: 8px 10px;
-              font-size: 12px;
-              outline: none;
-            }
-            #rel-search-input::placeholder { color:#8b7355; }
             .rel-settings {
               display: flex;
               flex-wrap: wrap;
@@ -756,14 +744,6 @@
               font-size: 12px;
             }
             .rel-settings label { display: inline-flex; align-items: center; gap: 6px; }
-            .rel-settings input[type="number"] {
-              height: 28px;
-              padding: 0 6px;
-              border: 1px solid rgba(201,170,113,0.35);
-              border-radius: 6px;
-              background: rgba(26,26,46,0.5);
-              color: #e8e3d6;
-            }
 
             /* 移动端：设置区网格化，按钮全宽一致（嵌入式/非全屏同样适配） */
             .guixu-root-container.mobile-view #relationships-modal .rel-settings {
@@ -1028,7 +1008,7 @@
             <div class="rel-tabs" id="rel-tabs">${tabsHtml}</div>
             <div class="rel-content">
               <div class="rel-toolbar">
-                <input id="rel-search-input" type="search" placeholder="搜索姓名/描述..." />
+                <input id="rel-search-input" class="gx-input" type="search" placeholder="搜索姓名/描述..." />
               </div>
               <div class="rel-settings">
                 <label><input type="checkbox" id="rel-auto-extract-toggle" /> 自动提取</label>
@@ -1110,8 +1090,8 @@
         const level = h.SafeGetValue(rel, 'level', h.SafeGetValue(rel, '等级', ''));
         const relationship = h.SafeGetValue(rel, 'relationship', 'NEUTRAL');
         const relationshipCN = RelationshipsComponent._toChineseRelationship(relationship);
-        const favorability = parseInt(h.SafeGetValue(rel, 'favorability', 0), 10);
-        const description = h.SafeGetValue(rel, 'description', h.SafeGetValue(rel, '身份背景', '背景不详'));
+const favorability = parseInt(h.SafeGetValue(rel, 'favorability', 0), 10);
+const description = h.SafeGetValue(rel, 'description', h.SafeGetValue(rel, '身份背景', '背景不详'));
         const qiyun = parseInt(h.SafeGetValue(rel, '气运', h.SafeGetValue(rel, '气運', 0)), 10) || 0;
         // 新增：角色性格/外貌/称呼（仅在有值时展示）
         const personality = h.SafeGetValue(rel, '性格', '');
@@ -2560,8 +2540,8 @@
             <div class="trade-toolbar">
               <button id="trade-tab-npc" class="interaction-btn">对方物品</button>
               <button id="trade-tab-user" class="interaction-btn">我的物品</button>
-              <input id="trade-search-input" type="search" placeholder="搜索物品..." />
-              <select id="trade-currency-unit" style="height:28px; padding:0 8px; background: rgba(0,0,0,0.4); border:1px solid #8b7355; border-radius:4px; color:#e0dcd1; font-size:12px;">
+              <input id="trade-search-input" class="gx-input" type="search" placeholder="搜索物品..." />
+              <select id="trade-currency-unit" class="gx-select">
                 <option value="下品灵石" ${currentUnit === '下品灵石' ? 'selected' : ''}>下品灵石</option>
                 <option value="中品灵石" ${currentUnit === '中品灵石' ? 'selected' : ''}>中品灵石</option>
                 <option value="上品灵石" ${currentUnit === '上品灵石' ? 'selected' : ''}>上品灵石</option>
@@ -3179,7 +3159,7 @@
                 ? window.GuixuMain.showNumberPrompt({
                   title: `出售价格（${unit}）`,
                   message: `为【${window.GuixuHelpers.SafeGetValue(item, 'name', '未知物品')} x${sellQuantity}】标价（推荐卖出价：${Curr.formatFromBase(recommendedTotalSell, unit)} ${unit}）`,
-                  min: 1,
+                  min: 0,
                   max: 999999,
                   defaultValue: Math.max(1, Math.round(Curr.fromBase(recommendedTotalSell, unit)) || 1),
                 })
@@ -3190,7 +3170,7 @@
                   ) || '0',
                   10
                 )));
-              if (!Number.isFinite(offer) || offer <= 0) {
+              if (!Number.isFinite(offer) || offer < 0) {
                 window.GuixuHelpers.showTemporaryMessage('已取消或无效的标价');
                 return;
               }
@@ -3240,7 +3220,7 @@
                     const itemName = window.GuixuHelpers.SafeGetValue(item, 'name', '未知物品');
                     const sellQty = Number(window.GuixuHelpers.SafeGetValue(item, 'sellQuantity', 1)) || 1;
                     const tierText = window.GuixuHelpers.SafeGetValue(item, 'tier', '练气');
-                    const unitPrice = Math.max(1, Math.round(Number(offerBase || 0) / Math.max(1, Number(sellQty || 1))));
+                    const unitPrice = Math.max(0, Math.round(Number(offerBase || 0) / Math.max(1, Number(sellQty || 1))));
                     pending.push({ action: 'trade_sell', npcName, itemName, tier: tierText, quantity: sellQty, unitPrice, totalPrice: offerBase });
                     window.GuixuState.update('pendingActions', pending);
                   }
@@ -4712,10 +4692,12 @@
         const lines = [];
         const name = h.SafeGetValue(rel, 'name', '未知之人');
         const tier = h.SafeGetValue(rel, 'tier', '凡人');
-        const level = h.SafeGetValue(rel, '等级', '');
+        const level = h.SafeGetValue(rel, 'level', h.SafeGetValue(rel, '等级', ''));
         const relationship = RelationshipsComponent._toChineseRelationship(h.SafeGetValue(rel, 'relationship', 'NEUTRAL'));
-        const favor = h.SafeGetValue(rel, 'favorability', 0);
-        const desc = h.SafeGetValue(rel, 'description', '');
+const favor = h.SafeGetValue(rel, 'favorability', 0);
+const desc = h.SafeGetValue(rel, 'description', h.SafeGetValue(rel, '描述', h.SafeGetValue(rel, '身份背景', '')));
+const personality = h.SafeGetValue(rel, '性格', h.SafeGetValue(rel, 'personality', ''));
+        const appearance = h.SafeGetValue(rel, '外貌', h.SafeGetValue(rel, 'appearance', ''));
 
         // 基本信息
         lines.push(`姓名|${name}`);
@@ -4723,6 +4705,8 @@
         lines.push(`修为|${tier}${level ? ' ' + level : ''}`);
         lines.push(`好感度|${favor}`);
         if (desc) lines.push(`描述|${desc}`);
+        if (personality) lines.push(`性格|${personality}`);
+        if (appearance) lines.push(`外貌|${appearance}`);
 
         // 基础工具
         const parseMaybeJson = (v) => {
@@ -4882,9 +4866,84 @@
             }));
           } catch (_) { /* ignore */ }
         }
+        // 修正：如果四维上限疑似为基础值，则按“基础+装备/灵根/天赋加成”推导上限并与现值取最大
+        try {
+          const ATTR_KEYS_CN = ['法力','神海','道心','空速'];
+          const baseCheck = pickObj(rel?.['基础四维'] ?? rel?.['基础四维属性']);
+          const needFix = ATTR_KEYS_CN.some(k => toNum(totalAttrs[k]) <= toNum(baseCheck[k]));
+          if (needFix) {
+            const parsePercent = (v) => {
+              if (v === null || v === undefined) return 0;
+              const s = String(v).trim();
+              if (!s) return 0;
+              if (s.endsWith('%')) { const n = parseFloat(s.slice(0,-1)); return Number.isFinite(n) ? n/100 : 0; }
+              const n = parseFloat(s);
+              return Number.isFinite(n) && n > 1.5 ? n/100 : (Number.isFinite(n) ? n : 0);
+            };
+            const extractBonuses = (item) => {
+              const flat = Object.fromEntries(ATTR_KEYS_CN.map(k => [k, 0]));
+              const percent = Object.fromEntries(ATTR_KEYS_CN.map(k => [k, 0]));
+              if (!item || typeof item !== 'object') return { flat, percent };
+              const ab = pickObj(item['属性加成'] ?? item['attributes_bonus'] ?? {});
+              const pb = pickObj(item['百分比加成'] ?? item['percent_bonus'] ?? {});
+              Object.entries(ab).forEach(([k,v]) => { if (ATTR_KEYS_CN.includes(k)) { const n = parseInt(String(v),10); if (Number.isFinite(n)) flat[k] += n; }});
+              Object.entries(pb).forEach(([k,v]) => { if (ATTR_KEYS_CN.includes(k)) { const p = parsePercent(v); if (Number.isFinite(p)) percent[k] += p; }});
+              return { flat, percent };
+            };
+            const merge = (a,b) => { ATTR_KEYS_CN.forEach(k => a[k] = (a[k] || 0) + (b[k] || 0)); };
+            const totalFlat = Object.fromEntries(ATTR_KEYS_CN.map(k => [k, 0]));
+            const totalPct = Object.fromEntries(ATTR_KEYS_CN.map(k => [k, 0]));
+            // 装备
+            ['主修功法','辅修心法','武器','防具','饰品','法宝','法宝栏1'].forEach(key => {
+              const it = window.GuixuHelpers?.readEquipped?.(rel, key);
+              if (it && typeof it === 'object') {
+                const { flat, percent } = extractBonuses(it);
+                merge(totalFlat, flat); merge(totalPct, percent);
+              }
+            });
+            // 灵根
+            try {
+              const inhRaw = rel?.['inherent_abilities'] ?? rel?.['内在能力'] ?? {};
+              const inh = (inhRaw && typeof inhRaw === 'object') ? inhRaw : {};
+              let lg = inh['灵根'] ?? inh['灵根列表'] ?? {};
+              if (Array.isArray(lg) && lg.length > 0) lg = pickObj(lg[0]);
+              lg = pickObj(lg);
+              if (!Object.keys(lg).length) {
+                const topLg = window.GuixuHelpers?.readList?.(rel, '灵根列表') || [];
+                if (Array.isArray(topLg) && topLg.length) {
+                  const first = topLg.find(x => x && x !== '$__META_EXTENSIBLE__$');
+                  if (first) { try { lg = typeof first === 'string' ? JSON.parse(first) : first; } catch { lg = first; } }
+                }
+              }
+              if (lg && typeof lg === 'object') {
+                const { flat, percent } = extractBonuses(lg);
+                merge(totalFlat, flat); merge(totalPct, percent);
+              }
+            } catch (_) {}
+            // 天赋
+            try {
+              const tRaw = (rel?.['inherent_abilities'] ?? rel?.['内在能力'] ?? {})['天赋'] ?? [];
+              const talents = Array.isArray(tRaw) ? tRaw : (Array.isArray(pickObj(tRaw)) ? pickObj(tRaw) : []);
+              talents.forEach(t => {
+                const obj = typeof t === 'string' ? (function(){ try{return JSON.parse(t);}catch{return null;} })() : t;
+                if (obj && typeof obj === 'object') {
+                  const { flat, percent } = extractBonuses(obj);
+                  merge(totalFlat, flat); merge(totalPct, percent);
+                }
+              });
+            } catch (_) {}
+            const derived = Object.fromEntries(ATTR_KEYS_CN.map(k => {
+              const baseVal = toNum(baseCheck?.[k]);
+              const flat = toNum(totalFlat[k]);
+              const pct = Number(totalPct[k] || 0);
+              return [k, Math.max(0, Math.floor((baseVal + flat) * (1 + pct)))];
+            }));
+            totalAttrs = Object.fromEntries(ATTR_KEYS_CN.map(k => [k, Math.max(toNum(totalAttrs[k]), toNum(derived[k]))]));
+          }
+        } catch (_) {}
         const fourDimParts = keys.map(k => `${k}:${toNum(curAttrs[k])}/${toNum(totalAttrs[k])}`);
         if (fourDimParts.some(p => /:/.test(p))) {
-          lines.push(`四维|${fourDimParts.join('；')}`);
+          lines.push(`四维（当前/上限）|${fourDimParts.join('；')}`);
         }
         // 基础四维（优先新键，其次旧键，最后以散列基础值兜底）
         try {
@@ -5098,12 +5157,40 @@
           }
         }
 
-        // 过往交集
-        const ev = rel?.event_history;
-        if (Array.isArray(ev)) {
-          const evs = ev.filter(x => x && x !== '$__META_EXTENSIBLE__$' && x !== '...');
-          if (evs.length) lines.push(`过往交集|${evs.join('；')}`);
-        }
+        // 过往交集（兼容对象字典/数组/字符串化JSON）
+        (() => {
+          try {
+            let ev = rel?.event_history ?? rel?.['过往交集'] ?? null;
+            // 字符串化 JSON 尝试解析
+            if (typeof ev === 'string') {
+              const s = ev.trim();
+              if ((s.startsWith('{') && s.endsWith('}')) || (s.startsWith('[') && s.endsWith(']'))) {
+                try { ev = JSON.parse(s); } catch (_) { /* 保留原字符串 */ }
+              }
+            }
+            let list = [];
+            if (Array.isArray(ev)) {
+              list = ev.filter(x => x && x !== '$__META_EXTENSIBLE__$' && x !== '...');
+            } else if (ev && typeof ev === 'object') {
+              list = Object.entries(ev)
+                .filter(([k]) => k !== '$meta' && k !== '$__META_EXTENSIBLE__$')
+                .map(([k, v]) => {
+                  if (v == null) return '';
+                  if (typeof v === 'string') return v.trim();
+                  try {
+                    return window.GuixuHelpers.SafeGetValue(v, 'description',
+                             window.GuixuHelpers.SafeGetValue(v, 'name',
+                               (function(x){ try { return JSON.stringify(x); } catch { return String(x); } })(v)));
+                  } catch { return ''; }
+                })
+                .filter(s => typeof s === 'string' && s && s !== '$__META_EXTENSIBLE__$' && s !== '...');
+            } else if (typeof ev === 'string' && ev) {
+              // 纯文本：按常见分隔符切分为多条
+              list = ev.split(/[\n；;]+/).map(s => s.trim()).filter(Boolean);
+            }
+            if (list.length) lines.push(`过往交集|${list.join('；')}`);
+          } catch (_) { /* ignore */ }
+        })();
 
         return lines.join('\n');
       } catch (_) { return ''; }

@@ -307,14 +307,22 @@
     extractLastTagContent(tagName, text, ignoreCase = false) {
       try {
         if (!tagName || !text) return null;
-        const flags = ignoreCase ? 'gi' : 'g';
-        const pattern = new RegExp(`<${tagName}[^>]*>([\\s\\S]*?)<\\/${tagName}>`, flags);
-        let match;
-        let lastContent = null;
-        while ((match = pattern.exec(text)) !== null) {
-          lastContent = match[1];
-        }
-        return lastContent ? String(lastContent).trim() : null;
+        const baseFlags = ignoreCase ? 'gi' : 'g';
+
+        // 1) 严格匹配（优先）
+        const esc = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const strict = new RegExp(`<\\s*${esc(tagName)}[^>]*>\\s*([\\s\\S]*?)\\s*<\\/\\s*${esc(tagName)}\\s*>`, baseFlags);
+        let m, last = null;
+        while ((m = strict.exec(text)) !== null) last = m;
+        if (last) return String(last[1]).trim();
+
+        // 2) 松散匹配：允许在标签名字符之间穿插连字符/空白（例：<行-动-方-针> / </行-动-针>）
+        const chars = String(tagName).split('').map(ch => esc(ch));
+        const looseName = chars.join('[\\s\\-—_·•－]*');
+        const loose = new RegExp(`<\\s*${looseName}[^>]*>\\s*([\\s\\S]*?)\\s*<\\/\\s*${looseName}\\s*>`, baseFlags);
+        last = null;
+        while ((m = loose.exec(text)) !== null) last = m;
+        return last ? String(last[1]).trim() : null;
       } catch (e) {
         console.error('[归墟] extractLastTagContent 解析失败:', e);
         return null;

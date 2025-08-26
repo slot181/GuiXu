@@ -1,4 +1,3 @@
-// 类脑/旅程梦星作品，禁止二传，禁止商业化，均无偿免费开源分享
 // 阶段四：新的主入口 main.js（全面接管，准备移除 guixu.js）
 /* global eventOn, tavern_events */
 
@@ -2362,11 +2361,14 @@ container.style.fontFamily = `"Microsoft YaHei", "Noto Sans SC", "PingFang SC", 
     _parseActionGuidelines(rawText) {
       try {
         const text = String(rawText || '');
-        const re = /<\s*行动方针[^>]*>\s*([\s\S]*?)\s*<\/\s*行动方针\s*>/gi;
-        let m, last = null;
-        while ((m = re.exec(text)) !== null) last = m;
-        const block = last ? (last[1] || '') : '';
-        const strippedText = last ? text.replace(re, '') : text;
+        // 使用 Helpers 的宽松提取，兼容 <行-动-方-针> 等变体
+        const block = window.GuixuHelpers.extractLastTagContent('行动方针', text, true) || '';
+        // 移除所有“行动方针”块（宽松匹配名）
+        const esc = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const chars = '行动方针'.split('').map(ch => esc(ch));
+        const looseName = chars.join('[\\s\\-—_·•－]*');
+        const reAll = new RegExp(`<\\s*${looseName}[^>]*>[\\s\\S]*?<\\/\\s*${looseName}\\s*>`, 'gi');
+        const strippedText = block ? text.replace(reAll, '') : text;
         const items = this._normalizeGuidelineItems(block);
         return { strippedText, items };
       } catch (_) {

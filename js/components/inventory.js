@@ -1,4 +1,3 @@
-// 类脑/旅程梦星作品，禁止二传，禁止商业化，均无偿免费开源分享
 (function (window) {
   'use strict';
 
@@ -209,21 +208,6 @@
           @media (hover: none) {
             .inv-tab:hover { background: rgba(201,170,113,0.08); }
           }
-          /* 背包搜索栏样式对齐人物关系面板搜索栏 */
-          #inventory-modal #inventory-search-input {
-            width: 100%;
-            border: 1px solid rgba(201,170,113,0.35);
-            background: rgba(26,26,46,0.5);
-            color: #e8e3d6;
-            border-radius: 8px;
-            padding: 8px 10px;
-            font-size: 12px;
-            outline: none;
-          }
-          #inventory-modal #inventory-search-clear {
-            height: 32px;
-            padding: 0 10px;
-          }
         </style>
 
         <div class="inv-tabs" id="inv-tabs">
@@ -231,8 +215,7 @@
         </div>
 
         <div class="inventory-search">
-          <input type="text" id="inventory-search-input" placeholder="搜索物品名称或描述…" />
-          <button id="inventory-search-clear" class="interaction-btn">清除</button>
+          <input type="text" id="inventory-search-input" class="gx-input" placeholder="搜索物品名称或描述…" />
         </div>
 
         <div class="panel-section">
@@ -240,7 +223,7 @@
             <div class="attribute-item" style="gap:8px; align-items:center;">
               <span class="attribute-name">灵石</span>
               <span class="attribute-value" id="inventory-stones" data-base="${stonesVal}">${stonesDisplay}</span>
-              <select id="inventory-currency-unit" style="height: 26px; padding: 0 8px; background: rgba(0,0,0,0.4); border: 1px solid #8b7355; border-radius: 4px; color:#e0dcd1; font-size:12px;">
+              <select id="inventory-currency-unit" class="gx-select" style="height: 26px; padding: 0 8px; background: rgba(26,26,46,0.5); border: 1px solid rgba(201,170,113,0.35); border-radius: 4px; color:#e0dcd1; font-size:12px;">
                 <option value="下品灵石" ${unit === '下品灵石' ? 'selected' : ''}>下品灵石</option>
                 <option value="中品灵石" ${unit === '中品灵石' ? 'selected' : ''}>中品灵石</option>
                 <option value="上品灵石" ${unit === '上品灵石' ? 'selected' : ''}>上品灵石</option>

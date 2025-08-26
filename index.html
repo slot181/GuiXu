@@ -1,17 +1,14 @@
 <!DOCTYPE html>
-<!-- 类脑/旅程梦星作品，禁止二传，禁止商业化，均无偿免费开源分享 -->
 <html lang="zh-CN">
 
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>归墟 - 宿命轮回</title>
-  <!-- 切换到 @v3.2.5 以确保对象字典 MVU 兼容性（readList/SafeGetValue/readEquipped 等），并附带缓存参数 -->
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/slot181/GuiXu@v3.2.5/css/guixu.css?v=20250825" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/slot181/GuiXu@v3.2.9.2/css/guixu.css" />
 </head>
 
 <body>
-  <!-- 类脑/旅程梦星作品，禁止二传，禁止商业化，均无偿免费开源分享 -->
   <div id="guixu-viewport" class="guixu-viewport">
     <div class="guixu-root-container">
     <!-- 视图/设置按钮 -->
@@ -241,13 +238,6 @@
             </div>
             <pre id="extracted-novel-mode" style="white-space: pre-wrap; word-wrap: break-word; color: #e0dcd1; font-size: 12px; padding: 10px; background: rgba(0, 0, 0, 0.2); border-radius: 4px; min-height: 50px;">小说模式已关闭</pre>
           </div>
-          <div class="panel-section">
-            <div class="section-title" style="display: flex; justify-content: space-between; align-items: center">
-              <span>提取角色</span>
-              <button id="btn-write-character-card" class="interaction-btn" style="padding: 4px 8px; font-size: 12px; margin-left: 10px">写入世界书</button>
-            </div>
-            <pre id="extracted-character-card" style="white-space: pre-wrap; word-wrap: break-word; color: #e0dcd1; font-size: 12px; padding: 10px; background: rgba(0, 0, 0, 0.2); border-radius: 4px; min-height: 50px;">无内容</pre>
-          </div>
           <div class="auto-write-section">
             <input type="checkbox" id="novel-mode-enabled-checkbox" />
             <label for="novel-mode-enabled-checkbox" class="auto-write-label">开启小说模式</label>
@@ -367,7 +357,7 @@
             <div class="attributes-list" style="padding: 10px;">
               <div class="attribute-item" style="gap:8px; align-items:center;">
                 <span class="attribute-name" style="min-width:70px;">背景库</span>
-                <select id="pref-bg-select" style="flex:1; background: rgba(0,0,0,0.5); border: 1px solid #8b7355; color: #e0dcd1; border-radius: 4px; padding: 6px; font-size: 12px;">
+                <select id="pref-bg-select" class="gx-select" style="flex:1; background: rgba(0,0,0,0.5); border: 1px solid #8b7355; color: #e0dcd1; border-radius: 4px; padding: 6px; font-size: 12px;">
                   <option value="">（未选择）</option>
                 </select>
                 <button id="pref-bg-upload" class="interaction-btn" style="padding: 4px 8px; font-size: 12px;">本地上传</button>
@@ -392,7 +382,7 @@
             <div class="section-title">背景显示方式</div>
             <div class="attributes-list" style="padding: 10px;">
               <div class="attribute-item" style="gap:10px; align-items:center;">
-                <select id="pref-bg-fit-mode" style="flex:1; background: rgba(0,0,0,0.5); border: 1px solid #8b7355; color: #e0dcd1; border-radius: 4px; padding: 6px; font-size: 12px;">
+                <select id="pref-bg-fit-mode" class="gx-select" style="flex:1; background: rgba(0,0,0,0.5); border: 1px solid #8b7355; color: #e0dcd1; border-radius: 4px; padding: 6px; font-size: 12px;">
                   <option value="cover">拉伸填充（cover）</option>
                   <option value="contain">完整适配（contain）</option>
                   <option value="repeat">平铺（repeat）</option>
@@ -431,7 +421,7 @@
             <div class="attributes-list" style="padding: 10px; gap:8px;">
               <div class="attribute-item" style="gap:8px; align-items:center;">
                 <span class="attribute-name" style="min-width:90px;">预设</span>
-                <select id="pref-ui-res-preset" style="flex:1; background: rgba(0,0,0,0.5); border: 1px solid #8b7355; color: #e0dcd1; border-radius: 4px; padding: 6px; font-size: 12px;">
+                <select id="pref-ui-res-preset" class="gx-select" style="flex:1; background: rgba(0,0,0,0.5); border: 1px solid #8b7355; color: #e0dcd1; border-radius: 4px; padding: 6px; font-size: 12px;">
                   <option value="keep">跟随默认(900x600)</option>
                   <option value="1024x576">1024 x 576</option>
                   <option value="1280x720">1280 x 720</option>
@@ -444,9 +434,9 @@
               </div>
               <div class="attribute-item" style="gap:8px; align-items:center;">
                 <span class="attribute-name" style="min-width:90px;">自定义</span>
-                <input id="pref-ui-res-width" type="number" min="300" max="7680" placeholder="宽" style="width:100px; background: rgba(0,0,0,0.5); border: 1px solid #8b7355; color: #e0dcd1; border-radius: 4px; padding: 6px; font-size: 12px;">
+                <input id="pref-ui-res-width" class="gx-input" type="number" min="300" max="7680" placeholder="宽" style="width:100px; background: rgba(0,0,0,0.5); border: 1px solid #8b7355; color: #e0dcd1; border-radius: 4px; padding: 6px; font-size: 12px;">
                 <span class="attribute-name">x</span>
-                <input id="pref-ui-res-height" type="number" min="200" max="4320" placeholder="高" style="width:100px; background: rgba(0,0,0,0.5); border: 1px solid #8b7355; color: #e0dcd1; border-radius: 4px; padding: 6px; font-size: 12px;">
+                <input id="pref-ui-res-height" class="gx-input" type="number" min="200" max="4320" placeholder="高" style="width:100px; background: rgba(0,0,0,0.5); border: 1px solid #8b7355; color: #e0dcd1; border-radius: 4px; padding: 6px; font-size: 12px;">
                 <span class="attribute-name" style="font-size: 11px; color: #8b7355;">（选择“自定义”后可用）</span>
               </div>
             </div>
@@ -465,7 +455,7 @@
       <div class="modal-content">
         <div class="modal-header">
           <h2 class="modal-title">状态一览</h2>
-          <input id="statuses-search-input" type="text" placeholder="搜索状态..." style="margin-left:auto; background: rgba(0,0,0,0.5); border: 1px solid #8b7355; color: #e0dcd1; border-radius: 4px; padding: 6px; font-size: 12px; width: 220px;">
+          <input id="statuses-search-input" class="gx-input" type="text" placeholder="搜索状态..." style="margin-left:auto; background: rgba(0,0,0,0.5); border: 1px solid #8b7355; color: #e0dcd1; border-radius: 4px; padding: 6px; font-size: 12px; width: 220px;">
           <button class="modal-close-btn">&times;</button>
         </div>
         <div class="modal-body"><!-- 动态填充 --></div>
@@ -476,34 +466,34 @@
   </div>
 
   <!-- 加载模块化脚本（按依赖顺序） -->
-  <script src="https://cdn.jsdelivr.net/gh/slot181/GuiXu@v3.2.5/js/utils/constants.js?v=20250825"></script>
-  <script src="https://cdn.jsdelivr.net/gh/slot181/GuiXu@v3.2.5/js/utils/tradeCalculator.js?v=20250825"></script>
-  <script src="https://cdn.jsdelivr.net/gh/slot181/GuiXu@v3.2.5/js/utils/dom.js?v=20250825"></script>
-  <script src="https://cdn.jsdelivr.net/gh/slot181/GuiXu@v3.2.5/js/utils/helpers.js?v=20250825"></script>
-  <script src="https://cdn.jsdelivr.net/gh/slot181/GuiXu@v3.2.5/js/utils/renderers.js?v=20250825"></script>
-  <script src="https://cdn.jsdelivr.net/gh/slot181/GuiXu@v3.2.5/js/core/TavernAPI.js?v=20250825"></script>
+  <script src="https://cdn.jsdelivr.net/gh/slot181/GuiXu@v3.2.9.2/js/utils/constants.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/slot181/GuiXu@v3.2.9.2/js/utils/tradeCalculator.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/slot181/GuiXu@v3.2.9.2/js/utils/dom.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/slot181/GuiXu@v3.2.9.2/js/utils/helpers.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/slot181/GuiXu@v3.2.9.2/js/utils/renderers.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/slot181/GuiXu@v3.2.9.2/js/core/TavernAPI.js"></script>
   
   <!-- 加载服务层脚本 -->
-  <script src="https://cdn.jsdelivr.net/gh/slot181/GuiXu@v3.2.5/js/services/state.js?v=20250825"></script>
-  <script src="https://cdn.jsdelivr.net/gh/slot181/GuiXu@v3.2.5/js/services/attributes.js?v=20250825"></script>
-  <script src="https://cdn.jsdelivr.net/gh/slot181/GuiXu@v3.2.5/js/services/lorebook.js?v=20250825"></script>
-  <script src="https://cdn.jsdelivr.net/gh/slot181/GuiXu@v3.2.5/js/services/action.js?v=20250825"></script>
+  <script src="https://cdn.jsdelivr.net/gh/slot181/GuiXu@v3.2.9.2/js/services/state.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/slot181/GuiXu@v3.2.9.2/js/services/attributes.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/slot181/GuiXu@v3.2.9.2/js/services/lorebook.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/slot181/GuiXu@v3.2.9.2/js/services/action.js"></script>
 
   <!-- 组件脚本（在 UI 协调器之前加载） -->
-  <script src="https://cdn.jsdelivr.net/gh/slot181/GuiXu@v3.2.5/js/components/modal.js?v=20250825"></script>
-  <script src="https://cdn.jsdelivr.net/gh/slot181/GuiXu@v3.2.5/js/components/settings.js?v=20250825"></script>
-  <script src="https://cdn.jsdelivr.net/gh/slot181/GuiXu@v3.2.5/js/components/statuses.js?v=20250825"></script>
-  <script src="https://cdn.jsdelivr.net/gh/slot181/GuiXu@v3.2.5/js/components/inventory.js?v=20250825"></script>
-  <script src="https://cdn.jsdelivr.net/gh/slot181/GuiXu@v3.2.5/js/components/relationships.js?v=20250825"></script>
-  <script src="https://cdn.jsdelivr.net/gh/slot181/GuiXu@v3.2.5/js/components/command-center.js?v=20250825"></script>
-  <script src="https://cdn.jsdelivr.net/gh/slot181/GuiXu@v3.2.5/js/components/extracted-content.js?v=20250825"></script>
-  <script src="https://cdn.jsdelivr.net/gh/slot181/GuiXu@v3.2.5/js/components/guixu-system.js?v=20250825"></script>
-  <script src="https://cdn.jsdelivr.net/gh/slot181/GuiXu@v3.2.5/js/components/journey.js?v=20250825"></script>
-  <script src="https://cdn.jsdelivr.net/gh/slot181/GuiXu@v3.2.5/js/components/past-lives.js?v=20250825"></script>
-  <script src="https://cdn.jsdelivr.net/gh/slot181/GuiXu@v3.2.5/js/components/cultivation-panel.js?v=20250825"></script>
+  <script src="https://cdn.jsdelivr.net/gh/slot181/GuiXu@v3.2.9.2/js/components/modal.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/slot181/GuiXu@v3.2.9.2/js/components/settings.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/slot181/GuiXu@v3.2.9.2/js/components/statuses.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/slot181/GuiXu@v3.2.9.2/js/components/inventory.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/slot181/GuiXu@v3.2.9.2/js/components/relationships.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/slot181/GuiXu@v3.2.9.2/js/components/command-center.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/slot181/GuiXu@v3.2.9.2/js/components/extracted-content.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/slot181/GuiXu@v3.2.9.2/js/components/guixu-system.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/slot181/GuiXu@v3.2.9.2/js/components/journey.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/slot181/GuiXu@v3.2.9.2/js/components/past-lives.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/slot181/GuiXu@v3.2.9.2/js/components/cultivation-panel.js"></script>
 
-  <script src="https://cdn.jsdelivr.net/gh/slot181/GuiXu@v3.2.5/js/components/intro-modal.js?v=20250825"></script>
-  <script src="https://cdn.jsdelivr.net/gh/slot181/GuiXu@v3.2.5/js/main.js?v=20250825"></script>
+  <script src="https://cdn.jsdelivr.net/gh/slot181/GuiXu@v3.2.9.2/js/components/intro-modal.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/slot181/GuiXu@v3.2.9.2/js/main.js"></script>
 </body>
 
 </html>
