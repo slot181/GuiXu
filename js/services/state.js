@@ -300,7 +300,7 @@
         }
 
         try {
-          const allSaves = JSON.parse(localStorage.getItem('guixu_multi_save_data') || '{}');
+          const allSaves = await window.GuixuActionService.getSavesFromStorage();
           const slot0 = allSaves['auto_save_slot_0'];
 
           // 仅在对话内容发生变化时才进行自动存档（避免装备/卸下等UI变量改动触发自动存档轮换）
@@ -333,6 +333,7 @@
             slot0.lorebook_entries.journey_entry_name = `${newSlot1SaveName}-本世历程`;
             slot0.lorebook_entries.past_lives_entry_name = `${newSlot1SaveName}-往世涟漪`;
             allSaves['auto_save_slot_1'] = slot0;
+            await window.GuixuActionService._upsertSaveEntry('auto_save_slot_1', slot0);
           }
 
           const newSaveName = `自动存档(最新) - ${new Date().toLocaleString('sv-SE')}`;
@@ -349,11 +350,12 @@
             save_name: newSaveName,
             message_content: currentMessageContent,
             lorebook_entries: lorebookEntries,
-            mvu_data: this.currentMvuState
+            mvu_data: this.currentMvuState,
+            unified_index: this.unifiedIndex
           };
 
           allSaves['auto_save_slot_0'] = saveDataPayload;
-          localStorage.setItem('guixu_multi_save_data', JSON.stringify(allSaves));
+          await window.GuixuActionService._upsertSaveEntry('auto_save_slot_0', saveDataPayload);
           
           window.GuixuHelpers.showTemporaryMessage(`已自动存档`);
           if (document.getElementById('save-load-modal')?.style.display === 'flex') {

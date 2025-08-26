@@ -2179,6 +2179,39 @@
   transform: translate(-50%, -50%) !important;
 }
 
+/* 移动端全屏：存档管理面板恢复桌面尺寸并收紧按钮（仅 save-load-modal 作用域内） */
+.guixu-root-container:fullscreen.mobile-view #save-load-modal .modal-content,
+.guixu-root-container:-webkit-full-screen.mobile-view #save-load-modal .modal-content {
+  width: 90%;
+  max-width: 800px;
+  height: 90%;
+  max-height: 550px;
+}
+.guixu-root-container:fullscreen.mobile-view #save-load-modal .modal-body,
+.guixu-root-container:-webkit-full-screen.mobile-view #save-load-modal .modal-body {
+  overflow-y: auto;
+}
+/* 按钮紧凑尺寸：覆盖移动端放大规则，仅限存档管理面板 */
+.guixu-root-container:fullscreen.mobile-view #save-load-modal .save-slot-actions > button,
+.guixu-root-container:-webkit-full-screen.mobile-view #save-load-modal .save-slot-actions > button,
+.guixu-root-container:fullscreen.mobile-view #save-load-modal .slot-actions > button,
+.guixu-root-container:-webkit-full-screen.mobile-view #save-load-modal .slot-actions > button,
+.guixu-root-container:fullscreen.mobile-view #save-load-modal .interaction-btn,
+.guixu-root-container:-webkit-full-screen.mobile-view #save-load-modal .interaction-btn,
+.guixu-root-container:fullscreen.mobile-view #save-load-modal .clear-saves-btn,
+.guixu-root-container:-webkit-full-screen.mobile-view #save-load-modal .clear-saves-btn {
+  height: 32px !important;
+  padding: 0 12px !important;
+  font-size: 12px !important;
+  min-width: 0;
+  box-sizing: border-box;
+}
+/* 存档项间距微调，避免“过于疏松” */
+.guixu-root-container:fullscreen.mobile-view #save-load-modal .save-slot,
+.guixu-root-container:-webkit-full-screen.mobile-view #save-load-modal .save-slot {
+  gap: 10px;
+}
+
 /* 移动端横屏全屏：固定底部栏可见，避免被正文遮挡 */
 .guixu-root-container.mobile-view.mobile-landscape-fullscreen .bottom-status {
   position: fixed;

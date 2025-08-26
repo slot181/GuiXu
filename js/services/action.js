@@ -566,7 +566,7 @@
         },
 
         // --- 存档/读档管理功能 ---
-        showSaveLoadManager() {
+        async showSaveLoadManager() {
             window.GuixuBaseModal.open('save-load-modal');
             const manualContainer = GuixuDOM.$('#save-slots-container');
             const autoContainer = GuixuDOM.$('#auto-save-slot-container');
@@ -578,7 +578,7 @@
 
             let saves;
             try {
-                saves = this.getSavesFromStorage();
+                saves = await this.getSavesFromStorage();
             } catch (e) {
                 console.error("解析整个存档文件失败:", e);
                 manualContainer.innerHTML = `<div style="color: #ff6b6b; padding: 20px; text-align: center;"><p>错误：主存档文件已损坏。</p></div>`;
@@ -695,12 +695,50 @@
             });
         },
 
-        getSavesFromStorage() {
+        // 云存档：从世界书条目读取所有存档记录
+        async getSavesFromStorage() {
             try {
-                return JSON.parse(localStorage.getItem('guixu_multi_save_data') || '{}');
+                const bookName = GuixuConstants.LOREBOOK.NAME;
+                const entries = await GuixuAPI.getLorebookEntries(bookName);
+                const map = {};
+                (entries || []).forEach(e => {
+                    const c = String(e.comment || '');
+                    if (c.startsWith('存档:')) {
+                        const slotId = c.slice(3); // 去掉前缀 '存档:'
+                        try { map[slotId] = JSON.parse(e.content || '{}'); } catch (_) { /* ignore */ }
+                    }
+                });
+                return map;
             } catch (e) {
-                console.error("获取存档失败:", e);
+                console.error('获取存档失败(世界书):', e);
                 return {};
+            }
+        },
+
+        _slotEntryName(slotId) {
+            return `存档:${slotId}`;
+        },
+
+        async _upsertSaveEntry(slotId, saveData) {
+            const bookName = GuixuConstants.LOREBOOK.NAME;
+            const comment = this._slotEntryName(slotId);
+            const all = await GuixuAPI.getLorebookEntries(bookName);
+            const existing = (all || []).find(e => e.comment === comment);
+            const content = JSON.stringify(saveData || {}, null, 0);
+            if (existing) {
+                await GuixuAPI.setLorebookEntries(bookName, [{ uid: existing.uid, content }]);
+            } else {
+                await GuixuAPI.createLorebookEntries(bookName, [{ comment, content, keys: [comment], enabled: false, position: 'before_character_definition', order: 10 }]);
+            }
+        },
+
+        async _deleteSaveEntry(slotId) {
+            const bookName = GuixuConstants.LOREBOOK.NAME;
+            const comment = this._slotEntryName(slotId);
+            const all = await GuixuAPI.getLorebookEntries(bookName);
+            const existing = (all || []).find(e => e.comment === comment);
+            if (existing) {
+                await GuixuAPI.deleteLorebookEntries(bookName, [existing.uid]);
             }
         },
 
@@ -711,7 +749,7 @@
                 return;
             }
 
-            const allSaves = this.getSavesFromStorage();
+            const allSaves = await this.getSavesFromStorage();
             const performSave = async () => {
                 try {
                     const state = GuixuState.getState();
@@ -732,9 +770,11 @@
                         mvu_data: state.currentMvuState,
                         // 新增：保存当前装备状态
                         equipped_items: state.equippedItems,
+                        // 保存当前世界书读写序号
+                        unified_index: state.unifiedIndex,
                     };
                     allSaves[slotId] = saveDataPayload;
-                    localStorage.setItem('guixu_multi_save_data', JSON.stringify(allSaves));
+                    await this._upsertSaveEntry(slotId, saveDataPayload);
                     GuixuHelpers.showTemporaryMessage(`存档"${saveName}"已保存`);
                     this.showSaveLoadManager();
                 } catch (error) {
@@ -753,7 +793,7 @@
         },
 
         async loadGame(slotId) {
-            const allSaves = this.getSavesFromStorage();
+            const allSaves = await this.getSavesFromStorage();
             const saveData = allSaves[slotId];
             if (!saveData) {
                 GuixuHelpers.showTemporaryMessage('没有找到存档文件。');
@@ -772,6 +812,10 @@
                     // 恢复装备状态
                     if (saveData.equipped_items) {
                         GuixuState.update('equippedItems', saveData.equipped_items);
+                    }
+                    // 恢复当时的世界书读写序号，保证读档后剧情按正确序号加载
+                    if (typeof saveData.unified_index === 'number') {
+                        GuixuState.update('unifiedIndex', saveData.unified_index);
                     }
 
                     // 直接设置第 0 楼的数据与正文，并刷新整个聊天
@@ -797,7 +841,7 @@
         },
 
         async deleteSave(slotId) {
-            const allSaves = this.getSavesFromStorage();
+            const allSaves = await this.getSavesFromStorage();
             const saveDataToDelete = allSaves[slotId];
             if (!saveDataToDelete) return;
 
@@ -808,7 +852,7 @@
                 try {
                     await GuixuState.deleteLorebookBackup(saveDataToDelete);
                     delete allSaves[slotId];
-                    localStorage.setItem('guixu_multi_save_data', JSON.stringify(allSaves));
+                    await this._deleteSaveEntry(slotId);
                     GuixuHelpers.showTemporaryMessage(`"${saveDataToDelete.save_name}" 已删除。`);
                     this.showSaveLoadManager();
                 } catch (error) {
@@ -824,13 +868,17 @@
               : (msg, ok) => { if (confirm(msg)) ok(); }
             )(`确定要清除所有存档吗？`, async () => {
                 try {
-                    const allSaves = this.getSavesFromStorage();
+                    const allSaves = await this.getSavesFromStorage();
+                    // 先删除关联的世界书备份条目
                     for (const slotId in allSaves) {
                         await GuixuState.deleteLorebookBackup(allSaves[slotId]);
                     }
-                    localStorage.removeItem('guixu_multi_save_data');
+                    // 再删除所有存档条目本身
+                    for (const slotId in allSaves) {
+                        await this._deleteSaveEntry(slotId);
+                    }
                     GuixuHelpers.showTemporaryMessage(`所有存档已清除。`);
-                    this.showSaveLoadManager();
+                    await this.showSaveLoadManager();
                 } catch (error) {
                     console.error('清除所有存档失败:', error);
                     GuixuHelpers.showTemporaryMessage(`清除存档失败: ${error.message}`);
@@ -850,11 +898,9 @@
                     }
                     const slotId = await this.promptForSlotSelection(importedSave.save_name);
                     if (!slotId) return;
-                    const allSaves = this.getSavesFromStorage();
-                    allSaves[slotId] = importedSave;
-                    localStorage.setItem('guixu_multi_save_data', JSON.stringify(allSaves));
+                    await this._upsertSaveEntry(slotId, importedSave);
                     GuixuHelpers.showTemporaryMessage(`存档 "${importedSave.save_name}" 已导入。`);
-                    this.showSaveLoadManager();
+                    await this.showSaveLoadManager();
                 } catch (error) {
                     GuixuHelpers.showTemporaryMessage(`导入失败: ${error.message}`);
                 }
@@ -863,8 +909,8 @@
             event.target.value = '';
         },
 
-        exportSave(slotId) {
-            const saveData = this.getSavesFromStorage()[slotId];
+        async exportSave(slotId) {
+            const saveData = (await this.getSavesFromStorage())[slotId];
             if (!saveData) {
                 GuixuHelpers.showTemporaryMessage('该存档位为空。');
                 return;

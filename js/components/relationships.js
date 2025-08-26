@@ -270,8 +270,13 @@
           const commitNew = async () => {
             const txt = String(input.value || '').trim();
             if (!txt) { try { newLi.remove(); } catch (_) { } return; }
-            // 使用当前 relData 的 event_history 长度作为索引追加
-            const i = Array.isArray(relData?.event_history) ? relData.event_history.filter(x => x && x !== '$__META_EXTENSIBLE__$' && x !== '...').length : 0;
+            // 使用新建条目的 data-ev-idx 作为写回索引；若缺失则根据列表现有最大索引递增
+            let i = Number.parseInt(newLi.getAttribute('data-ev-idx'), 10);
+            if (!Number.isFinite(i) || i < 0) {
+              const existing = Array.from(list.querySelectorAll('.event-history-item')).filter(el => el !== newLi);
+              const lastIdx = existing.reduce((m, el) => Math.max(m, Number.parseInt(el.getAttribute('data-ev-idx'), 10) || -1), -1);
+              i = lastIdx + 1;
+            }
             try {
               await RelationshipsComponent._updateEventHistoryItem(relData, i, txt);
               window.GuixuHelpers?.showTemporaryMessage?.('已新增过往交集');
@@ -411,39 +416,49 @@
         const currentMvuState = messages[0].data;
         const stat_data = currentMvuState.stat_data;
 
-        const listKey = '人物关系列表';
-        const container = stat_data[listKey];
-
-        if (container && typeof container === 'object' && container.$meta && container.$meta.extensible === true) {
-          // 新：对象字典形式
-          const entries = Object.entries(container).filter(([k]) => k !== '$meta');
-          const matchKey = entries.find(([k, v]) => {
-            try {
-              const obj = typeof v === 'string' ? JSON.parse(v) : v;
-              return window.GuixuHelpers.SafeGetValue(obj, 'name', null) === relName;
-            } catch { return false; }
-          })?.[0];
-          if (!matchKey) throw new Error(`在列表中未找到人物: ${relName}`);
-          delete container[matchKey];
-        } else if (Array.isArray(container) && Array.isArray(container[0])) {
-          // 旧：数组包装形式
-          const list = container[0];
-          const relIndex = list.findIndex(r => {
-            const parsed = typeof r === 'string' ? JSON.parse(r) : r;
-            return parsed.name === relName;
-          });
-          if (relIndex === -1) {
-            throw new Error(`在列表中未找到人物: ${relName}`);
-          }
-          list.splice(relIndex, 1);
-        } else {
+        // 使用统一定位器，兼容：对象字典/旧数组包装/字符串化容器
+        let loc = RelationshipsComponent._locateNpcInState(stat_data, relToDelete);
+        if (!loc) {
+          try {
+            if (RelationshipsComponent._rebuildRelationshipDict(stat_data)) {
+              loc = RelationshipsComponent._locateNpcInState(stat_data, relToDelete);
+            }
+          } catch (_) { /* ignore */ }
+        }
+        if (!loc) {
           throw new Error('找不到人物关系列表。');
         }
+        const { containerType, matchKeyOrIdx } = loc;
 
-        await window.GuixuAPI.setChatMessages([{
-          message_id: 0,
-          data: currentMvuState,
-        }], { refresh: 'none' });
+        if (containerType === 'object') {
+          // 容器可能是字符串化的对象字典，保持原类型写回
+          const wasStringContainer = (typeof stat_data['人物关系列表'] === 'string');
+          let dict;
+          try { dict = wasStringContainer ? JSON.parse(stat_data['人物关系列表']) : stat_data['人物关系列表']; } catch (_) { dict = {}; }
+          if (!dict || typeof dict !== 'object' || Array.isArray(dict)) dict = {};
+          if (Object.prototype.hasOwnProperty.call(dict, matchKeyOrIdx)) {
+            delete dict[matchKeyOrIdx];
+          } else {
+            throw new Error(`在列表中未找到人物: ${relName}`);
+          }
+          stat_data['人物关系列表'] = wasStringContainer ? JSON.stringify(dict) : dict;
+        } else {
+          // 旧结构 [ [ ... ] ]：保持包装层
+          const wrap = Array.isArray(stat_data['人物关系列表']) ? stat_data['人物关系列表'] : [[]];
+          const list = Array.isArray(wrap[0]) ? wrap[0] : [];
+          const idx = Number(matchKeyOrIdx);
+          if (!Number.isInteger(idx) || idx < 0 || idx >= list.length) {
+            throw new Error(`在列表中未找到人物: ${relName}`);
+          }
+          list.splice(idx, 1);
+          stat_data['人物关系列表'] = [list];
+        }
+
+        // 同步当前楼层与 0 楼
+        const currentId = window.GuixuAPI.getCurrentMessageId();
+        const updates = [{ message_id: currentId, data: currentMvuState }];
+        if (currentId !== 0) updates.push({ message_id: 0, data: currentMvuState });
+        await window.GuixuAPI.setChatMessages(updates, { refresh: 'none' });
 
         h.showTemporaryMessage(`与【${relName}】的关系已删除。`);
         await this.show();
@@ -491,49 +506,72 @@
         currentMvuState.stat_data = currentMvuState.stat_data || {};
         const stat_data = currentMvuState.stat_data;
 
-        const container = stat_data['人物关系列表'];
-        const relId = h.SafeGetValue(relRef, 'id', null);
-        const relName = h.SafeGetValue(relRef, 'name', null);
+        // 统一定位NPC并更新其 event_history
+        let loc = RelationshipsComponent._locateNpcInState(stat_data, relRef);
+        if (!loc) {
+          try {
+            if (RelationshipsComponent._rebuildRelationshipDict(stat_data)) {
+              loc = RelationshipsComponent._locateNpcInState(stat_data, relRef);
+            }
+          } catch (_) { /* ignore */ }
+        }
+        if (!loc) throw new Error('在人物关系列表中未找到该角色');
+        const { containerType, matchKeyOrIdx, relObj, originalRelEntry } = loc;
 
-        if (container && typeof container === 'object' && container.$meta && container.$meta.extensible === true) {
-          // 对象列表
-          const entries = Object.entries(container).filter(([k]) => k !== '$meta');
-          const found = entries.find(([k, v]) => {
-            try {
-              const obj = typeof v === 'string' ? JSON.parse(v) : v;
-              if (relId != null) return h.SafeGetValue(obj, 'id', null) === relId;
-              return h.SafeGetValue(obj, 'name', null) === relName;
-            } catch { return false; }
-          });
-          if (!found) throw new Error('在人物关系列表中未找到该角色');
-          const [matchKey, originalRelEntry] = found;
-          const relObj = (typeof originalRelEntry === 'string') ? JSON.parse(originalRelEntry) : (originalRelEntry || {});
-          if (!Array.isArray(relObj.event_history)) relObj.event_history = [];
-          const i = Math.max(0, parseInt(evIndex, 10) || 0);
-          while (relObj.event_history.length <= i) relObj.event_history.push('');
-          relObj.event_history[i] = String(newText || '').trim();
-          container[matchKey] = (typeof originalRelEntry === 'string') ? JSON.stringify(relObj) : relObj;
+        const obj = (relObj && typeof relObj === 'object') ? relObj : {};
+        // 兼容两种结构：对象字典({$meta,...}) 与 数组
+        const ensureObjectHistory = () => {
+          const now = obj.event_history;
+          if (now && typeof now === 'object' && !Array.isArray(now)) return now;
+          // 若不存在或是数组，优先创建对象字典（符合新MVU规范）
+          const dict = { $meta: { extensible: true } };
+          // 将旧数组迁移到对象字典，保留顺序为 e1,e2,...
+          if (Array.isArray(now)) {
+            now.forEach((txt, idx) => {
+              const key = `e${idx + 1}`;
+              dict[key] = String(txt ?? '').trim();
+            });
+          }
+          obj.event_history = dict;
+          return dict;
+        };
+        const ensureArrayHistory = () => {
+          const now = obj.event_history;
+          if (Array.isArray(now)) return now;
+          // 若是对象，则按键顺序转为数组视图（仅用于索引定位），但不回写为数组
+          const keys = Object.keys(now || {}).filter(k => k !== '$meta' && k !== '$__META_EXTENSIBLE__$');
+          return keys.map(k => now[k]);
+        };
+
+        const i = Math.max(0, parseInt(evIndex, 10) || 0);
+        const cur = obj.event_history;
+
+        if (cur && typeof cur === 'object' && !Array.isArray(cur)) {
+          // 对象字典：按可见顺序定位键并更新原键；若是新增则生成新键
+          const keys = Object.keys(cur).filter(k => k !== '$meta' && k !== '$__META_EXTENSIBLE__$');
+          const key = i < keys.length ? keys[i] : `e${Date.now()}`;
+          cur[key] = String(newText || '').trim();
         } else {
-          // 数组包装
-          const list = (stat_data?.['人物关系列表']?.[0]) || [];
-          if (!Array.isArray(list)) throw new Error('人物关系列表结构异常');
-          const idx = list.findIndex(entry => {
-            try {
-              const obj = typeof entry === 'string' ? JSON.parse(entry) : entry;
-              if (relId != null) return h.SafeGetValue(obj, 'id', null) === relId;
-              return h.SafeGetValue(obj, 'name', null) === relName;
-            } catch { return false; }
-          });
-          if (idx === -1) throw new Error('在人物关系列表中未找到该角色');
+          // 数组：原地更新，不改变其它项
+          const arr = Array.isArray(cur) ? cur : [];
+          while (arr.length <= i) arr.push('');
+          arr[i] = String(newText || '').trim();
+          obj.event_history = arr;
+        }
 
-          const originalRelEntry = list[idx];
-          const relObj = (typeof originalRelEntry === 'string') ? JSON.parse(originalRelEntry) : (originalRelEntry || {});
-          if (!Array.isArray(relObj.event_history)) relObj.event_history = [];
-          const i = Math.max(0, parseInt(evIndex, 10) || 0);
-          while (relObj.event_history.length <= i) relObj.event_history.push('');
-          relObj.event_history[i] = String(newText || '').trim();
-          list[idx] = (typeof originalRelEntry === 'string') ? JSON.stringify(relObj) : relObj;
-          stat_data['人物关系列表'][0] = list;
+        // 写回（保持原容器类型）
+        if (containerType === 'object') {
+          const wasStringContainer = (typeof stat_data['人物关系列表'] === 'string');
+          let dict;
+          try { dict = wasStringContainer ? JSON.parse(stat_data['人物关系列表']) : stat_data['人物关系列表']; } catch (_) { dict = {}; }
+          if (!dict || typeof dict !== 'object' || Array.isArray(dict)) dict = {};
+          dict[matchKeyOrIdx] = (typeof originalRelEntry === 'string') ? JSON.stringify(obj) : obj;
+          stat_data['人物关系列表'] = wasStringContainer ? JSON.stringify(dict) : dict;
+        } else {
+          const wrap = Array.isArray(stat_data['人物关系列表']) ? stat_data['人物关系列表'] : [[]];
+          const list = Array.isArray(wrap[0]) ? wrap[0] : [];
+          list[matchKeyOrIdx] = (typeof originalRelEntry === 'string') ? JSON.stringify(obj) : obj;
+          stat_data['人物关系列表'] = [list];
         }
 
         const updates = [{ message_id: currentId, data: currentMvuState }];
@@ -2308,50 +2346,50 @@
       currentMvuState.stat_data = currentMvuState.stat_data || {};
       const stat_data = currentMvuState.stat_data;
 
-      const container = stat_data['人物关系列表'];
-      const relId = h.SafeGetValue(relRef, 'id', null);
-      const relName = h.SafeGetValue(relRef, 'name', null);
+      // 统一定位NPC并删除其 event_history 指定索引
+      let loc = RelationshipsComponent._locateNpcInState(stat_data, relRef);
+      if (!loc) {
+        try {
+          if (RelationshipsComponent._rebuildRelationshipDict(stat_data)) {
+            loc = RelationshipsComponent._locateNpcInState(stat_data, relRef);
+          }
+        } catch (_) { /* ignore */ }
+      }
+      if (!loc) throw new Error('在人物关系列表中未找到该角色');
+      const { containerType, matchKeyOrIdx, relObj, originalRelEntry } = loc;
 
-      if (container && typeof container === 'object' && container.$meta && container.$meta.extensible === true) {
-        const entries = Object.entries(container).filter(([k]) => k !== '$meta');
-        const found = entries.find(([k, v]) => {
-          try {
-            const obj = typeof v === 'string' ? JSON.parse(v) : v;
-            if (relId != null) return h.SafeGetValue(obj, 'id', null) === relId;
-            return h.SafeGetValue(obj, 'name', null) === relName;
-          } catch { return false; }
-        });
-        if (!found) throw new Error('在人物关系列表中未找到该角色');
-        const [matchKey, originalRelEntry] = found;
-        const relObj = (typeof originalRelEntry === 'string') ? JSON.parse(originalRelEntry) : (originalRelEntry || {});
-        if (!Array.isArray(relObj.event_history)) relObj.event_history = [];
+      const obj = (relObj && typeof relObj === 'object') ? relObj : {};
+      const cur = obj.event_history;
+
+      if (cur && typeof cur === 'object' && !Array.isArray(cur)) {
+        // 对象字典：按当前可见顺序找到第 i 个键并删除
+        const keys = Object.keys(cur).filter(k => k !== '$meta' && k !== '$__META_EXTENSIBLE__$');
         const i = Math.max(0, parseInt(evIndex, 10) || 0);
-        if (i >= 0 && i < relObj.event_history.length) {
-          relObj.event_history.splice(i, 1);
+        if (i >= 0 && i < keys.length) {
+          const delKey = keys[i];
+          delete cur[delKey];
         }
-        container[matchKey] = (typeof originalRelEntry === 'string') ? JSON.stringify(relObj) : relObj;
       } else {
-        const list = (stat_data?.['人物关系列表']?.[0]) || [];
-        if (!Array.isArray(list)) throw new Error('人物关系列表结构异常');
-
-        const idx = list.findIndex(entry => {
-          try {
-            const obj = typeof entry === 'string' ? JSON.parse(entry) : entry;
-            if (relId != null) return h.SafeGetValue(obj, 'id', null) === relId;
-            return h.SafeGetValue(obj, 'name', null) === relName;
-          } catch { return false; }
-        });
-        if (idx === -1) throw new Error('在人物关系列表中未找到该角色');
-
-        const originalRelEntry = list[idx];
-        const relObj = (typeof originalRelEntry === 'string') ? JSON.parse(originalRelEntry) : (originalRelEntry || {});
-        if (!Array.isArray(relObj.event_history)) relObj.event_history = [];
+        // 数组：按索引删除
+        const arr = Array.isArray(cur) ? cur : [];
         const i = Math.max(0, parseInt(evIndex, 10) || 0);
-        if (i >= 0 && i < relObj.event_history.length) {
-          relObj.event_history.splice(i, 1);
-        }
-        list[idx] = (typeof originalRelEntry === 'string') ? JSON.stringify(relObj) : relObj;
-        stat_data['人物关系列表'][0] = list;
+        if (i >= 0 && i < arr.length) arr.splice(i, 1);
+        obj.event_history = arr;
+      }
+
+      // 写回（保持原容器类型）
+      if (containerType === 'object') {
+        const wasStringContainer = (typeof stat_data['人物关系列表'] === 'string');
+        let dict;
+        try { dict = wasStringContainer ? JSON.parse(stat_data['人物关系列表']) : stat_data['人物关系列表']; } catch (_) { dict = {}; }
+        if (!dict || typeof dict !== 'object' || Array.isArray(dict)) dict = {};
+        dict[matchKeyOrIdx] = (typeof originalRelEntry === 'string') ? JSON.stringify(obj) : obj;
+        stat_data['人物关系列表'] = wasStringContainer ? JSON.stringify(dict) : dict;
+      } else {
+        const wrap = Array.isArray(stat_data['人物关系列表']) ? stat_data['人物关系列表'] : [[]];
+        const list = Array.isArray(wrap[0]) ? wrap[0] : [];
+        list[matchKeyOrIdx] = (typeof originalRelEntry === 'string') ? JSON.stringify(obj) : obj;
+        stat_data['人物关系列表'] = [list];
       }
 
       const updates = [{ message_id: currentId, data: currentMvuState }];
@@ -3618,7 +3656,43 @@
         return null;
       }
     },
-
+ 
+    // 新增：若容器缺失/不规范，基于 readList 重建对象字典容器，便于按姓名/ID精确定位
+    _rebuildRelationshipDict(stat_data) {
+      try {
+        if (!stat_data) return false;
+        const h = window.GuixuHelpers;
+        // 已是对象字典且可扩展则不处理
+        const cont = stat_data['人物关系列表'];
+        if (cont && typeof cont === 'object' && !Array.isArray(cont) && cont.$meta && cont.$meta.extensible === true) {
+          return false;
+        }
+        // 从统一读取接口获取数组
+        const arr = (h && typeof h.readList === 'function')
+          ? h.readList(stat_data, '人物关系列表')
+          : (Array.isArray(cont?.[0]) ? cont[0] : (Array.isArray(cont) ? cont : []));
+        if (!Array.isArray(arr) || arr.length === 0) return false;
+ 
+        const dict = { $meta: { extensible: true } };
+        arr.forEach((raw, i) => {
+          if (!raw || raw === '$__META_EXTENSIBLE__$' || raw === '...') return;
+          let obj = raw;
+          try { obj = (typeof raw === 'string') ? JSON.parse(raw) : raw; } catch { obj = raw; }
+          if (!obj || typeof obj !== 'object') return;
+          const name = h.SafeGetValue(obj, 'name', null);
+          const id = h.SafeGetValue(obj, 'id', h.SafeGetValue(obj, 'uid', null));
+          const key = (name && String(name).trim()) || (id != null ? String(id) : ('NPC_' + i));
+          // 记录反查键
+          obj.__key = key;
+          dict[key] = obj;
+        });
+        stat_data['人物关系列表'] = dict;
+        return true;
+      } catch (_) {
+        return false;
+      }
+    },
+ 
     // 将出售结果写回 MVU：增加玩家灵石、从玩家包减少/移除该物品、NPC 物品列表加入/叠加、NPC 灵石减少
     async _applySellTransaction(rel, item, offer) {
       const _ = window.GuixuAPI?.lodash || window._ || {
@@ -4711,22 +4785,131 @@
         };
         const safeList = (arr) => Array.isArray(arr) ? arr.filter(x => x && x !== '$__META_EXTENSIBLE__$' && x !== '...') : [];
 
-        // 四维（当前 / 加成后）
-        const totalAttrs = normalizeField(rel?.['四维属性'] ?? {}) || {};
-        const curAttrs = normalizeField(rel?.['当前四维属性'] ?? {}) || {};
+        // 四维（当前 / 加成后）优先适配新字典键位
         const keys = ['法力', '神海', '道心', '空速'];
         const toNum = (v) => { const n = Number(v); return Number.isFinite(n) ? n : 0; };
+        const pickObj = (raw) => {
+          const n = normalizeField(raw ?? {});
+          return (n && typeof n === 'object' && !Array.isArray(n)) ? n : {};
+        };
+        // 计算上限：优先使用现成“四维上限”；若缺失，则基于“基础四维 + 装备/灵根/天赋加成”推导
+        let totalAttrs = (() => {
+          const v = rel?.['四维上限'] ?? rel?.['四维属性'];
+          return pickObj(v);
+        })();
+        const curAttrs = (() => {
+          const v = rel?.['当前四维'] ?? rel?.['当前四维属性'];
+          return pickObj(v);
+        })();
+
+        if (!Object.keys(totalAttrs).length) {
+          try {
+            const ATTR_KEYS_CN = ['法力', '神海', '道心', '空速'];
+            const parsePercent = (v) => {
+              if (v === null || v === undefined) return 0;
+              const s = String(v).trim();
+              if (!s) return 0;
+              if (s.endsWith('%')) {
+                const n = parseFloat(s.slice(0, -1));
+                return Number.isFinite(n) ? n / 100 : 0;
+              }
+              const n = parseFloat(s);
+              return Number.isFinite(n) && n > 1.5 ? n / 100 : (Number.isFinite(n) ? n : 0);
+            };
+            const extractBonuses = (item) => {
+              const flat = Object.fromEntries(ATTR_KEYS_CN.map(k => [k, 0]));
+              const percent = Object.fromEntries(ATTR_KEYS_CN.map(k => [k, 0]));
+              if (!item || typeof item !== 'object') return { flat, percent };
+              const ab = pickObj(item['属性加成'] ?? item['attributes_bonus'] ?? {});
+              const pb = pickObj(item['百分比加成'] ?? item['percent_bonus'] ?? {});
+              Object.entries(ab).forEach(([k, v]) => { if (ATTR_KEYS_CN.includes(k)) { const n = parseInt(String(v), 10); if (Number.isFinite(n)) flat[k] += n; } });
+              Object.entries(pb).forEach(([k, v]) => { if (ATTR_KEYS_CN.includes(k)) { const p = parsePercent(v); if (Number.isFinite(p)) percent[k] += p; } });
+              return { flat, percent };
+            };
+            const merge = (a, b) => { ATTR_KEYS_CN.forEach(k => a[k] = (a[k] || 0) + (b[k] || 0)); };
+            const base = pickObj(rel?.['基础四维'] ?? rel?.['基础四维属性']);
+            const totalFlat = Object.fromEntries(ATTR_KEYS_CN.map(k => [k, 0]));
+            const totalPct = Object.fromEntries(ATTR_KEYS_CN.map(k => [k, 0]));
+
+            // 来源：装备槽 + 灵根 + 天赋
+            const slotDefs = [
+              '主修功法', '辅修心法', '武器', '防具', '饰品', '法宝', '法宝栏1'
+            ];
+            slotDefs.forEach(key => {
+              const it = window.GuixuHelpers?.readEquipped?.(rel, key);
+              if (it && typeof it === 'object') {
+                const { flat, percent } = extractBonuses(it);
+                merge(totalFlat, flat); merge(totalPct, percent);
+              }
+            });
+            // 灵根
+            try {
+              const inhRaw = rel?.['inherent_abilities'] ?? rel?.['内在能力'] ?? {};
+              const inh = (inhRaw && typeof inhRaw === 'object') ? inhRaw : {};
+              let lg = inh['灵根'] ?? inh['灵根列表'] ?? {};
+              if (Array.isArray(lg) && lg.length > 0) lg = pickObj(lg[0]);
+              lg = pickObj(lg);
+              if (!Object.keys(lg).length) {
+                const topLg = window.GuixuHelpers?.readList?.(rel, '灵根列表') || [];
+                if (Array.isArray(topLg) && topLg.length) {
+                  const first = topLg.find(x => x && x !== '$__META_EXTENSIBLE__$');
+                  if (first) { try { lg = typeof first === 'string' ? JSON.parse(first) : first; } catch { lg = first; } }
+                }
+              }
+              if (lg && typeof lg === 'object') {
+                const { flat, percent } = extractBonuses(lg);
+                merge(totalFlat, flat); merge(totalPct, percent);
+              }
+            } catch (_) {}
+            // 天赋
+            try {
+              const tRaw = (rel?.['inherent_abilities'] ?? rel?.['内在能力'] ?? {})['天赋'] ?? [];
+              const talents = Array.isArray(tRaw) ? tRaw : (Array.isArray(pickObj(tRaw)) ? pickObj(tRaw) : []);
+              talents.forEach(t => {
+                const obj = typeof t === 'string' ? (function(){ try{return JSON.parse(t);}catch{return null;} })() : t;
+                if (obj && typeof obj === 'object') {
+                  const { flat, percent } = extractBonuses(obj);
+                  merge(totalFlat, flat); merge(totalPct, percent);
+                }
+              });
+            } catch (_) {}
+
+            totalAttrs = Object.fromEntries(ATTR_KEYS_CN.map(k => {
+              const baseVal = Number(base?.[k] || 0);
+              const flat = Number(totalFlat[k] || 0);
+              const pct = Number(totalPct[k] || 0);
+              return [k, Math.max(0, Math.floor((baseVal + flat) * (1 + pct)))];
+            }));
+          } catch (_) { /* ignore */ }
+        }
         const fourDimParts = keys.map(k => `${k}:${toNum(curAttrs[k])}/${toNum(totalAttrs[k])}`);
         if (fourDimParts.some(p => /:/.test(p))) {
           lines.push(`四维|${fourDimParts.join('；')}`);
         }
-        // 基础四维属性
+        // 基础四维（优先新键，其次旧键，最后以散列基础值兜底）
         try {
-          const base = normalizeField(rel?.['基础四维属性'] ?? {}) || {};
-          const keysBase = ['法力', '神海', '道心', '空速'];
-          const kvBase = keysBase
+          let base = pickObj(rel?.['基础四维'] ?? rel?.['基础四维属性']);
+          if (!Object.keys(base).length) {
+            // 兜底：从散列基础键合成
+            const map = {
+              '法力': ['基础法力','base_mana'],
+              '神海': ['基础神海','base_shenhai'],
+              '道心': ['基础道心','base_daoxin'],
+              '空速': ['基础空速','base_kongsu']
+            };
+            const b = {};
+            Object.keys(map).forEach(k => {
+              for (const key of map[k]) {
+                const val = rel?.[key];
+                const n = Number(val);
+                if (Number.isFinite(n)) { b[k] = n; break; }
+              }
+            });
+            base = b;
+          }
+          const kvBase = keys
             .filter(k => base[k] != null && String(base[k]).trim() !== '')
-            .map(k => `${k}:${base[k]}`)
+            .map(k => `${k}:${toNum(base[k])}`)
             .join('；');
           if (kvBase) lines.push(`基础四维|${kvBase}`);
         } catch (_) { }
@@ -4781,6 +4964,18 @@
           const lgRaw = inh['灵根'] || inh['灵根列表'] || inh['linggen'] || inh['灵根'] || {};
           if (Array.isArray(lgRaw) && lgRaw.length > 0) linggen = parseMaybeJson(lgRaw[0]) || {};
           else linggen = normalizeField(lgRaw) || {};
+          // 新MVU对象字典回退：若内在容器缺失/为空，从顶层“灵根列表”读取第一条
+          if (!linggen || typeof linggen !== 'object' || Object.keys(linggen).length === 0) {
+            const topLinggens = (window.GuixuHelpers && typeof window.GuixuHelpers.readList === 'function')
+              ? window.GuixuHelpers.readList(rel, '灵根列表')
+              : [];
+            if (Array.isArray(topLinggens) && topLinggens.length > 0) {
+              const first = topLinggens.find(x => x && x !== '$__META_EXTENSIBLE__$');
+              if (first) {
+                try { linggen = typeof first === 'string' ? JSON.parse(first) : first; } catch { linggen = first; }
+              }
+            }
+          }
         } catch { }
         if (linggen && (linggen.名称 || linggen.name)) {
           const lgName = linggen.名称 || linggen.name || '未知灵根';
@@ -4816,7 +5011,7 @@
           }
         } catch { }
 
-        // 天赋列表
+        // 天赋列表（合并内在容器与顶层“天赋列表”并去重）
         let talentList = [];
         try {
           const tRaw = inh['天赋'] || inh['talent'] || [];
@@ -4825,6 +5020,29 @@
             const parsed = normalizeField(tRaw);
             talentList = Array.isArray(parsed) ? safeList(parsed).map(parseMaybeJson) : (parsed ? [parsed] : []);
           }
+          // 合并顶层“天赋列表”
+          const topTalents = (window.GuixuHelpers && typeof window.GuixuHelpers.readList === 'function')
+            ? window.GuixuHelpers.readList(rel, '天赋列表')
+            : [];
+          const parsedTop = Array.isArray(topTalents)
+            ? topTalents
+              .filter(x => x && x !== '$__META_EXTENSIBLE__$')
+              .map(x => { try { return typeof x === 'string' ? JSON.parse(x) : x; } catch { return x; } })
+              .filter(Boolean)
+            : [];
+          const seen = new Set();
+          const keyOf = (o) => {
+            const id = window.GuixuHelpers.SafeGetValue(o, 'id', '');
+            const nm = window.GuixuHelpers.SafeGetValue(o, 'name', '');
+            return id && id !== 'N/A' ? `id:${id}` : `name:${nm}`;
+          };
+          const merged = [];
+          [...talentList, ...parsedTop].forEach(o => {
+            if (!o) return;
+            const k = keyOf(o);
+            if (!seen.has(k)) { seen.add(k); merged.push(o); }
+          });
+          talentList = merged;
         } catch { }
         if (talentList.length) {
           const tLines = talentList.map(it => {
