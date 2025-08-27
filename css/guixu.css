@@ -3374,3 +3374,35 @@
   width: clamp(320px, 44vw, 520px) !important;
   height: 40px !important;
 }
+
+/* 移动端：指令中心模态框布局与按钮排布优化（防止一行溢出到面板外） */
+.guixu-root-container.mobile-view #command-center-modal .modal-content {
+  width: 96vw;
+  max-width: 96vw;
+  height: auto;
+  max-height: 90vh;
+  overflow-x: hidden;
+}
+.guixu-root-container.mobile-view #command-center-modal .command-center-footer {
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: stretch;
+}
+.guixu-root-container.mobile-view #command-center-modal #btn-refresh-storage {
+  flex: 1 1 100%;
+  height: 36px;
+  min-width: 0;
+}
+.guixu-root-container.mobile-view #command-center-modal .command-center-footer > div {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.guixu-root-container.mobile-view #command-center-modal .command-center-footer > div > button {
+  height: 36px;
+  width: 100%;
+  min-width: 0;
+  padding: 0 10px;
+  box-sizing: border-box;
+}

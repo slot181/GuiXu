@@ -574,7 +574,6 @@
             ${renderGroup('灵根', groups['灵根'])}
             ${renderGroup('天赋', groups['天赋'])}
             ${renderGroup('物品', groups['物品'])}
-            ${this._renderSpecialEffectsSummary()}
           </div>
         `;
 

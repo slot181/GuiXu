@@ -714,8 +714,14 @@ if (!document.getElementById('guixu-font-override-style')) {
           const slot = e.target.closest('.equipment-slot');
           if (slot && slot.classList.contains('equipped')) {
             e.preventDefault();
-            // 点击已装备物品时显示详情浮窗（移动端无悬停时也可查看）
-            this.showEquipmentTooltip(slot, e);
+            // 改为：点击已装备的槽位直接卸下，并写回MVU与背包（移动端/桌面端统一）
+            try { this.hideEquipmentTooltip(); } catch (_) {}
+            const slotId = slot.id || '';
+            try {
+              if (window.InventoryComponent && typeof window.InventoryComponent.unequipItem === 'function') {
+                window.InventoryComponent.unequipItem(slotId);
+              }
+            } catch (_) {}
           }
         });
       }
@@ -1547,15 +1553,18 @@ if (!document.getElementById('guixu-font-override-style')) {
 
     loadEquipmentFromMVU(data) {
       const $ = (sel, ctx = document) => ctx.querySelector(sel);
-      const equipmentMap = {
-        武器: 'wuqi',
-        主修功法: 'zhuxiuGongfa',
-        辅修心法: 'fuxiuXinfa',
-        防具: 'fangju',
-        饰品: 'shipin',
-        法宝: 'fabao1',
-        法宝栏1: 'fabao1',
+
+      // 将同一槽位的候选MVU键合并到一起，防止后续遍历用“空键”覆盖了已渲染的有效物品
+      const candidatesBySlot = {
+        wuqi: ['武器'],
+        zhuxiuGongfa: ['主修功法'],
+        fuxiuXinfa: ['辅修心法'],
+        fangju: ['防具'],
+        shipin: ['饰品'],
+        // 关键修复：法宝槽位既兼容“法宝”，也兼容旧键“法宝栏1”，择优取其一；不要相互覆盖
+        fabao1: ['法宝', '法宝栏1'],
       };
+
       const defaultTextMap = {
         wuqi: '武器',
         fangju: '防具',
@@ -1565,15 +1574,20 @@ if (!document.getElementById('guixu-font-override-style')) {
         fuxiuXinfa: '辅修心法',
       };
 
-      for (const [mvuKey, slotKey] of Object.entries(equipmentMap)) {
+      for (const [slotKey, mvuKeys] of Object.entries(candidatesBySlot)) {
         const slot = $(`#equip-${slotKey}`);
         if (!slot) continue;
 
-        const item = (window.GuixuHelpers && typeof window.GuixuHelpers.readEquipped === 'function')
-          ? window.GuixuHelpers.readEquipped(data, mvuKey)
-          : null;
+        // 依次尝试候选MVU键，取首个有值的
+        let item = null;
+        if (window.GuixuHelpers && typeof window.GuixuHelpers.readEquipped === 'function') {
+          for (const mvuKey of mvuKeys) {
+            const found = window.GuixuHelpers.readEquipped(data, mvuKey);
+            if (found && typeof found === 'object') { item = found; break; }
+          }
+        }
 
-        if (item && typeof item === 'object') {
+        if (item) {
           const tier = window.GuixuHelpers.SafeGetValue(item, 'tier', '凡品');
           const tierStyle = window.GuixuHelpers.getTierStyle(tier);
           slot.textContent = window.GuixuHelpers.SafeGetValue(item, 'name');
@@ -1892,7 +1906,9 @@ if (!document.getElementById('guixu-font-override-style')) {
           const escapeHtml = (s) => String(s || '')
             .replace(/&/g, '&')
             .replace(/</g, '<')
-            .replace(/>/g, '>');
+            .replace(/>/g, '>')
+            .replace(/"/g, '"')
+            .replace(/'/g, '&#39;');
           let thinkingHtml = '';
           if (thinkingText) {
             thinkingHtml = `
@@ -1954,11 +1970,18 @@ if (!document.getElementById('guixu-font-override-style')) {
             }
           } catch (_) {}
 
-          // 同步提取内容到 State
-          window.GuixuState.update('lastExtractedNovelText', this._extractLastTagContent('gametxt', contentToParse));
-          window.GuixuState.update('lastExtractedJourney', this._extractLastTagContent('本世历程', contentToParse));
-          window.GuixuState.update('lastExtractedPastLives', this._extractLastTagContent('往世涟漪', contentToParse));
-          window.GuixuState.update('lastExtractedVariables', this._extractLastTagContent('UpdateVariable', contentToParse, true));
+          // 同步提取内容到 State（忽略思维链内容；兼容繁体标签）
+          const __parseBase = String(contentToParse || '').replace(/<thinking[^>]*>[\s\S]*?<\/thinking>/gi, '');
+          window.GuixuState.update('lastExtractedNovelText', this._extractLastTagContent('gametxt', __parseBase));
+          window.GuixuState.update('lastExtractedJourney',
+            (window.GuixuHelpers?.extractLastTagContentByAliases?.('本世历程', __parseBase, true)
+              ?? this._extractLastTagContent('本世历程', __parseBase))
+          );
+          window.GuixuState.update('lastExtractedPastLives',
+            (window.GuixuHelpers?.extractLastTagContentByAliases?.('往世涟漪', __parseBase, true)
+              ?? this._extractLastTagContent('往世涟漪', __parseBase))
+          );
+          window.GuixuState.update('lastExtractedVariables', this._extractLastTagContent('UpdateVariable', __parseBase, true));
           window.GuixuState.update('lastExtractedThinking', thinkingText || '');
 
           // 渲染后将滚动条置顶（移动端与桌面端）
@@ -2360,14 +2383,17 @@ container.style.fontFamily = `"Microsoft YaHei", "Noto Sans SC", "PingFang SC", 
     // 新增：严格提取 <行动方针> 内容并返回剔除后的原文
     _parseActionGuidelines(rawText) {
       try {
-        const text = String(rawText || '');
-        // 使用 Helpers 的宽松提取，兼容 <行-动-方-针> 等变体
-        const block = window.GuixuHelpers.extractLastTagContent('行动方针', text, true) || '';
-        // 移除所有“行动方针”块（宽松匹配名）
+        const stripThinking = (s) => String(s || '').replace(/<thinking[^>]*>[\s\S]*?<\/thinking>/gi, '');
+        const text = stripThinking(rawText);
+        // 使用 Helpers 的“别名+宽松”提取，兼容 <行-动-方-针>/<行動方針> 等变体
+        const aliases = (window.GuixuHelpers?.getTagAliases?.('行动方针')) || ['行动方针', '行動方針'];
+        const block = window.GuixuHelpers?.extractLastTagContentByAliases?.(aliases, text, true) || '';
+        // 移除所有“行动方针”块（多别名，宽松匹配名）
         const esc = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        const chars = '行动方针'.split('').map(ch => esc(ch));
-        const looseName = chars.join('[\\s\\-—_·•－]*');
-        const reAll = new RegExp(`<\\s*${looseName}[^>]*>[\\s\\S]*?<\\/\\s*${looseName}\\s*>`, 'gi');
+        const looseGroup = aliases
+          .map(name => name.split('').map(ch => esc(ch)).join('[\\s\\-—_·•－]*'))
+          .join('|');
+        const reAll = new RegExp(`<\\s*(?:${looseGroup})[^>]*>[\\s\\S]*?<\\/\\s*(?:${looseGroup})\\s*>`, 'gi');
         const strippedText = block ? text.replace(reAll, '') : text;
         const items = this._normalizeGuidelineItems(block);
         return { strippedText, items };

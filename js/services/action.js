@@ -128,11 +128,20 @@
          */
         extractAndCacheResponse(aiResponse) {
             const state = window.GuixuState;
-            state.update('lastExtractedNovelText', GuixuHelpers.extractLastTagContent('gametxt', aiResponse));
-            state.update('lastExtractedJourney', GuixuHelpers.extractLastTagContent('本世历程', aiResponse));
-            state.update('lastExtractedPastLives', GuixuHelpers.extractLastTagContent('往世涟漪', aiResponse));
-            state.update('lastExtractedVariables', GuixuHelpers.extractLastTagContent('UpdateVariable', aiResponse, true));
-            state.update('lastExtractedCharacterCard', GuixuHelpers.extractLastTagContent('角色提取', aiResponse));
+            // 忽略 <thinking> 区块，防止其中的“自检标签”污染正文/提取
+            const base = String(aiResponse || '').replace(/<thinking[^>]*>[\s\S]*?<\/thinking>/gi, '');
+            const H = window.GuixuHelpers || GuixuHelpers;
+
+            state.update('lastExtractedNovelText', H.extractLastTagContent('gametxt', base));
+            // 兼容繁体/日体别名：<本世历程>/<本世歴程>、<往世涟漪>/<往世漣漪>
+            state.update('lastExtractedJourney',
+                (H.extractLastTagContentByAliases?.('本世历程', base, true)) ?? H.extractLastTagContent('本世历程', base)
+            );
+            state.update('lastExtractedPastLives',
+                (H.extractLastTagContentByAliases?.('往世涟漪', base, true)) ?? H.extractLastTagContent('往世涟漪', base)
+            );
+            state.update('lastExtractedVariables', H.extractLastTagContent('UpdateVariable', base, true));
+            state.update('lastExtractedCharacterCard', H.extractLastTagContent('角色提取', base));
         },
 
         /**

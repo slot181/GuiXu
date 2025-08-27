@@ -330,6 +330,64 @@
     },
 
     /**
+     * 新增：获取标签别名列表（兼容繁体）
+     * @param {string} tagName
+     * @returns {string[]} 别名数组（包含原名）
+     */
+    getTagAliases(tagName) {
+      try {
+        const map = {
+          '行动方针': ['行动方针', '行動方針'],
+          '本世历程': ['本世历程', '本世歴程'],
+          '往世涟漪': ['往世涟漪', '往世漣漪'],
+        };
+        const list = map[tagName] || [tagName];
+        // 去重
+        return Array.from(new Set(list.filter(Boolean).map(String)));
+      } catch (_) {
+        return [tagName];
+      }
+    },
+
+    /**
+     * 新增：按别名集合提取最后一次标签内容（优先严格，其次宽松；默认忽略大小写）
+     * @param {string|string[]} tagName - 主标签名或别名数组
+     * @param {string} text
+     * @param {boolean} [ignoreCase=true]
+     * @returns {string|null}
+     */
+    extractLastTagContentByAliases(tagName, text, ignoreCase = true) {
+      try {
+        if (!text) return null;
+        const esc = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const aliases = Array.isArray(tagName)
+          ? Array.from(new Set(tagName.filter(Boolean).map(String)))
+          : (this.getTagAliases ? this.getTagAliases(String(tagName)) : [String(tagName)]);
+        if (aliases.length === 0) return null;
+
+        const flags = ignoreCase ? 'gi' : 'g';
+
+        // 1) 严格多别名匹配（别名作为分支）
+        const strictGroup = aliases.map(a => esc(a)).join('|');
+        let re = new RegExp(`<\\s*(?:${strictGroup})[^>]*>\\s*([\\s\\S]*?)\\s*<\\/\\s*(?:${strictGroup})\\s*>`, flags);
+        let m, last = null;
+        while ((m = re.exec(text)) !== null) last = m;
+        if (last) return String(last[1]).trim();
+
+        // 2) 宽松多别名匹配：允许别名字符间穿插连字符/空白等
+        const makeLoose = (name) => name.split('').map(ch => esc(ch)).join('[\\s\\-—_·•－]*');
+        const looseGroup = aliases.map(makeLoose).join('|');
+        re = new RegExp(`<\\s*(?:${looseGroup})[^>]*>\\s*([\\s\\S]*?)\\s*<\\/\\s*(?:${looseGroup})\\s*>`, flags);
+        last = null;
+        while ((m = re.exec(text)) !== null) last = m;
+        return last ? String(last[1]).trim() : null;
+      } catch (e) {
+        console.error('[归墟] extractLastTagContentByAliases 解析失败:', e);
+        return null;
+      }
+    },
+
+    /**
      * 本地兜底：从 AI 文本中解析 _.set('路径', 旧值, 新值); 并应用到旧的 MVU 状态，返回新的状态。
      * 注意：该函数仅作为 mag_invoke_mvu 失败时的降级方案，力求“不抛错、尽量更新”。
      */
