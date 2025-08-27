@@ -37,15 +37,7 @@
         if (window.GuixuMain && typeof window.GuixuMain._deepStripMeta === 'function') {
           stat_data = window.GuixuMain._deepStripMeta(stat_data);
         }
-        // 附加：在渲染前执行一次“安全去重规范化”，修复可能的嵌套重复
-        try {
-          if (window.GuixuActionService && typeof window.GuixuActionService.normalizeMvuState === 'function') {
-            const normalized = window.GuixuActionService.normalizeMvuState({ stat_data });
-            if (normalized && normalized.stat_data) {
-              stat_data = normalized.stat_data;
-            }
-          }
-        } catch (_) { }
+        
         if (!stat_data) {
           body.innerHTML = '<p class="modal-placeholder" style="text-align:center; color:#8b7355; font-size:12px;">无法获取人物关系数据。</p>';
           return;
@@ -615,15 +607,7 @@
         if (window.GuixuMain && typeof window.GuixuMain._deepStripMeta === 'function') {
           stat_data = window.GuixuMain._deepStripMeta(stat_data);
         }
-        // 附加：在渲染前执行一次“安全去重规范化”，修复可能的嵌套重复
-        try {
-          if (window.GuixuActionService && typeof window.GuixuActionService.normalizeMvuState === 'function') {
-            const normalized = window.GuixuActionService.normalizeMvuState({ stat_data });
-            if (normalized && normalized.stat_data) {
-              stat_data = normalized.stat_data;
-            }
-          }
-        } catch (_) { }
+        
         if (!stat_data) {
           body.innerHTML = '<p class="modal-placeholder" style="text-align:center; color:#8b7355; font-size:12px;">无法获取人物关系数据。</p>';
           return;
@@ -1459,21 +1443,21 @@ const description = h.SafeGetValue(rel, 'description', h.SafeGetValue(rel, '身�
           mergeCN(totalPercentCN, percent);
         };
         // 装备槽（兼容对象/数组包裹/字符串化）
-        const slotDefsForCalc = [
-          { key: '主修功法', label: '主修功法' },
-          { key: '辅修心法', label: '辅修心法' },
-          { key: '武器', label: '武器' },
-          { key: '防具', label: '防具' },
-          { key: '饰品', label: '饰品' },
-          { key: '法宝', legacy: '法宝栏1', label: '法宝' }
-        ];
-        slotDefsForCalc.forEach(def => {
-          const it = window.GuixuHelpers.readEquipped(rel, def.key) || (def.legacy ? window.GuixuHelpers.readEquipped(rel, def.legacy) : null);
-          if (it && typeof it === 'object') {
-            const n = window.GuixuHelpers.SafeGetValue(it, 'name', window.GuixuHelpers.SafeGetValue(it, '名称', def.label));
-            pushSource('物品', n || def.label, it);
-          }
-        });
+          const slotDefsForCalc = [
+            { key: '主修功法', label: '主修功法' },
+            { key: '辅修心法', label: '辅修心法' },
+            { key: '武器', label: '武器' },
+            { key: '防具', label: '防具' },
+            { key: '饰品', label: '饰品' },
+            { key: '法宝', label: '法宝' }
+          ];
+          slotDefsForCalc.forEach(def => {
+            const it = window.GuixuHelpers.readEquipped(rel, def.key);
+            if (it && typeof it === 'object') {
+              const n = window.GuixuHelpers.SafeGetValue(it, 'name', window.GuixuHelpers.SafeGetValue(it, '名称', def.label));
+              pushSource('物品', n || def.label, it);
+            }
+          });
         // 灵根
         if (linggen && (linggen.名称 || linggen.name)) {
           pushSource('灵根', linggen.名称 || linggen.name || '灵根', linggen);
@@ -1837,10 +1821,10 @@ try { await this._syncNpcFourDimMaxToMvu(rel, computedMax); } catch (_) {}
               { key: '武器', label: '武器' },
               { key: '防具', label: '防具' },
               { key: '饰品', label: '饰品' },
-              { key: '法宝', legacy: '法宝栏1', label: '法宝' }
+              { key: '法宝', label: '法宝' }
             ];
             return slotDefs.map(def => {
-              const it = window.GuixuHelpers.readEquipped(rel, def.key) || (def.legacy ? window.GuixuHelpers.readEquipped(rel, def.legacy) : null);
+              const it = window.GuixuHelpers.readEquipped(rel, def.key);
               if (it && typeof it === 'object') {
                 const n = h.SafeGetValue(it, 'name', h.SafeGetValue(it, '名称', def.label));
                 const t = h.SafeGetValue(it, 'tier', h.SafeGetValue(it, '品阶', '凡品'));
@@ -2460,7 +2444,7 @@ try { await this._syncNpcFourDimMaxToMvu(rel, computedMax); } catch (_) {}
             lists.forEach(key => {
               const arr = (window.GuixuHelpers && typeof window.GuixuHelpers.readList === 'function')
                 ? window.GuixuHelpers.readList(sd, key)
-                : (sd?.[key]?.[0] || []);
+                : [];
               if (Array.isArray(arr)) {
                 arr.forEach(raw => {
                   if (!raw || raw === '$__META_EXTENSIBLE__$') return;
@@ -3092,7 +3076,7 @@ try { await this._syncNpcFourDimMaxToMvu(rel, computedMax); } catch (_) {}
                 } catch (_) {}
                 try {
                   for (const k of lists) {
-                    const arr = (H && typeof H.readList === 'function') ? H.readList(latestStatData, k) : (latestStatData?.[k]?.[0] || []);
+                    const arr = (H && typeof H.readList === 'function') ? H.readList(latestStatData, k) : [];
                     if (Array.isArray(arr)) {
                       for (let i = 0; i < arr.length; i++) {
                         const raw = arr[i];
@@ -3126,7 +3110,7 @@ try { await this._syncNpcFourDimMaxToMvu(rel, computedMax); } catch (_) {}
                 } catch (e) { /* ignore */ }
                 try {
                   const snapshot = lists.map(k => {
-                    const arr = (H && typeof H.readList === 'function') ? H.readList(stat_data, k) : (stat_data?.[k]?.[0] || []);
+                    const arr = (H && typeof H.readList === 'function') ? H.readList(stat_data, k) : [];
                     const items = [];
                     if (Array.isArray(arr)) {
                       for (const rawEntry of arr) {
@@ -3685,7 +3669,7 @@ try { await this._syncNpcFourDimMaxToMvu(rel, computedMax); } catch (_) {}
         // 从统一读取接口获取数组
         const arr = (h && typeof h.readList === 'function')
           ? h.readList(stat_data, '人物关系列表')
-          : (Array.isArray(cont?.[0]) ? cont[0] : (Array.isArray(cont) ? cont : []));
+          : (Array.isArray(cont) ? cont : []);
         if (!Array.isArray(arr) || arr.length === 0) return false;
  
         const dict = { $meta: { extensible: true } };
@@ -3890,57 +3874,62 @@ try { await this._syncNpcFourDimMaxToMvu(rel, computedMax); } catch (_) {}
         } catch (_) { /* continue */ }
       }
 
-      // 若对象字典未找到，再兼容旧数组包装 [ [ ... ] ]
+      // 若对象字典未找到，则将旧数组包装转换为对象字典后再删除（统一新形态）
       if (!removed) {
-        let userListKey = candidateKeys[0];
-        let userListPath = `${userListKey}.0`;
-        // 确保包装层存在
-        if (!Array.isArray(_.get(stat_data, userListKey))) {
-          _.set(stat_data, userListKey, [[]]);
-        }
-        let userArr = _.get(stat_data, userListPath, []);
-        if (!Array.isArray(userArr)) throw new Error('玩家背包结构异常');
+        const userListKey = candidateKeys[0];
 
-        let uIdx = -1;
-        let originalEntry = null;
+        const ensureObjectDict = (lv) => {
+          if (Array.isArray(lv)) {
+            const arr = lv[0] || [];
+            const obj = { $meta: { extensible: true } };
+            const used = new Set();
+            arr.forEach((i, idx) => {
+              let v = i;
+              if (typeof v === 'string') { try { v = JSON.parse(v); } catch (_) {} }
+              if (!v || typeof v !== 'object') return;
+              const nm = h.SafeGetValue(v, 'name', null);
+              const idv = h.SafeGetValue(v, 'id', h.SafeGetValue(v, 'uid', null));
+              let key = (nm && nm !== 'N/A') ? String(nm) : (idv != null ? String(idv) : `条目${idx+1}`);
+              while (Object.prototype.hasOwnProperty.call(obj, key) || used.has(key)) key = `${key}_`;
+              used.add(key);
+              obj[key] = v;
+            });
+            return obj;
+          }
+          if (!lv || typeof lv !== 'object') return { $meta: { extensible: true } };
+          if (!lv.$meta) { try { lv.$meta = { extensible: true }; } catch (_) {} }
+          return lv;
+        };
 
-        if (item && item.__userRef && Number.isInteger(item.__userRef.uIdx)) {
-          const i = Number(item.__userRef.uIdx);
-          if (i >= 0 && i < userArr.length) {
-            uIdx = i;
-            originalEntry = userArr[uIdx];
+        const dict = ensureObjectDict(stat_data[userListKey]);
+        stat_data[userListKey] = dict;
+
+        let matchedKey = null;
+        let originalVal;
+        let parsedObj = null;
+        for (const [k, v] of Object.entries(dict)) {
+          if (k === '$meta') continue;
+          let obj = v;
+          try { obj = (typeof v === 'string') ? JSON.parse(v) : v; } catch { obj = v; }
+          const cid = normalize(h.SafeGetValue(obj, 'id', h.SafeGetValue(obj, 'uid', '')));
+          const cname = normalize(h.SafeGetValue(obj, 'name', null));
+          if ((targetId && cid && cid === targetId) || (targetName && cname && cname === targetName)) {
+            matchedKey = k;
+            originalVal = v;
+            parsedObj = obj;
+            break;
           }
         }
-        if (uIdx === -1) {
-          for (let i = 0; i < userArr.length; i++) {
-            const entry = userArr[i];
-            if (!entry || entry === '$__META_EXTENSIBLE__$') continue;
-            try {
-              const it = typeof entry === 'string' ? JSON.parse(entry) : entry;
-              const eid = normalize(h.SafeGetValue(it, 'id', h.SafeGetValue(it, 'uid', '')));
-              const ename = normalize(h.SafeGetValue(it, 'name', null));
-              if ((targetId && eid && eid === targetId) || (targetName && ename && ename === targetName)) {
-                uIdx = i;
-                originalEntry = entry;
-                break;
-              }
-            } catch { /* ignore */ }
-          }
-        }
-        if (uIdx === -1) throw new Error('玩家物品不存在');
+        if (!matchedKey) throw new Error('玩家物品不存在');
 
-        // 解析条目，按原始类型写回，并处理批量出售数量
-        let parsedEntry = {};
-        try { parsedEntry = typeof originalEntry === 'string' ? JSON.parse(originalEntry) : originalEntry; } catch { parsedEntry = {}; }
-        const sellQCur = Number(h.SafeGetValue(parsedEntry, 'quantity', 1)) || 1;
-
-        if (sellQCur > sellQuantity) {
-          parsedEntry.quantity = sellQCur - sellQuantity;
-          userArr[uIdx] = (typeof originalEntry === 'string') ? JSON.stringify(parsedEntry) : parsedEntry;
+        const curQ = Number(h.SafeGetValue(parsedObj, 'quantity', 1)) || 1;
+        const left = Math.max(0, curQ - sellQuantity);
+        if (left > 0) {
+          parsedObj.quantity = left;
+          dict[matchedKey] = (typeof originalVal === 'string') ? JSON.stringify(parsedObj) : parsedObj;
         } else {
-          userArr.splice(uIdx, 1);
+          delete dict[matchedKey];
         }
-        _.set(stat_data, userListPath, userArr);
       }
 
       // NPC 物品列表加入/叠加
@@ -4573,85 +4562,55 @@ try { await this._syncNpcFourDimMaxToMvu(rel, computedMax); } catch (_) {}
       const bId = normalize(h.SafeGetValue(bought, 'id', h.SafeGetValue(bought, 'uid', '')));
       const bName = normalize(h.SafeGetValue(bought, 'name', null));
 
-      // 若不存在该分类容器，优先创建“对象字典”容器
-      if (!stat_data[userListKey]) {
-        stat_data[userListKey] = { $meta: { extensible: true } };
+      // 统一转换为对象字典容器后写入玩家背包（兼容旧数组包装）
+      const ensureObjectDict = (lv) => {
+        if (Array.isArray(lv)) {
+          const arr = lv[0] || [];
+          const obj = { $meta: { extensible: true } };
+          const used = new Set();
+          arr.forEach((i, idx) => {
+            let v = i;
+            if (typeof v === 'string') { try { v = JSON.parse(v); } catch (_) {} }
+            if (!v || typeof v !== 'object') return;
+            const nm = h.SafeGetValue(v, 'name', null);
+            const idv = h.SafeGetValue(v, 'id', h.SafeGetValue(v, 'uid', null));
+            let key = (nm && nm !== 'N/A') ? String(nm) : (idv != null ? String(idv) : `条目${idx+1}`);
+            while (Object.prototype.hasOwnProperty.call(obj, key) || used.has(key)) key = `${key}_`;
+            used.add(key);
+            obj[key] = v;
+          });
+          return obj;
+        }
+        if (!lv || typeof lv !== 'object') return { $meta: { extensible: true } };
+        if (!lv.$meta) { try { lv.$meta = { extensible: true }; } catch (_) {} }
+        return lv;
+      };
+
+      const dictContainer = ensureObjectDict(stat_data[userListKey]);
+      stat_data[userListKey] = dictContainer;
+
+      // 合并数量或新增
+      let matchedKey = null, originalVal, parsedObj = null;
+      for (const [k, v] of Object.entries(dictContainer)) {
+        if (k === '$meta') continue;
+        let obj = v;
+        try { obj = (typeof v === 'string') ? JSON.parse(v) : v; } catch { obj = v; }
+        const cid = normalize(h.SafeGetValue(obj, 'id', h.SafeGetValue(obj, 'uid', '')));
+        const cname = normalize(h.SafeGetValue(obj, 'name', null));
+        if ((bId && cid && cid === bId) || (bName && cname && cname === bName)) {
+          matchedKey = k; originalVal = v; parsedObj = obj; break;
+        }
       }
-
-      const userListContainer = stat_data[userListKey];
-      const isDict = userListContainer && typeof userListContainer === 'object' && !Array.isArray(userListContainer) && userListContainer.$meta && userListContainer.$meta.extensible === true;
-
-      if (isDict) {
-        // 对象字典：按 id/name 在 value 中寻找匹配，存在则叠加数量，否则以“名称或ID”为键新增
-        let matchedKey = null;
-        let originalVal;
-        let parsedObj = null;
-        try {
-          for (const [k, v] of Object.entries(userListContainer)) {
-            if (k === '$meta') continue;
-            let obj = v;
-            try { obj = (typeof v === 'string') ? JSON.parse(v) : v; } catch { obj = v; }
-            const cid = normalize(h.SafeGetValue(obj, 'id', h.SafeGetValue(obj, 'uid', '')));
-            const cname = normalize(h.SafeGetValue(obj, 'name', null));
-            if ((bId && cid && cid === bId) || (bName && cname && cname === bName)) {
-              matchedKey = k;
-              originalVal = v;
-              parsedObj = obj;
-              break;
-            }
-          }
-        } catch (_) {}
-
-        if (matchedKey) {
-          const oldQ = Number(h.SafeGetValue(parsedObj, 'quantity', 1)) || 1;
-          parsedObj.quantity = oldQ + purchaseQuantity;
-          userListContainer[matchedKey] = (typeof originalVal === 'string') ? JSON.stringify(parsedObj) : parsedObj;
-        } else {
-          const keyName = h.SafeGetValue(fixedBought, 'name', h.SafeGetValue(fixedBought, 'id', '物品'));
-          const newObj = JSON.parse(JSON.stringify(fixedBought));
-          newObj.quantity = purchaseQuantity;
-          userListContainer[keyName] = newObj;
-        }
+      if (matchedKey) {
+        const oldQ = Number(h.SafeGetValue(parsedObj, 'quantity', 1)) || 1;
+        parsedObj.quantity = oldQ + purchaseQuantity;
+        dictContainer[matchedKey] = (typeof originalVal === 'string') ? JSON.stringify(parsedObj) : parsedObj;
       } else {
-        // 旧结构 [ [ ... ] ]：保持原有逻辑（兼容历史数据）
-        const userListPath = `${userListKey}.0`;
-        if (!Array.isArray(_.get(stat_data, userListKey))) {
-          _.set(stat_data, userListKey, [[]]);
-        }
-        const userList = _.get(stat_data, userListPath, []);
-        const arr = Array.isArray(userList) ? userList : [];
-        const existIdx = arr.findIndex(entry => {
-          try {
-            let it;
-            if (typeof entry === 'string') {
-              try { it = JSON.parse(entry); } catch { it = { name: entry }; }
-            } else {
-              it = entry;
-            }
-            if (!it) return false;
-            const currentId = normalize(h.SafeGetValue(it, 'id', h.SafeGetValue(it, 'uid', '')));
-            const currentName = normalize(h.SafeGetValue(it, 'name', null));
-            if (bId && currentId && currentId === bId) return true;
-            if (bName && currentName && currentName === bName) return true;
-            return false;
-          } catch {
-            return false;
-          }
-        });
-
-        if (existIdx !== -1) {
-          const originalEntry = arr[existIdx];
-          let parsedEntry;
-          try { parsedEntry = typeof originalEntry === 'string' ? JSON.parse(originalEntry) : originalEntry; } catch { parsedEntry = {}; }
-          const oldQ = Number(h.SafeGetValue(parsedEntry, 'quantity', 1)) || 1;
-          parsedEntry.quantity = oldQ + purchaseQuantity;
-          arr[existIdx] = (typeof originalEntry === 'string') ? JSON.stringify(parsedEntry) : parsedEntry;
-        } else {
-          const toPush = JSON.parse(JSON.stringify(fixedBought));
-          toPush.quantity = purchaseQuantity;
-          arr.push(toPush);
-        }
-        _.set(stat_data, userListPath, arr);
+        let keyName = h.SafeGetValue(fixedBought, 'name', h.SafeGetValue(fixedBought, 'id', '物品'));
+        while (Object.prototype.hasOwnProperty.call(dictContainer, keyName)) keyName = `${keyName}_`;
+        const newObj = JSON.parse(JSON.stringify(fixedBought));
+        newObj.quantity = purchaseQuantity;
+        dictContainer[keyName] = newObj;
       }
 
       // 4) 保存（当前楼层 + 0 楼），带错误捕获与调试输出
@@ -4926,16 +4885,16 @@ const personality = h.SafeGetValue(rel, '性格', h.SafeGetValue(rel, 'personali
             const totalPct = Object.fromEntries(ATTR_KEYS_CN.map(k => [k, 0]));
 
             // 来源：装备槽 + 灵根 + 天赋
-            const slotDefs = [
-              '主修功法', '辅修心法', '武器', '防具', '饰品', '法宝', '法宝栏1'
-            ];
-            slotDefs.forEach(key => {
-              const it = window.GuixuHelpers?.readEquipped?.(rel, key);
-              if (it && typeof it === 'object') {
-                const { flat, percent } = extractBonuses(it);
-                merge(totalFlat, flat); merge(totalPct, percent);
-              }
-            });
+          const slotDefs = [
+            '主修功法', '辅修心法', '武器', '防具', '饰品', '法宝'
+          ];
+          slotDefs.forEach(key => {
+            const it = window.GuixuHelpers?.readEquipped?.(rel, key);
+            if (it && typeof it === 'object') {
+              const { flat, percent } = extractBonuses(it);
+              merge(totalFlat, flat); merge(totalPct, percent);
+            }
+          });
             // 灵根
             try {
               const inhRaw = rel?.['inherent_abilities'] ?? rel?.['内在能力'] ?? {};
@@ -5004,7 +4963,7 @@ const personality = h.SafeGetValue(rel, '性格', h.SafeGetValue(rel, 'personali
             const totalFlat = Object.fromEntries(ATTR_KEYS_CN.map(k => [k, 0]));
             const totalPct = Object.fromEntries(ATTR_KEYS_CN.map(k => [k, 0]));
             // 装备
-            ['主修功法','辅修心法','武器','防具','饰品','法宝','法宝栏1'].forEach(key => {
+            ['主修功法','辅修心法','武器','防具','饰品','法宝'].forEach(key => {
               const it = window.GuixuHelpers?.readEquipped?.(rel, key);
               if (it && typeof it === 'object') {
                 const { flat, percent } = extractBonuses(it);
@@ -5091,11 +5050,11 @@ const personality = h.SafeGetValue(rel, '性格', h.SafeGetValue(rel, 'personali
             { key: '武器', label: '武器' },
             { key: '防具', label: '防具' },
             { key: '饰品', label: '饰品' },
-            { key: '法宝', legacy: '法宝栏1', label: '法宝' }
+            { key: '法宝', label: '法宝' }
           ];
           const parts = [];
           slotDefsExtract.forEach(def => {
-            const it = window.GuixuHelpers.readEquipped(rel, def.key) || (def.legacy ? window.GuixuHelpers.readEquipped(rel, def.legacy) : null);
+            const it = window.GuixuHelpers.readEquipped(rel, def.key);
             if (it && typeof it === 'object') {
               const n = h.SafeGetValue(it, 'name', h.SafeGetValue(it, '名称', def.label));
               const t = h.SafeGetValue(it, 'tier', h.SafeGetValue(it, '品阶', '凡品'));

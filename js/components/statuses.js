@@ -51,7 +51,7 @@
       }
     },
 
-    // 从当前状态或 API 读取“当前状态.0”
+    // 从当前状态或 API 读取“当前状态”列表（对象字典形态，不再使用 .0/数组包装）
     async _loadStatuses() {
       try {
         const state = window.GuixuState?.getState?.();
@@ -61,16 +61,8 @@
           const messages = await window.GuixuAPI.getChatMessages(window.GuixuAPI.getCurrentMessageId());
           statData = messages?.[0]?.data?.stat_data;
         }
-
-        // 渲染前进行一次安全规范化，修复“当前状态”出现的嵌套重复/混合类型重复
-        try {
-          if (window.GuixuActionService && typeof window.GuixuActionService.normalizeMvuState === 'function' && statData) {
-            const normalized = window.GuixuActionService.normalizeMvuState({ stat_data: statData });
-            if (normalized && normalized.stat_data) {
-              statData = normalized.stat_data;
-            }
-          }
-        } catch (_) {}
+  
+        
 
         const raw = (window.GuixuHelpers && typeof window.GuixuHelpers.readList === 'function')
           ? window.GuixuHelpers.readList(statData, '当前状态')

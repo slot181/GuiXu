@@ -55,29 +55,7 @@
       try {
         if (!statData) return;
         const _ = window.GuixuAPI?.lodash;
-        // 1) 顶层/一层内“列表数组”保底（首位补占位符，用于 LLM 追加项）
-        const listPaths = [
-          '天赋列表.0',
-          '灵根列表.0',
-          '当前状态.0',
-          '武器',
-          '主修功法',
-          '辅修心法',
-          '防具',
-          '饰品',
-          '法宝栏1',
-          '法宝',
-          // 人物关系与背包各列表
-          '人物关系列表.0',
-          '功法列表.0',
-          '武器列表.0',
-          '防具列表.0',
-          '饰品列表.0',
-          '法宝列表.0',
-          '丹药列表.0',
-          '其他列表.0',
-        ];
-        this._ensureExtensibleMarkersOnPaths(statData, listPaths);
+        // 顶层/一层内“列表数组”占位补齐已移除：新形态为对象字典，仅在条目内部的词条数组（special_effects/词条/词条效果）需要占位
 
         // 2) 列表项内部的“词条数组”（special_effects）保底（用于 LLM 追加新词条）
         const ensureItemSpecialEffects = (arr) => {
@@ -95,65 +73,24 @@
           });
         };
 
-        // 针对装备/功法等（数组 -> 对象 -> special_effects）
-        ['武器','主修功法','辅修心法','防具','饰品','法宝','法宝栏1'].forEach(p => {
-          const a = _?.get(statData, p);
-          if (Array.isArray(a)) ensureItemSpecialEffects(a);
-        });
-
-        // 天赋/灵根/背包列表（它们一般是 list 在 [0]，内部元素也可能带 special_effects）
-        const talents = _?.get(statData, '天赋列表.0');
-        const linggen = _?.get(statData, '灵根列表.0');
-        if (Array.isArray(talents)) ensureItemSpecialEffects(talents);
-        if (Array.isArray(linggen)) ensureItemSpecialEffects(linggen);
-
-        // 背包各列表
-        const invLists = ['功法列表.0','武器列表.0','防具列表.0','饰品列表.0','法宝列表.0','丹药列表.0','其他列表.0'];
-        invLists.forEach(p => {
-          const a = _?.get(statData, p);
-          if (Array.isArray(a)) ensureItemSpecialEffects(a);
-        });
-
-        // 人物关系列表内子列表补占位符（event_history / 当前状态 / 物品列表 / inherent_abilities）
-        const rels = _?.get(statData, '人物关系列表.0');
-        if (Array.isArray(rels)) {
+        // 针对装备/功法等：仅为条目内部词条数组补占位（支持对象/数组两种旧形态）
+        ['武器','主修功法','辅修心法','防具','饰品','法宝'].forEach(p => {
+          const v = _?.get(statData, p);
           const EXT = this._EXT;
-          rels.forEach((rel, idx) => {
-            if (!rel || typeof rel !== 'object') return;
-
-            // 过往交集
-            if (Array.isArray(rel.event_history)) {
-              rels[idx].event_history = this._ensureMetaExtensibleArray(rel.event_history);
+          if (v && typeof v === 'object' && !Array.isArray(v)) {
+            if (Array.isArray(v.special_effects)) {
+              const ensured = this._ensureMetaExtensibleArray(v.special_effects);
+              if (ensured !== v.special_effects) v.special_effects = ensured;
+            } else if (v.special_effects == null && v['词条效果'] == null && v['词条'] == null) {
+              v.special_effects = [EXT];
             }
+          } else if (Array.isArray(v)) {
+            ensureItemSpecialEffects(v);
+          }
+        });
 
-            // 当前状态
-            if (Array.isArray(rel['当前状态'])) {
-              rels[idx]['当前状态'] = this._ensureMetaExtensibleArray(rel['当前状态']);
-            }
 
-            // 物品列表（并确保内部条目的 special_effects）
-            if (Array.isArray(rel['物品列表'])) {
-              rels[idx]['物品列表'] = this._ensureMetaExtensibleArray(rel['物品列表']);
-              ensureItemSpecialEffects(rels[idx]['物品列表']);
-            }
-
-            // inherent_abilities: 天赋（数组）和 灵根.special_effects
-            const inh = rel['inherent_abilities'] || rel['内在能力'];
-            if (inh && typeof inh === 'object') {
-              if (Array.isArray(inh['天赋'])) {
-                inh['天赋'] = this._ensureMetaExtensibleArray(inh['天赋']);
-                ensureItemSpecialEffects(inh['天赋']);
-              }
-              if (inh['灵根'] && typeof inh['灵根'] === 'object') {
-                if (Array.isArray(inh['灵根'].special_effects)) {
-                  inh['灵根'].special_effects = this._ensureMetaExtensibleArray(inh['灵根'].special_effects);
-                } else if (inh['灵根'].special_effects == null && inh['灵根']['词条效果'] == null && inh['灵根']['词条'] == null) {
-                  inh['灵根'].special_effects = [EXT];
-                }
-              }
-            }
-          });
-        }
+        // 关系对象内不再补顶层列表占位符；仅在渲染端按需处理，条目内部词条数组占位由写路径或具体渲染环节保障
       } catch (_) {}
     },
 
@@ -1487,7 +1424,7 @@ if (!document.getElementById('guixu-font-override-style')) {
       };
 
       // 顶部状态
-      const jingjieValue = window.GuixuHelpers.SafeGetValue(data, '当前境界.0', '...');
+      const jingjieValue = window.GuixuHelpers.SafeGetValue(data, '当前境界', '...');
       const match = jingjieValue.match(/^(\S{2})/);
       const jingjieTier = match ? match[1] : '';
       const jingjieStyle = window.GuixuHelpers.getTierStyle(jingjieTier);
@@ -1561,8 +1498,7 @@ if (!document.getElementById('guixu-font-override-style')) {
         fuxiuXinfa: ['辅修心法'],
         fangju: ['防具'],
         shipin: ['饰品'],
-        // 关键修复：法宝槽位既兼容“法宝”，也兼容旧键“法宝栏1”，择优取其一；不要相互覆盖
-        fabao1: ['法宝', '法宝栏1'],
+        fabao1: ['法宝'],
       };
 
       const defaultTextMap = {

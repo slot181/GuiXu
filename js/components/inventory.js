@@ -860,38 +860,43 @@
         }
 
         let deleted = false;
-        if (Array.isArray(stat_data[listKey][0])) {
-          const list = stat_data[listKey][0];
-          const itemIndex = list.findIndex(i => {
-            const parsed = typeof i === 'string' ? JSON.parse(i) : i;
-            // 优先使用ID匹配，如果ID不存在或不匹配，则使用名称进行模糊匹配
-            if (itemId && itemId !== 'N/A') {
-              return parsed.id === itemId;
+        // 统一转换为“对象字典”容器后再删除（兼容旧数组包装）
+        const ensureObjectDict = (lv) => {
+          if (Array.isArray(lv)) {
+            const arr = lv[0] || [];
+            const obj = { $meta: { extensible: true } };
+            const used = new Set();
+            arr.forEach((i, idx) => {
+              let v = i;
+              if (typeof v === 'string') { try { v = JSON.parse(v); } catch (_) {} }
+              if (!v || typeof v !== 'object') return;
+              const name = window.GuixuHelpers.SafeGetValue(v, 'name', null);
+              const id = window.GuixuHelpers.SafeGetValue(v, 'id', null);
+              let key = (name && name !== 'N/A') ? String(name) : (id != null ? String(id) : `条目${idx+1}`);
+              while (Object.prototype.hasOwnProperty.call(obj, key) || used.has(key)) { key = `${key}_`; }
+              used.add(key);
+              obj[key] = v;
+            });
+            return obj;
+          }
+          if (!lv || typeof lv !== 'object') return { $meta: { extensible: true } };
+          if (!lv.$meta) { try { lv.$meta = { extensible: true }; } catch (_) {} }
+          return lv;
+        };
+        const obj = ensureObjectDict(stat_data[listKey]);
+        stat_data[listKey] = obj;
+        const keys = Object.keys(obj).filter(k => k !== '$meta');
+        for (const k of keys) {
+          try {
+            let v = obj[k];
+            if (typeof v === 'string') { try { v = JSON.parse(v); } catch (_) {} }
+            if (!v || typeof v !== 'object') continue;
+            if ((itemId && itemId !== 'N/A' && v.id === itemId) || v.name === itemName) {
+              delete obj[k];
+              deleted = true;
+              break;
             }
-            return parsed.name === itemName;
-          });
-
-          if (itemIndex !== -1) {
-            // 从数组中移除
-            list.splice(itemIndex, 1);
-            deleted = true;
-          }
-        } else if (typeof stat_data[listKey] === 'object') {
-          // 新对象字典结构：按 id 或 name 定位 key 并删除
-          const obj = stat_data[listKey];
-          const keys = Object.keys(obj).filter(k => k !== '$meta');
-          for (const k of keys) {
-            try {
-              const v = obj[k];
-              const parsed = typeof v === 'string' ? JSON.parse(v) : v;
-              if (!parsed || typeof parsed !== 'object') continue;
-              if ((itemId && itemId !== 'N/A' && parsed.id === itemId) || parsed.name === itemName) {
-                delete obj[k];
-                deleted = true;
-                break;
-              }
-            } catch (_) {}
-          }
+          } catch (_) {}
         }
 
         if (!deleted) {
@@ -1022,32 +1027,48 @@
 
         // 2) 从背包列表删除同一件物品（按 id 优先，退回 name）
         const listKey = this._getInventoryListKey(item, category);
-        if (listKey && currentMvuState.stat_data[listKey]) {
+        if (listKey && currentMvuState.stat_data[listKey] != null) {
           try {
-            const listVal = currentMvuState.stat_data[listKey];
             const itemId = window.GuixuHelpers.SafeGetValue(item, 'id', null);
             const itemName = window.GuixuHelpers.SafeGetValue(item, 'name', null);
 
-            if (Array.isArray(listVal)) {
-              const arr = listVal[0] || [];
-              const idx = arr.findIndex(i => {
-                let parsed = i;
-                if (typeof parsed === 'string') { try { parsed = JSON.parse(parsed); } catch (_) {} }
-                return parsed && typeof parsed === 'object' && ((itemId && parsed.id === itemId) || parsed.name === itemName);
-              });
-              if (idx !== -1) arr.splice(idx, 1);
-            } else if (typeof listVal === 'object') {
-              const keys = Object.keys(listVal).filter(k => k !== '$meta');
-              for (const k of keys) {
-                try {
-                  let v = listVal[k];
+            // 统一转换为对象字典后再删除（兼容旧数组包装）
+            const ensureObjectDict = (lv) => {
+              if (Array.isArray(lv)) {
+                const arr = lv[0] || [];
+                const obj = { $meta: { extensible: true } };
+                const used = new Set();
+                arr.forEach((i, idx) => {
+                  let v = i;
                   if (typeof v === 'string') { try { v = JSON.parse(v); } catch (_) {} }
-                  if (v && typeof v === 'object' && ((itemId && v.id === itemId) || v.name === itemName)) {
-                    delete listVal[k];
-                    break;
-                  }
-                } catch (_) {}
+                  if (!v || typeof v !== 'object') return;
+                  const name = window.GuixuHelpers.SafeGetValue(v, 'name', null);
+                  const id = window.GuixuHelpers.SafeGetValue(v, 'id', null);
+                  let key = (name && name !== 'N/A') ? String(name) : (id != null ? String(id) : `条目${idx+1}`);
+                  while (Object.prototype.hasOwnProperty.call(obj, key) || used.has(key)) { key = `${key}_`; }
+                  used.add(key);
+                  obj[key] = v;
+                });
+                return obj;
               }
+              if (!lv || typeof lv !== 'object') return { $meta: { extensible: true } };
+              if (!lv.$meta) { try { lv.$meta = { extensible: true }; } catch (_) {} }
+              return lv;
+            };
+
+            const listVal = ensureObjectDict(currentMvuState.stat_data[listKey]);
+            currentMvuState.stat_data[listKey] = listVal;
+
+            const keys = Object.keys(listVal).filter(k => k !== '$meta');
+            for (const k of keys) {
+              try {
+                let v = listVal[k];
+                if (typeof v === 'string') { try { v = JSON.parse(v); } catch (_) {} }
+                if (v && typeof v === 'object' && ((itemId && v.id === itemId) || v.name === itemName)) {
+                  delete listVal[k];
+                  break;
+                }
+              } catch (_) {}
             }
           } catch (_) {}
         }
@@ -1092,27 +1113,47 @@
         };
         let listKey = this._getInventoryListKey(item, null) || fallbackMap[slotKey] || null;
         if (listKey) {
-          if (!currentMvuState.stat_data[listKey]) {
-            // 初始化为对象字典
-            currentMvuState.stat_data[listKey] = { $meta: { extensible: true } };
-          }
-          const listVal = currentMvuState.stat_data[listKey];
-          if (Array.isArray(listVal)) {
-            const arr = listVal[0] || (listVal[0] = []);
-            const id = window.GuixuHelpers.SafeGetValue(item, 'id', null);
-            const name = window.GuixuHelpers.SafeGetValue(item, 'name', null);
-            const exists = arr.some(i => {
-              let v = i;
-              if (typeof v === 'string') { try { v = JSON.parse(v); } catch (_) {} }
-              return v && typeof v === 'object' && ((id && v.id === id) || v.name === name);
-            });
-            if (!exists) arr.push(item);
-          } else if (typeof listVal === 'object') {
-            if (!listVal.$meta) {
-              try { listVal.$meta = { extensible: true }; } catch (_) {}
+          // 统一转换为对象字典（兼容旧数组包装）
+          const ensureObjectDict = (lv) => {
+            if (Array.isArray(lv)) {
+              const arr = lv[0] || [];
+              const obj = { $meta: { extensible: true } };
+              const used = new Set();
+              arr.forEach((i, idx) => {
+                let v = i;
+                if (typeof v === 'string') { try { v = JSON.parse(v); } catch (_) {} }
+                if (!v || typeof v !== 'object') return;
+                const name = window.GuixuHelpers.SafeGetValue(v, 'name', null);
+                const id = window.GuixuHelpers.SafeGetValue(v, 'id', null);
+                let key = (name && name !== 'N/A') ? String(name) : (id != null ? String(id) : `条目${idx+1}`);
+                while (Object.prototype.hasOwnProperty.call(obj, key) || used.has(key)) { key = `${key}_`; }
+                used.add(key);
+                obj[key] = v;
+              });
+              return obj;
             }
-            const keyName = window.GuixuHelpers.SafeGetValue(item, 'name', null) || window.GuixuHelpers.SafeGetValue(item, 'id', '物品');
-            listVal[String(keyName)] = item;
+            if (!lv || typeof lv !== 'object') return { $meta: { extensible: true } };
+            if (!lv.$meta) { try { lv.$meta = { extensible: true }; } catch (_) {} }
+            return lv;
+          };
+
+          const existing = currentMvuState.stat_data[listKey];
+          const dict = ensureObjectDict(existing);
+          currentMvuState.stat_data[listKey] = dict;
+
+          // 若已存在同名/同ID，避免重复添加
+          const id = window.GuixuHelpers.SafeGetValue(item, 'id', null);
+          const name = window.GuixuHelpers.SafeGetValue(item, 'name', null);
+          const keys = Object.keys(dict).filter(k => k !== '$meta');
+          const hasSame = keys.some(k => {
+            let v = dict[k];
+            if (typeof v === 'string') { try { v = JSON.parse(v); } catch (_) {} }
+            return v && typeof v === 'object' && ((id && v.id === id) || v.name === name);
+          });
+          if (!hasSame) {
+            let keyName = (name && name !== 'N/A') ? String(name) : (id != null ? String(id) : '物品');
+            while (Object.prototype.hasOwnProperty.call(dict, keyName)) { keyName = `${keyName}_`; }
+            dict[keyName] = item;
           }
         }
 
@@ -1135,15 +1176,6 @@
         shipin: '饰品',
         fabao1: '法宝',
       };
-      // 兼容旧存档：若新键“法宝”不存在而旧键“法宝栏1”存在，则回退
-      try {
-        const sd = stat_data || (window.GuixuState?.getState()?.currentMvuState?.stat_data) || {};
-        if (slotKey === 'fabao1') {
-          const hasFabao = Object.prototype.hasOwnProperty.call(sd, '法宝');
-          const hasLegacy = Object.prototype.hasOwnProperty.call(sd, '法宝栏1');
-          if (!hasFabao && hasLegacy) return '法宝栏1';
-        }
-      } catch (_) {}
       return map[slotKey] || null;
     },
   };
