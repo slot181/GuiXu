@@ -73,6 +73,9 @@
     return Object.fromEntries(Object.entries(obj).map(([k, v]) => [k, Number(v) || 0]));
   }
 
+  // 数值规整：将任意输入转为非负整数
+  const __toIntLocal = (v) => Math.max(0, parseInt(String(v ?? 0), 10) || 0);
+
   const AttributeService = {
     /**
      * 计算最终属性（当前/上限），并缓存到全局状态。
@@ -95,38 +98,54 @@
       const stat_data = state.currentMvuState.stat_data;
 
       // 基础属性
+      // 适配新MVU：直接读取对象字典，避免 SafeGetValue 将对象转为字符串
+      const base4 = (stat_data && typeof stat_data['基础四维'] === 'object' ? stat_data['基础四维'] : null)
+        || (stat_data && typeof stat_data['基础四维属性'] === 'object' ? stat_data['基础四维属性'] : null)
+        || {};
       const baseAttrs = {
-        fali: parseInt(H.SafeGetValue(stat_data, '基础法力', 0), 10) || 0,
-        shenhai: parseInt(H.SafeGetValue(stat_data, '基础神海', 0), 10) || 0,
-        daoxin: parseInt(H.SafeGetValue(stat_data, '基础道心', 0), 10) || 0,
-        kongsu: parseInt(H.SafeGetValue(stat_data, '基础空速', 0), 10) || 0,
-        qiyun: parseInt(H.SafeGetValue(stat_data, '基础气运', 0), 10) || 0,
+        fali: __toIntLocal(H.SafeGetValue(base4, '法力', 0)),
+        shenhai: __toIntLocal(H.SafeGetValue(base4, '神海', 0)),
+        daoxin: __toIntLocal(H.SafeGetValue(base4, '道心', 0)),
+        kongsu: __toIntLocal(H.SafeGetValue(base4, '空速', 0)),
+        // 气运不属于四维，这里仅用于面板展示徽章，读取顶层气运
+        qiyun: __toIntLocal(H.SafeGetValue(stat_data, '气运', 0)),
       };
 
-      // 全来源加成（含明细）
-      const { totalFlatBonuses, totalPercentBonuses } = this.calculateAllBonuses(stat_data, state.equippedItems);
-
-      // 上限 = (基础 + Σ固定) * (1 + Σ百分比)
+      // 上限：前端计算（基础四维 + 固定加成）×（1 + 百分比加成）；计算结果回写到新结构“四维上限”
+      const { totalFlatBonuses: __flatB, totalPercentBonuses: __pctB } = this.calculateAllBonuses(stat_data, state.equippedItems || {});
+      const __cap = (k) => {
+        const base = Number(baseAttrs[k] || 0);
+        const flat = Number(__flatB[k] || 0);
+        const pct = Number(__pctB[k] || 0);
+        const cap = Math.round((base + flat) * (1 + pct));
+        return Math.max(0, cap);
+      };
       const calculatedMaxAttrs = {
-        fali: Math.floor((baseAttrs.fali + totalFlatBonuses.fali) * (1 + totalPercentBonuses.fali)),
-        shenhai: Math.floor((baseAttrs.shenhai + totalFlatBonuses.shenhai) * (1 + totalPercentBonuses.shenhai)),
-        daoxin: Math.floor((baseAttrs.daoxin + totalFlatBonuses.daoxin) * (1 + totalPercentBonuses.daoxin)),
-        kongsu: Math.floor((baseAttrs.kongsu + totalFlatBonuses.kongsu) * (1 + totalPercentBonuses.kongsu)),
-        qiyun: Math.floor((baseAttrs.qiyun + totalFlatBonuses.qiyun) * (1 + totalPercentBonuses.qiyun)),
+        fali: __cap('fali'),
+        shenhai: __cap('shenhai'),
+        daoxin: __cap('daoxin'),
+        kongsu: __cap('kongsu'),
+        // 气运用于徽章展示，不在四维上限中维护
+        qiyun: __toIntLocal(H.SafeGetValue(stat_data, '气运', 0)),
       };
 
       // 保底写入（与旧代码兼容）
       try { state.update && state.update('calculatedMaxAttributes', calculatedMaxAttrs); } catch (_) {}
-      // 回写：将前端计算得到的四维上限写入 MVU 顶层（法力/神海/道心/空速 四个上限变量）
+      // 回写：仅写入新结构“四维上限”，不再写顶层旧散键
       try { this._writeBackPlayerCoreMax?.(calculatedMaxAttrs); } catch (_) {}
 
       // 当前值（不超过上限）
+      // 适配新MVU：直接读取对象字典
+      const cur4 = (stat_data && typeof stat_data['当前四维'] === 'object' ? stat_data['当前四维'] : null)
+        || (stat_data && typeof stat_data['当前四维属性'] === 'object' ? stat_data['当前四维属性'] : null)
+        || {};
       const currentAttrs = {
-        fali: Math.min(parseInt(H.SafeGetValue(stat_data, '当前法力', 0), 10) || 0, calculatedMaxAttrs.fali),
-        shenhai: Math.min(parseInt(H.SafeGetValue(stat_data, '当前神海', 0), 10) || 0, calculatedMaxAttrs.shenhai),
-        daoxin: Math.min(parseInt(H.SafeGetValue(stat_data, '当前道心', 0), 10) || 0, calculatedMaxAttrs.daoxin),
-        kongsu: Math.min(parseInt(H.SafeGetValue(stat_data, '当前空速', 0), 10) || 0, calculatedMaxAttrs.kongsu),
+        fali: Math.min(__toIntLocal(H.SafeGetValue(cur4, '法力', 0)), calculatedMaxAttrs.fali),
+        shenhai: Math.min(__toIntLocal(H.SafeGetValue(cur4, '神海', 0)), calculatedMaxAttrs.shenhai),
+        daoxin: Math.min(__toIntLocal(H.SafeGetValue(cur4, '道心', 0)), calculatedMaxAttrs.daoxin),
+        kongsu: Math.min(__toIntLocal(H.SafeGetValue(cur4, '空速', 0)), calculatedMaxAttrs.kongsu),
       };
+
 
       return { current: currentAttrs, max: calculatedMaxAttrs, base: baseAttrs };
     },
@@ -188,12 +207,16 @@
       const st = window.GuixuState.getState();
       const stat_data = st.currentMvuState?.stat_data || {};
 
+      // 适配新MVU：直接读取对象字典
+      const base4b = (stat_data && typeof stat_data['基础四维'] === 'object' ? stat_data['基础四维'] : null)
+        || (stat_data && typeof stat_data['基础四维属性'] === 'object' ? stat_data['基础四维属性'] : null)
+        || {};
       const base = {
-        fali: parseInt(H.SafeGetValue(stat_data, '基础法力', 0), 10) || 0,
-        shenhai: parseInt(H.SafeGetValue(stat_data, '基础神海', 0), 10) || 0,
-        daoxin: parseInt(H.SafeGetValue(stat_data, '基础道心', 0), 10) || 0,
-        kongsu: parseInt(H.SafeGetValue(stat_data, '基础空速', 0), 10) || 0,
-        qiyun: parseInt(H.SafeGetValue(stat_data, '基础气运', 0), 10) || 0,
+        fali: __toIntLocal(H.SafeGetValue(base4b, '法力', 0)),
+        shenhai: __toIntLocal(H.SafeGetValue(base4b, '神海', 0)),
+        daoxin: __toIntLocal(H.SafeGetValue(base4b, '道心', 0)),
+        kongsu: __toIntLocal(H.SafeGetValue(base4b, '空速', 0)),
+        qiyun: __toIntLocal(H.SafeGetValue(stat_data, '气运', 0)),
       };
 
       const sources = [];
@@ -614,9 +637,9 @@
     },
 
     /**
-     * 将“前端计算后的四维上限”写回 MVU 顶层变量，供其它模块（如交易/价格计算等）统一读取。
-     * 仅写回四维上限相关：法力/神海/道心/空速 以及 四维上限（对象）。不修改“当前四维”。
-     * 为避免频繁写入，仅当数值发生变化时才更新。
+     * 将“前端计算后的四维上限”写回到新结构：stat_data.四维上限。
+     * 不再镜像写入任何旧的顶层散键（如 法力上限/神海上限/道心上限/空速上限）。
+     * 仅当数值发生变化时才更新。
      */
     _writeBackPlayerCoreMax(maxAttrs) {
       try {
@@ -634,15 +657,21 @@
         };
 
         let changed = false;
-        // 顶层四维上限变量：法力/神海/道心/空速
-        Object.entries(cnMax).forEach(([k, v]) => {
-          const oldRaw = window.GuixuHelpers?.SafeGetValue?.(sd, k, null);
-          const old = Number.parseInt(String(oldRaw), 10);
-          if (!Number.isFinite(old) || old !== v) {
-            sd[k] = v;
-            changed = true;
-          }
-        });
+
+        // 对比“四维上限”对象是否需要更新
+        const oldMaxObj = (sd && typeof sd['四维上限'] === 'object') ? sd['四维上限'] : null;
+        if (oldMaxObj && typeof oldMaxObj === 'object') {
+          Object.entries(cnMax).forEach(([k, v]) => {
+            const old = Number.parseInt(String(oldMaxObj[k]), 10);
+            if (!Number.isFinite(old) || old !== v) changed = true;
+          });
+        } else {
+          changed = true;
+        }
+
+        // 同步回写：设置“四维上限”对象（新结构）
+        sd['四维上限'] = Object.assign({}, (oldMaxObj && typeof oldMaxObj === 'object' ? oldMaxObj : {}), cnMax);
+
 
         if (!changed) return;
 
@@ -659,7 +688,9 @@
                 const cur = (msgs && msgs[0] && msgs[0].data) ? msgs[0].data : (st?.currentMvuState || {});
                 const dataObj = cur && typeof cur === 'object' ? cur : { stat_data: {} };
                 const dst = dataObj.stat_data || (dataObj.stat_data = {});
-                Object.entries(cnMax).forEach(([k, v]) => { dst[k] = v; });
+                // 新结构：写入“四维上限”对象
+                const prev = (dst['四维上限'] && typeof dst['四维上限'] === 'object') ? dst['四维上限'] : {};
+                dst['四维上限'] = Object.assign({}, prev, cnMax);
 
                 const updates = [{ message_id: currentId, data: dataObj }];
                 if (currentId !== 0) updates.push({ message_id: 0, data: dataObj });
@@ -677,6 +708,7 @@
         console.warn('[归墟] 写回四维上限失败:', e);
       }
     },
+
 
     /**
      * UI入口：更新显示（现已改为渲染合并模块 + 进度条）
