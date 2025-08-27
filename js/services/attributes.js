@@ -117,6 +117,8 @@
 
       // 保底写入（与旧代码兼容）
       try { state.update && state.update('calculatedMaxAttributes', calculatedMaxAttrs); } catch (_) {}
+      // 回写：将前端计算得到的四维上限写入 MVU 顶层（法力/神海/道心/空速 四个上限变量）
+      try { this._writeBackPlayerCoreMax?.(calculatedMaxAttrs); } catch (_) {}
 
       // 当前值（不超过上限）
       const currentAttrs = {
@@ -608,6 +610,71 @@
       } catch (e) {
         console.warn('[归墟] 属性分解浮窗失败:', e);
         tipEl.style.display = 'none';
+      }
+    },
+
+    /**
+     * 将“前端计算后的四维上限”写回 MVU 顶层变量，供其它模块（如交易/价格计算等）统一读取。
+     * 仅写回四维上限相关：法力/神海/道心/空速 以及 四维上限（对象）。不修改“当前四维”。
+     * 为避免频繁写入，仅当数值发生变化时才更新。
+     */
+    _writeBackPlayerCoreMax(maxAttrs) {
+      try {
+        if (!maxAttrs) return;
+        const st = window.GuixuState?.getState?.();
+        const sd = st?.currentMvuState?.stat_data;
+        if (!sd || typeof sd !== 'object') return;
+
+        const toInt = (v) => Math.max(0, Number.parseInt(String(v ?? 0), 10) || 0);
+        const cnMax = {
+          '法力': toInt(maxAttrs.fali),
+          '神海': toInt(maxAttrs.shenhai),
+          '道心': toInt(maxAttrs.daoxin),
+          '空速': toInt(maxAttrs.kongsu),
+        };
+
+        let changed = false;
+        // 顶层四维上限变量：法力/神海/道心/空速
+        Object.entries(cnMax).forEach(([k, v]) => {
+          const oldRaw = window.GuixuHelpers?.SafeGetValue?.(sd, k, null);
+          const old = Number.parseInt(String(oldRaw), 10);
+          if (!Number.isFinite(old) || old !== v) {
+            sd[k] = v;
+            changed = true;
+          }
+        });
+
+        if (!changed) return;
+
+        // 更新内存中的计算上限缓存
+        try { st.calculatedMaxAttributes = Object.assign({}, st.calculatedMaxAttributes, { ...maxAttrs }); } catch (_) {}
+
+        // 持久化到当前楼层与第 0 楼，确保“后台 mvu 变量”为最新上限值
+        try {
+          const currentId = window.GuixuAPI.getCurrentMessageId();
+          if (typeof currentId !== 'undefined') {
+            (async () => {
+              try {
+                const msgs = await window.GuixuAPI.getChatMessages(currentId);
+                const cur = (msgs && msgs[0] && msgs[0].data) ? msgs[0].data : (st?.currentMvuState || {});
+                const dataObj = cur && typeof cur === 'object' ? cur : { stat_data: {} };
+                const dst = dataObj.stat_data || (dataObj.stat_data = {});
+                Object.entries(cnMax).forEach(([k, v]) => { dst[k] = v; });
+
+                const updates = [{ message_id: currentId, data: dataObj }];
+                if (currentId !== 0) updates.push({ message_id: 0, data: dataObj });
+                await window.GuixuAPI.setChatMessages(updates, { refresh: 'none' });
+
+                // 同步前端缓存
+                try { window.GuixuState.update('currentMvuState', dataObj); } catch(_) {}
+              } catch (perr) {
+                console.warn('[归墟] 持久化四维上限到 mvu 失败（已保持内存态）:', perr);
+              }
+            })();
+          }
+        } catch (_) {}
+      } catch (e) {
+        console.warn('[归墟] 写回四维上限失败:', e);
       }
     },
 

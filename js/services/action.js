@@ -48,6 +48,8 @@
             // 4. 提取并更新状态
             this.extractAndCacheResponse(aiResponse);
             await this.updateMvuState(aiResponse);
+            // 确保将前端计算得到的四维上限实时回写到 mvu 变量，再进行保存
+            try { window.GuixuAttributeService?.calculateFinalAttributes?.(); } catch (_) {}
             
             // 5. 静默保存到第0层
             await this.saveToMessageZero(aiResponse);

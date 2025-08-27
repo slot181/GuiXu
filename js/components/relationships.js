@@ -1494,6 +1494,8 @@ const description = h.SafeGetValue(rel, 'description', h.SafeGetValue(rel, '身�
         }));
         // 构建条形图：使用 computedMax 作为上限，curAttrs 作为当前
         const barsHtml = buildBars(computedMax, curAttrs);
+// 同步：将计算得到的上限写回 MVU（避免保存到酒馆的是基础值）
+try { await this._syncNpcFourDimMaxToMvu(rel, computedMax); } catch (_) {}
         // 灵根细节：属性加成/百分比加成/词条/当前状态
         const toArray = (v) => {
           const n = normalizeField(v);
@@ -4108,6 +4110,81 @@ const description = h.SafeGetValue(rel, 'description', h.SafeGetValue(rel, '身�
         return arr.filter(x => x && x !== '$__META_EXTENSIBLE__$');
       } catch (_) {
         return [];
+      }
+    },
+
+    /**
+     * 将计算得到的四维上限回写到 MVU（NPC 角色）
+     * 仅当与现有值不一致时写回，保持容器原始结构（对象字典/旧数组包装、字符串化条目）
+     */
+    async _syncNpcFourDimMaxToMvu(relRef, computedMax) {
+      try {
+        const h = window.GuixuHelpers;
+        const keys = ['法力','神海','道心','空速'];
+        const normalizeMax = (o) => {
+          const out = {};
+          keys.forEach(k => {
+            const v = Number((o || {})[k] || 0);
+            out[k] = Number.isFinite(v) ? Math.max(0, Math.floor(v)) : 0;
+          });
+          return out;
+        };
+        const newMax = normalizeMax(computedMax || {});
+        const currentId = window.GuixuAPI.getCurrentMessageId();
+        const messages = await window.GuixuAPI.getChatMessages(currentId);
+        const currentMvuState = (messages?.[0]?.data) || {};
+        currentMvuState.stat_data = currentMvuState.stat_data || {};
+        const stat_data = currentMvuState.stat_data;
+
+        // 定位 NPC
+        let loc = this._locateNpcInState(stat_data, relRef);
+        if (!loc) {
+          try {
+            if (this._rebuildRelationshipDict(stat_data)) {
+              loc = this._locateNpcInState(stat_data, relRef);
+            }
+          } catch (_) {}
+        }
+        if (!loc) return;
+
+        const { containerType, matchKeyOrIdx } = loc;
+        let relObj = loc.relObj || {};
+        const originalRelEntry = loc.originalRelEntry;
+
+        // 比较：若现有四维上限与 newMax 完全一致则跳过
+        const oldMaxRaw = relObj && (relObj['四维上限'] ?? relObj['四维属性']);
+        let needWrite = true;
+        try {
+          if (oldMaxRaw && typeof oldMaxRaw === 'object') {
+            const oldNorm = normalizeMax(oldMaxRaw);
+            needWrite = keys.some(k => Number(oldNorm[k] || 0) !== Number(newMax[k] || 0));
+          }
+        } catch (_) {}
+
+        if (!needWrite) return;
+
+        // 回写
+        relObj['四维上限'] = newMax;
+
+        if (containerType === 'object') {
+          const wasStringContainer = (typeof stat_data['人物关系列表'] === 'string');
+          let dict;
+          try { dict = wasStringContainer ? JSON.parse(stat_data['人物关系列表']) : stat_data['人物关系列表']; } catch { dict = {}; }
+          if (!dict || typeof dict !== 'object' || Array.isArray(dict)) dict = {};
+          dict[matchKeyOrIdx] = (typeof originalRelEntry === 'string') ? JSON.stringify(relObj) : relObj;
+          stat_data['人物关系列表'] = wasStringContainer ? JSON.stringify(dict) : dict;
+        } else {
+          const wrap = Array.isArray(stat_data['人物关系列表']) ? stat_data['人物关系列表'] : [[]];
+          const list = Array.isArray(wrap[0]) ? wrap[0] : [];
+          list[matchKeyOrIdx] = (typeof originalRelEntry === 'string') ? JSON.stringify(relObj) : relObj;
+          stat_data['人物关系列表'] = [list];
+        }
+
+        const updates = [{ message_id: currentId, data: currentMvuState }];
+        if (currentId !== 0) updates.push({ message_id: 0, data: currentMvuState });
+        await window.GuixuAPI.setChatMessages(updates, { refresh: 'none' });
+      } catch (e) {
+        console.warn('[归墟] 回写四维上限失败:', e);
       }
     },
 
