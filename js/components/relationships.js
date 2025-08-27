@@ -802,6 +802,9 @@
               font-weight: 800;
               color: #e8e3d6;
               text-shadow: 0 0 6px rgba(201,170,113,0.15);
+              white-space: nowrap;      /* 移动端防止姓名被挤压换行成竖排 */
+              overflow: hidden;         /* 超出隐藏 */
+              text-overflow: ellipsis;  /* 尾部省略号 */
             }
             .relationship-header .header-left {
               display: inline-flex;
@@ -1654,17 +1657,32 @@ const description = h.SafeGetValue(rel, 'description', h.SafeGetValue(rel, '身�
               justify-content: space-between;
               gap: 10px;
               margin-bottom: 6px;
+              flex-wrap: nowrap; /* 避免在窄屏被强制挤压导致姓名竖排 */
             }
             .name-line .char-name {
               font-size: 18px;
               font-weight: 800;
               color: #e8e3d6;
               text-shadow: 0 0 6px rgba(201,170,113,0.2);
+              flex: 1 1 auto;           /* 占据剩余空间，避免被标签挤压 */
+              min-width: 0;             /* 允许收缩并配合省略 */
+              white-space: nowrap;      /* 姓名单行显示 */
+              overflow: hidden;         /* 超出隐藏 */
+              text-overflow: ellipsis;  /* 尾部省略 */
             }
             .pill-group {
               display: flex;
               gap: 6px;
               flex-wrap: wrap;
+              flex: 0 0 auto;           /* 标签本身不去抢占姓名空间 */
+              justify-content: flex-end; /* 默认右侧对齐 */
+            }
+
+            /* 移动端：将姓名放到第一行，标签自动换到下一行，避免姓名被挤成竖排 */
+            @media (max-width: 520px) {
+              .name-line { flex-wrap: wrap; }
+              .name-line .char-name { flex-basis: 100%; min-width: 0; }
+              .pill-group { width: 100%; justify-content: flex-start; }
             }
             .kv {
               display: grid;
@@ -1953,11 +1971,18 @@ const description = h.SafeGetValue(rel, 'description', h.SafeGetValue(rel, '身�
                 return `<div class="attribute-item"><span class="attribute-name">效果</span><span class="attribute-value"></span></div>` +
                   entries.map(([k, v]) => `<div class="attribute-item"><span class="attribute-name">${k}</span><span class="attribute-value">${v}</span></div>`).join('');
               }
+              /* 新增：当 effects 是纯标量（字符串/数字/布尔）时也要渲染，而不是直接丢弃 */
+              if (eff != null && (typeof eff === 'string' || typeof eff === 'number' || typeof eff === 'boolean')) {
+                const s = clean(typeof eff === 'string' ? eff : String(eff));
+                if (!s) return '';
+                return `<div class="attribute-item"><span class="attribute-name">效果</span><span class="attribute-value"></span></div>` +
+                  `<div class="attribute-item"><span class="attribute-name">条目</span><span class="attribute-value">${s}</span></div>`;
+              }
               if (!eff || typeof eff !== 'object') return '';
               const items = Object.entries(eff).filter(([k, v]) => v !== undefined && v !== null && clean(v) !== '');
               if (!items.length) return '';
               return `<div class="attribute-item"><span class="attribute-name">效果</span><span class="attribute-value"></span></div>` +
-                items.map(([k, v]) => `<div class="attribute-item"><span class="attribute-name">${k}</span><span class="attribute-value">${v}</span></div>`).join('');
+                items.map(([k, v]) => `<div class="attribute-item"><span class="attribute-name">${k}</span><span class="attribute-value">${typeof v === 'string' ? clean(v) : clean(JSON.stringify(v))}</span></div>`).join('');
             };
             return list.map(st => {
               const sName = h.SafeGetValue(st, 'name', '未知状态');
@@ -1965,8 +1990,16 @@ const description = h.SafeGetValue(rel, 'description', h.SafeGetValue(rel, '身�
               const sType = typeMap[typeKey] || h.SafeGetValue(st, 'type', 'NEUTRAL');
               const sDur = h.SafeGetValue(st, 'duration', 0);
               const sDesc = h.SafeGetValue(st, 'description', '');
-              let eff = h.SafeGetValue(st, 'effects', h.SafeGetValue(st, '效果', h.SafeGetValue(st, 'buffs', null)));
+              // 修复：优先读取原始 effects 对象/数组，避免 SafeGetValue 将对象折叠为首项导致只渲染一条
+              let eff = (st && (st.effects ?? st.effect ?? st['效果'] ?? st.buffs)) ?? null;
               const rawEffectsCandidate = st && (st.effects ?? st['effect'] ?? st['效果'] ?? st['buffs']);
+              // 始终优先使用原始对象/数组（即使 SafeGetValue 返回了字符串/单值）
+              if (rawEffectsCandidate && typeof rawEffectsCandidate === 'object') {
+                eff = rawEffectsCandidate;
+              } else if (eff == null) {
+                // 回退：仅在没有原始对象时，才使用 SafeGetValue 读取可能的字符串
+                eff = h.SafeGetValue(st, 'effects', h.SafeGetValue(st, 'effect', h.SafeGetValue(st, '效果', h.SafeGetValue(st, 'buffs', null))));
+              }
               // 兼容字符串化 "[object Object]" 场景：用原始对象兜底（参考 StatusesComponent._normalizeOne）
               if (typeof eff === 'string' && eff.trim && eff.trim() === '[object Object]' && rawEffectsCandidate && typeof rawEffectsCandidate === 'object') {
                 eff = rawEffectsCandidate;
