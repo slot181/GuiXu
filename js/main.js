@@ -650,15 +650,30 @@ if (!document.getElementById('guixu-font-override-style')) {
         characterPanel.addEventListener('click', (e) => {
           const slot = e.target.closest('.equipment-slot');
           if (slot && slot.classList.contains('equipped')) {
-            e.preventDefault();
-            // 改为：点击已装备的槽位直接卸下，并写回MVU与背包（移动端/桌面端统一）
-            try { this.hideEquipmentTooltip(); } catch (_) {}
-            const slotId = slot.id || '';
-            try {
-              if (window.InventoryComponent && typeof window.InventoryComponent.unequipItem === 'function') {
-                window.InventoryComponent.unequipItem(slotId);
-              }
-            } catch (_) {}
+    e.preventDefault();
+    // 更新：点击已装备槽位时先弹出确认浮窗（移动端/桌面端、全屏/非全屏通用），避免误触直接卸下
+    try { this.hideEquipmentTooltip(); } catch (_) {}
+    const slotId = slot.id || '';
+    // 解析物品名称用于确认文案
+    let itemName = '一件装备';
+    try {
+      const raw = (slot.dataset?.itemDetails || '').replace(/'/g, "'");
+      const obj = raw ? JSON.parse(raw) : null;
+      itemName = window.GuixuHelpers?.SafeGetValue(obj, 'name', itemName) || itemName;
+    } catch (_) {}
+    const msg = `确定要卸下【${itemName}】吗？`;
+    const doUnequip = () => {
+      try {
+        if (window.InventoryComponent && typeof window.InventoryComponent.unequipItem === 'function') {
+          window.InventoryComponent.unequipItem(slotId);
+        }
+      } catch (_) {}
+    };
+    if (window.GuixuMain && typeof window.GuixuMain.showCustomConfirm === 'function') {
+      window.GuixuMain.showCustomConfirm(msg, doUnequip, () => {});
+    } else {
+      if (confirm(msg)) doUnequip();
+    }
           }
         });
       }
@@ -1907,7 +1922,9 @@ if (!document.getElementById('guixu-font-override-style')) {
           } catch (_) {}
 
           // 同步提取内容到 State（忽略思维链内容；兼容繁体标签）
-          const __parseBase = String(contentToParse || '').replace(/<thinking[^>]*>[\s\S]*?<\/thinking>/gi, '');
+          const __parseBase = String(contentToParse || '')
+            .replace(/<thinking[^>]*>[\s\S]*?<\/thinking>/gi, '')
+            .replace(/<\s*action[^>]*>[\s\S]*?<\/\s*action\s*>/gi, '');
           window.GuixuState.update('lastExtractedNovelText', this._extractLastTagContent('gametxt', __parseBase));
           window.GuixuState.update('lastExtractedJourney',
             (window.GuixuHelpers?.extractLastTagContentByAliases?.('本世历程', __parseBase, true)
@@ -2316,20 +2333,15 @@ container.style.fontFamily = `"Microsoft YaHei", "Noto Sans SC", "PingFang SC", 
       }
     },
 
-    // 新增：严格提取 <行动方针> 内容并返回剔除后的原文
+    // 更新：严格提取 <action> 内容并返回剔除后的原文（不再兼容旧“行动方针”标签）
     _parseActionGuidelines(rawText) {
       try {
         const stripThinking = (s) => String(s || '').replace(/<thinking[^>]*>[\s\S]*?<\/thinking>/gi, '');
         const text = stripThinking(rawText);
-        // 使用 Helpers 的“别名+宽松”提取，兼容 <行-动-方-针>/<行動方針> 等变体
-        const aliases = (window.GuixuHelpers?.getTagAliases?.('行动方针')) || ['行动方针', '行動方針'];
-        const block = window.GuixuHelpers?.extractLastTagContentByAliases?.(aliases, text, true) || '';
-        // 移除所有“行动方针”块（多别名，宽松匹配名）
-        const esc = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        const looseGroup = aliases
-          .map(name => name.split('').map(ch => esc(ch)).join('[\\s\\-—_·•－]*'))
-          .join('|');
-        const reAll = new RegExp(`<\\s*(?:${looseGroup})[^>]*>[\\s\\S]*?<\\/\\s*(?:${looseGroup})\\s*>`, 'gi');
+        // 改为仅捕捉标准 <action> 标签
+        const block = window.GuixuHelpers?.extractLastTagContent?.('action', text, true) || '';
+        // 移除所有 <action> 块
+        const reAll = /<\s*action[^>]*>[\s\S]*?<\/\s*action\s*>/gi;
         const strippedText = block ? text.replace(reAll, '') : text;
         const items = this._normalizeGuidelineItems(block);
         return { strippedText, items };

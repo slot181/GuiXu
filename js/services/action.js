@@ -131,7 +131,9 @@
         extractAndCacheResponse(aiResponse) {
             const state = window.GuixuState;
             // 忽略 <thinking> 区块，防止其中的“自检标签”污染正文/提取
-            const base = String(aiResponse || '').replace(/<thinking[^>]*>[\s\S]*?<\/thinking>/gi, '');
+            const base = String(aiResponse || '')
+                .replace(/<thinking[^>]*>[\s\S]*?<\/thinking>/gi, '')
+                .replace(/<\s*action[^>]*>[\s\S]*?<\/\s*action\s*>/gi, '');
             const H = window.GuixuHelpers || GuixuHelpers;
 
             state.update('lastExtractedNovelText', H.extractLastTagContent('gametxt', base));
