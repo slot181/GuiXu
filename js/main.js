@@ -138,6 +138,8 @@
 
       // 顶层事件绑定
       this.bindTopLevelListeners();
+      // 订阅全局状态事件（一次性），用于在 mvu 或装备变化时即时刷新UI
+      this.ensureStateSubscriptions();
 
       // 自动检测并应用移动端视图
       this._autoDetectMobileAndApply();
@@ -693,6 +695,46 @@ if (!document.getElementById('guixu-font-override-style')) {
           const idx = window.GuixuState?.getState?.().unifiedIndex || 1;
           idxEl.value = String(idx);
         }
+      }
+    },
+
+    // 订阅全局状态事件（仅绑定一次）
+    ensureStateSubscriptions() {
+      try {
+        if (this._stateSubsBound) return;
+        this._stateSubsBound = true;
+
+        // 当 MVU 完整状态变更（包括 stat_data）时，直接用最新 stat 渲染
+        document.addEventListener('guixu:mvuChanged', (e) => {
+          try {
+            const stat = e && e.detail ? e.detail.stat_data : null;
+            if (stat && Object.keys(stat).length > 0) {
+              this.renderUI(stat);
+              if (window.GuixuAttributeService?.updateDisplay) window.GuixuAttributeService.updateDisplay();
+            } else {
+              // 缺少 stat_data 时兜底拉一次
+              this.updateDynamicData();
+            }
+          } catch (_) {}
+        }, { passive: true });
+
+        // 当本地装备槽位状态变化时（equippedItems），优先基于当前缓存的 mvu 进行统一渲染
+        document.addEventListener('guixu:equippedChanged', () => {
+          try {
+            const stat = window.GuixuState?.getState?.().currentMvuState?.stat_data || null;
+            if (stat && Object.keys(stat).length > 0) {
+              this.renderUI(stat);
+              if (window.GuixuAttributeService?.updateDisplay) window.GuixuAttributeService.updateDisplay();
+            } else {
+              this.updateDynamicData();
+            }
+          } catch (_) {}
+        }, { passive: true });
+
+        // 可选调试：通用状态变更
+        // document.addEventListener('guixu:stateChanged', (e) => { console.log('stateChanged', e.detail); }, { passive: true });
+      } catch (e) {
+        console.warn('[归墟] ensureStateSubscriptions 失败:', e);
       }
     },
 

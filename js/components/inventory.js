@@ -610,12 +610,23 @@
       // 同一物品若在其他槽位，先卸下
       const currentSlot = Object.keys(equipped).find(k => equipped[k]?.id === itemId);
       if (currentSlot && currentSlot !== slotKey) {
-        await this.unequipItem(`equip-${currentSlot}`, false);
+        await this.unequipItem(`equip-${currentSlot}`, false, false);
       }
+
+      // 记录槽位原物品以便“撤销卸下/还原”
+      try {
+        const swapBuffer = { ...(state.equipSwapBuffer || {}) };
+        if (equipped[slotKey] && equipped[slotKey]?.id !== itemId) {
+          swapBuffer[slotKey] = equipped[slotKey];
+        } else {
+          delete swapBuffer[slotKey];
+        }
+        window.GuixuState.update('equipSwapBuffer', swapBuffer);
+      } catch (_) {}
 
       // 如果目标槽位已有装备，先卸下
       if (equipped[slotKey]) {
-        await this.unequipItem(`equip-${slotKey}`, false);
+        await this.unequipItem(`equip-${slotKey}`, false, false);
       }
 
       // 更新状态
@@ -661,7 +672,7 @@
     },
 
     // 逻辑：卸下
-    async unequipItem(slotId, refresh = true) {
+    async unequipItem(slotId, refresh = true, respectSwapBuffer = true) {
       const $ = (sel, ctx = document) => ctx.querySelector(sel);
       const h = window.GuixuHelpers;
       const state = window.GuixuState.getState();
@@ -678,11 +689,6 @@
         itemName = h.SafeGetValue(itemObj, 'name', itemName);
       } catch {}
 
-      // 清状态
-      equipped[slotKey] = null;
-      window.GuixuState.update('equippedItems', equipped);
-
-      // 清UI
       const defaultTextMap = {
         wuqi: '武器',
         fangju: '防具',
@@ -691,17 +697,73 @@
         zhuxiuGongfa: '主修功法',
         fuxiuXinfa: '辅修心法',
       };
-      slotEl.textContent = defaultTextMap[slotKey] || '空';
+      const categoryText = defaultTextMap[slotKey] || '空';
+
+      // 若存在“换装回退缓存”，此处视为撤销本次装备：恢复之前的物品并清理相关指令
+      const swapPrev = (state.equipSwapBuffer || {})[slotKey] || null;
+      if (respectSwapBuffer && swapPrev) {
+        // 恢复之前的物品到槽位（状态+UI）
+        equipped[slotKey] = swapPrev;
+        window.GuixuState.update('equippedItems', equipped);
+
+        try {
+          const prevTier = h.SafeGetValue(swapPrev, 'tier', '凡品');
+          const prevStyle = h.getTierStyle(prevTier);
+          slotEl.textContent = h.SafeGetValue(swapPrev, 'name');
+          slotEl.setAttribute('style', prevStyle);
+          slotEl.classList.add('equipped');
+          slotEl.dataset.itemDetails = JSON.stringify(swapPrev).replace(/'/g, "'");
+        } catch (_) {}
+
+        // 将当前“新物品”（正要卸下的）放回背包（仅回退到背包列表，不清空槽位）
+        await this.addItemBackToInventory(slotKey, itemObj);
+
+        // 同步变量与背包（等价装备事务：写入槽位并从背包移除原先物）
+        await this.applyEquipTransaction(slotKey, swapPrev);
+
+        // 清理 pendingActions 中与本次切换相关的 equip/unequip 指令
+        try {
+          const prevName = h.SafeGetValue(swapPrev, 'name', '未知物品');
+          const cleaned = (state.pendingActions || []).filter(a => {
+            if (!a) return false;
+            // 清除：当前卸下项（itemName）的 equip/unequip 指令
+            if ((a.action === 'equip' || a.action === 'unequip') && a.itemName === itemName && a.category === categoryText) return false;
+            // 清除：之前物品的“卸下”指令（因为已还原）
+            if (a.action === 'unequip' && a.itemName === prevName && a.category === categoryText) return false;
+            return true;
+          });
+          window.GuixuState.update('pendingActions', cleaned);
+        } catch (_) {}
+
+        // 清空该槽位的回退缓存
+        try {
+          const buf = { ...(state.equipSwapBuffer || {}) };
+          delete buf[slotKey];
+          window.GuixuState.update('equipSwapBuffer', buf);
+        } catch (_) {}
+
+        window.GuixuHelpers.showTemporaryMessage(`已取消卸下，恢复 ${h.SafeGetValue(swapPrev, 'name', '原物品')}`);
+
+        if (refresh) await this.show();
+        if (window.GuixuAttributeService?.updateDisplay) window.GuixuAttributeService.updateDisplay();
+        return;
+      }
+
+      // 否则执行标准卸下流程：清状态+UI，写回到背包，追加一条“卸下”指令
+      equipped[slotKey] = null;
+      window.GuixuState.update('equippedItems', equipped);
+
+      slotEl.textContent = categoryText;
       slotEl.classList.remove('equipped');
       slotEl.removeAttribute('style');
       delete slotEl.dataset.itemDetails;
 
-            // 实时写回变量（清空该槽位）并回退到背包列表
+      // 实时写回变量（清空该槽位）并回退到背包列表
       await this.applyUnequipTransaction(slotKey, itemObj);
 
-      // 加队列
-      const pending = [...(state.pendingActions || [])].filter(a => !(a.action === 'unequip' && a.itemName === itemName));
-      pending.push({ action: 'unequip', itemName, category: defaultTextMap[slotKey] });
+      // 加队列（由 GuixuState.normalizePendingActions 进一步去重/对消）
+      const pending = [...(state.pendingActions || [])].filter(a => !(a.action === 'unequip' && a.itemName === itemName && a.category === categoryText));
+      pending.push({ action: 'unequip', itemName, category: categoryText });
       window.GuixuState.update('pendingActions', pending);
 
       window.GuixuHelpers.showTemporaryMessage(`已卸下 ${itemName}`);
@@ -1164,6 +1226,85 @@
         window.GuixuState.update('currentMvuState', currentMvuState);
       } catch (e) {
         console.warn('[归墟] applyUnequipTransaction 失败:', e);
+      }
+    },
+
+    // 新增：仅将物品回退到背包（不清空槽位；用于撤销刚刚的换装时，避免新物品“消失”）
+    async addItemBackToInventory(slotKey, item) {
+      try {
+        if (!item || typeof item !== 'object') return;
+
+        const currentId = window.GuixuAPI.getCurrentMessageId();
+        const messages = await window.GuixuAPI.getChatMessages(currentId);
+        if (!messages || !messages[0]) return;
+        const currentMvuState = messages[0].data || {};
+        currentMvuState.stat_data = currentMvuState.stat_data || {};
+
+        const fallbackMap = {
+          wuqi: '武器列表',
+          fangju: '防具列表',
+          shipin: '饰品列表',
+          fabao1: '法宝列表',
+          zhuxiuGongfa: '功法列表',
+          fuxiuXinfa: '功法列表',
+        };
+
+        // 推断应回退的背包列表键
+        let listKey = this._getInventoryListKey(item, null) || fallbackMap[slotKey] || null;
+        if (!listKey) return;
+
+        // 统一转换为对象字典（兼容旧数组包装）
+        const ensureObjectDict = (lv) => {
+          if (Array.isArray(lv)) {
+            const arr = lv[0] || [];
+            const obj = { $meta: { extensible: true } };
+            const used = new Set();
+            arr.forEach((i, idx) => {
+              let v = i;
+              if (typeof v === 'string') { try { v = JSON.parse(v); } catch (_) {} }
+              if (!v || typeof v !== 'object') return;
+              const name = window.GuixuHelpers.SafeGetValue(v, 'name', null);
+              const id = window.GuixuHelpers.SafeGetValue(v, 'id', null);
+              let key = (name && name !== 'N/A') ? String(name) : (id != null ? String(id) : `条目${idx+1}`);
+              while (Object.prototype.hasOwnProperty.call(obj, key) || used.has(key)) { key = `${key}_`; }
+              used.add(key);
+              obj[key] = v;
+            });
+            return obj;
+          }
+          if (!lv || typeof lv !== 'object') return { $meta: { extensible: true } };
+          if (!lv.$meta) { try { lv.$meta = { extensible: true }; } catch (_) {} }
+          return lv;
+        };
+
+        const existing = currentMvuState.stat_data[listKey];
+        const dict = ensureObjectDict(existing);
+        currentMvuState.stat_data[listKey] = dict;
+
+        // 避免重复：按 id/name 去重
+        const id = window.GuixuHelpers.SafeGetValue(item, 'id', null);
+        const name = window.GuixuHelpers.SafeGetValue(item, 'name', null);
+        const keys = Object.keys(dict).filter(k => k !== '$meta');
+        const hasSame = keys.some(k => {
+          let v = dict[k];
+          if (typeof v === 'string') { try { v = JSON.parse(v); } catch (_) {} }
+          return v && typeof v === 'object' && ((id && v.id === id) || v.name === name);
+        });
+        if (!hasSame) {
+          let keyName = (name && name !== 'N/A') ? String(name) : (id != null ? String(id) : '物品');
+          while (Object.prototype.hasOwnProperty.call(dict, keyName)) { keyName = `${keyName}_`; }
+          dict[keyName] = item;
+        }
+
+        // 双写：当前楼层与第0楼
+        const updates = [{ message_id: currentId, data: currentMvuState }];
+        if (currentId !== 0) updates.push({ message_id: 0, data: currentMvuState });
+        await window.GuixuAPI.setChatMessages(updates, { refresh: 'none' });
+
+        // 同步前端缓存
+        window.GuixuState.update('currentMvuState', currentMvuState);
+      } catch (e) {
+        console.warn('[归墟] addItemBackToInventory 失败:', e);
       }
     },
 

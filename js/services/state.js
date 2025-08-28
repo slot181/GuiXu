@@ -13,6 +13,7 @@
     },
     currentMvuState: null, // 缓存最新的完整mvu状态
     pendingActions: [], // 指令队列/购物车
+    equipSwapBuffer: {}, // 本轮会话内的槽位临时回退缓存：slotKey -> 之前的装备对象
     // 交易违规计数（会话级/可持久化）：key -> attempts
     tradeAbuseCounters: {},
 
@@ -114,55 +115,91 @@
 
     /**
      * 规范化并去重“指令队列”（pendingActions）
-     * 规则：
-     * - equip / unequip：按 (action,itemName,category) 去重，保留最后一次的设置
-     * - use / discard：按 (action,itemName[,category]) 聚合数量，数量求和
-     * - 保持整体相对顺序稳定（以首次出现位置为主）
+     * 规则更新：
+     * - equip/unequip：对同一 (itemName,category) 按顺序成对抵消（如先装备后卸下 => 两条均清除；反复切换仅保留最后的净效果）
+     * - use/discard：按 (action,itemName[,category]) 聚合数量求和
+     * - 保持整体相对顺序尽可能稳定（以首次出现位置为基准）
      */
     normalizePendingActions(actions) {
       try {
         const arr = Array.isArray(actions) ? actions : [];
-        const buildSig = (a) => {
-          const action = a?.action || '';
+
+        // 1) 聚合 use/discard
+        const aggMap = new Map(); // sig -> obj
+        const aggOrder = [];      // {sig,index}
+        const sigOf = (a) => {
           const name = a?.itemName || a?.name || '';
           const category = a?.category || '';
-          if (action === 'use') return `use|${name}`;
-          if (action === 'discard') return `discard|${name}|${category}`;
-          if (action === 'equip') return `equip|${name}|${category}`;
-          if (action === 'unequip') return `unequip|${name}|${category}`;
-          return `${action}|${name}|${category}`;
+          if (a?.action === 'use') return `use|${name}`;
+          if (a?.action === 'discard') return `discard|${name}|${category}`;
+          return '';
         };
 
-        const acc = new Map();       // sig -> aggregated object
-        const firstIndex = new Map(); // sig -> first index for stable ordering
+        // 2) equip/unequip 抵消栈
+        const keyOfEquip = (a) => {
+          const name = a?.itemName || a?.name || '';
+          const category = a?.category || '';
+          return `${name}|${category}`;
+        };
+        const stacks = new Map();   // key -> [{action,obj}]
+        const firstIndex = new Map(); // key -> first index
 
-        arr.forEach((a, i) => {
-          if (!a || typeof a !== 'object') return;
-          const sig = buildSig(a);
-          const action = a.action;
+        // 3) 其它动作直通（保持位置）
+        const passthrough = [];
 
-          if (action === 'use' || action === 'discard') {
-            if (!acc.has(sig)) {
-              const qty = Number(a.quantity) || 1;
-              acc.set(sig, Object.assign({}, a, { quantity: qty }));
-              firstIndex.set(sig, i);
+        for (let i = 0; i < arr.length; i++) {
+          const a = arr[i];
+          if (!a || typeof a !== 'object') continue;
+          const act = a.action;
+
+          if (act === 'use' || act === 'discard') {
+            const sig = sigOf(a);
+            if (!aggMap.has(sig)) {
+              aggMap.set(sig, { ...a, quantity: Number(a.quantity) || 1 });
+              aggOrder.push({ sig, index: i });
             } else {
-              const obj = acc.get(sig);
+              const obj = aggMap.get(sig);
               obj.quantity = (Number(obj.quantity) || 0) + (Number(a.quantity) || 1);
             }
-          } else {
-            // equip / unequip：保留“最后一次”
-            acc.set(sig, Object.assign({}, a));
-            if (!firstIndex.has(sig)) firstIndex.set(sig, i);
+            continue;
           }
-        });
 
-        // 输出时按首次出现顺序
-        const ordered = Array.from(firstIndex.entries())
-          .sort((a, b) => a[1] - b[1])
-          .map(([sig]) => acc.get(sig));
+          if (act === 'equip' || act === 'unequip') {
+            const key = keyOfEquip(a);
+            if (!stacks.has(key)) {
+              stacks.set(key, []);
+              firstIndex.set(key, i);
+            }
+            const stack = stacks.get(key);
+            if (stack.length > 0 && stack[stack.length - 1].action !== act) {
+              // 相邻相反动作抵消（等价于撤销）
+              stack.pop();
+            } else {
+              stack.push({ action: act, obj: { ...a } });
+            }
+            continue;
+          }
 
-        return ordered;
+          // 未知/其它动作：保底直通
+          passthrough.push({ obj: { ...a }, index: i });
+        }
+
+        // 汇总 equip/unequip 净效果
+        const equipUnequipNet = [];
+        for (const [key, stack] of stacks.entries()) {
+          const idx = firstIndex.get(key);
+          stack.forEach(entry => equipUnequipNet.push({ obj: entry.obj, index: idx }));
+        }
+
+        // 汇总 use/discard
+        const useDiscardList = aggOrder.map(({ sig, index }) => ({ obj: aggMap.get(sig), index }));
+
+        // 合并并按 index 恢复顺序
+        const merged = [...useDiscardList, ...equipUnequipNet, ...passthrough]
+          .sort((a, b) => a.index - b.index)
+          .map(e => e.obj);
+
+        return merged;
       } catch (e) {
         console.warn('[归墟] normalizePendingActions 失败:', e);
         return Array.isArray(actions) ? actions : [];
@@ -205,6 +242,22 @@
                     valueToStore = value ? 'mobile' : 'desktop';
                 }
                 localStorage.setItem(storageMap[key], JSON.stringify(valueToStore));
+            }
+            // 广播状态变更事件：用于触发UI实时刷新（避免手动调用）
+            try {
+                // 通用状态变更
+                document.dispatchEvent(new CustomEvent('guixu:stateChanged', { detail: { key, value } }));
+                // MVU 完整状态变更 -> 携带 stat_data
+                if (key === 'currentMvuState') {
+                    const stat = (value && value.stat_data) ? value.stat_data : (this.currentMvuState && this.currentMvuState.stat_data) || null;
+                    document.dispatchEvent(new CustomEvent('guixu:mvuChanged', { detail: { stat_data: stat } }));
+                }
+                // 装备槽位本地状态变更（equippedItems）
+                if (key === 'equippedItems') {
+                    document.dispatchEvent(new CustomEvent('guixu:equippedChanged', { detail: { equippedItems: value } }));
+                }
+            } catch (e) {
+                console.warn('[归墟] 派发状态变更事件失败:', e);
             }
         } else {
             console.warn(`GuixuState 中不存在键: ${key}`);

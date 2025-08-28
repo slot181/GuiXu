@@ -54,6 +54,9 @@
             // 5. 静默保存到第0层
             await this.saveToMessageZero(aiResponse);
 
+            // 新轮对话已发送：清空本轮的装备回退缓冲，避免跨轮误还原
+            try { window.GuixuState.update('equipSwapBuffer', {}); } catch (_) {}
+
             // 6. 返回新的状态和AI响应
             return {
                 newMvuState: state.getState().currentMvuState,
