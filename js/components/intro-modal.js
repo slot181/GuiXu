@@ -21,10 +21,10 @@
         // 内容容器（遵循 .modal-content 风格，适度收窄）
         const content = document.createElement('div');
         content.className = 'modal-content';
-        content.style.maxWidth = '640px';
+        content.style.maxWidth = '480px';
         content.style.width = '92%';
         content.style.height = 'auto';
-        content.style.maxHeight = '90vh';
+        content.style.maxHeight = '80vh';
 
         // 头部
         const header = document.createElement('div');
@@ -84,11 +84,11 @@
               </div>
               <div class="attribute-item" style="justify-content:flex-start; gap:10px;">
                 <span class="attribute-name">正文错乱</span>
-                <span class="attribute-value" style="font-weight:400;">若正文出现思维链，请用小铅笔检查并补全 <code><gametxt></code> 标签。</span>
+                <span class="attribute-value" style="font-weight:400;">若正文出现思维链等无关内容，请用小铅笔检查正文是否被 <code><gametxt></gametxt></code> 标签正常包裹。</span>
               </div>
               <div class="attribute-item" style="justify-content:flex-start; gap:10px;">
                 <span class="attribute-name">行动选项</span>
-                <span class="attribute-value" style="font-weight:400;">若 <code>行动选项</code> 未触发，请用小铅笔检查其<code><action></code>标签是否正确包裹。</span>
+                <span class="attribute-value" style="font-weight:400;">若行动选项未触发，请用小铅笔检查<code><action></action></code>标签是否正确包裹。</span>
               </div>
               <div class="attribute-item" style="justify-content:flex-start; gap:10px;">
                 <span class="attribute-name">存档方式</span>
@@ -109,8 +109,8 @@
                 <span class="attribute-value" style="font-weight:400;">喜欢本项目，欢迎到 <a href="https://github.com/slot181/GuiXu" target="_blank" rel="noopener noreferrer">GitHub 仓库</a> 点赞并分享给朋友。</span>
               </div>
               <div class="attribute-item" style="justify-content:flex-start; gap:10px;">
-                <span class="attribute-name">反馈与建议</span>
-                <span class="attribute-value" style="font-weight:400;">在使用中遇到任何问题或有改进建议，随时可以提出。</span>
+                <span class="attribute-name">反馈</span>
+                <span class="attribute-value" style="font-weight:400;">在使用中遇到任何问题，可来 Discord 提出你的问题 <a href="https://discord.com/channels/1134557553011998840/1395002325751300227" target="_blank" rel="noopener noreferrer">原贴讨论</a>。</span>
               </div>
               <div class="attribute-item" style="justify-content:flex-start; gap:10px;">
                 <span class="attribute-name">鸣谢</span>
@@ -145,6 +145,10 @@
         content.appendChild(body);
         content.appendChild(footer);
         overlay.appendChild(content);
+        // 统一浮窗内链接颜色为蓝色并加下划线，避免继承金色主题
+        const linkStyle = document.createElement('style');
+        linkStyle.textContent = '#intro-modal a, #intro-modal a:visited { color:#3b82f6 !important; text-decoration: underline; } #intro-modal a:hover { color:#2563eb !important; }';
+        content.appendChild(linkStyle);
         root.appendChild(overlay);
 
         // 行为：关闭/确认
