@@ -69,23 +69,53 @@
 
           <div class="panel-section" style="margin-bottom:12px;">
             <div class="section-title">注意事项</div>
-            <div style="color:#a09c91; font-size:12px; line-height:1.7;">
-              <ol style="margin:6px 0 0 18px; padding-left: 1em; list-style: decimal;">
-                <li style="margin-bottom: 4px;"><strong>必须开启新档</strong>: 此版本为重构版，<strong>无法兼容旧存档</strong>。请务必在导入本卡前，删除或重命名旧版“1归墟”世界书。</li>
-                <li style="margin-bottom: 4px;"><strong>网络要求</strong>: 本卡通过 <strong>JsDelivr</strong> 加载脚本，游玩时请确保网络连接通畅。</li>
-                <li style="margin-bottom: 4px;"><strong>加载/显示问题</strong>: 若首次加载时 UI 渲染失败或出现思维链等错乱内容，请点击右上角<strong>小铅笔图标</strong>刷新。若问题依旧，请检查正文是否被 <code><gametxt></gametxt></code> 标签包裹。</li>
-                <li style="margin-bottom: 4px;"><strong>存档与读档</strong>: 正文界面的存档系统为<strong>世界书云存档</strong>，与开局的前端本地存档不通用。请在正文前端进行读档操作。</li>
-                <li style="margin-bottom: 4px;"><strong>开启干净存档</strong>: 若要开启一个全新的存档，请修改世界书控制的<strong>读写序号</strong>，或在存档管理中<strong>一键清除所有存档</strong>。</li>
-                <li style="margin-bottom: 4px;"><strong>浏览器设置</strong>: 建议将你的酒馆地址（如 <code>http://192.xxx.xx.xxx:8000</code>）在浏览器中设置为“不安全的来源视为安全的来源 (Insecure origins treated as secure)”，以确保功能正常。</li>
-              </ol>
+            <div class="attributes-list" style="gap:8px;">
+              <div class="attribute-item" style="justify-content:flex-start; gap:10px;">
+                <span class="attribute-name">升级必读</span>
+                <span class="attribute-value" style="font-weight:400;"><strong>必须重开，旧存档不兼容</strong>。请务必删除旧版 "1归墟" 世界书。</span>
+              </div>
+              <div class="attribute-item" style="justify-content:flex-start; gap:10px;">
+                <span class="attribute-name">网络要求</span>
+                <span class="attribute-value" style="font-weight:400;">此卡通过 <strong>JsDelivr</strong> 加载脚本，必须确保网络连接良好。</span>
+              </div>
+              <div class="attribute-item" style="justify-content:flex-start; gap:10px;">
+                <span class="attribute-name">渲染失败</span>
+                <span class="attribute-value" style="font-weight:400;">若UI渲染失效或加载不全，请点击右上角<strong>小铅笔图标</strong>重新加载。</span>
+              </div>
+              <div class="attribute-item" style="justify-content:flex-start; gap:10px;">
+                <span class="attribute-name">正文错乱</span>
+                <span class="attribute-value" style="font-weight:400;">若正文出现思维链，请用小铅笔检查并补全 <code><gametxt></code> 标签。</span>
+              </div>
+              <div class="attribute-item" style="justify-content:flex-start; gap:10px;">
+                <span class="attribute-name">行动选项</span>
+                <span class="attribute-value" style="font-weight:400;">若 <code>行动选项</code> 未触发，请用小铅笔检查其<code><action></code>标签是否正确包裹。</span>
+              </div>
+              <div class="attribute-item" style="justify-content:flex-start; gap:10px;">
+                <span class="attribute-name">存档方式</span>
+                <span class="attribute-value" style="font-weight:400;">正文使用<strong>世界书云存档</strong>，与开局本地存档不通用，请在正文前端读档。</span>
+              </div>
+              <div class="attribute-item" style="justify-content:flex-start; gap:10px;">
+                <span class="attribute-name">开启新档</span>
+                <span class="attribute-value" style="font-weight:400;">要开启干净存档，请修改读写序号，或在存档管理中<strong>一键清除所有存档</strong>。</span>
+              </div>
             </div>
           </div>
 
           <div class="panel-section" style="margin-bottom:12px;">
             <div class="section-title">支持作者</div>
-            <div style="color:#a09c91; font-size:12px; line-height:1.7; margin-top:6px;">
-              喜欢本项目的话，欢迎分享给朋友、为代码仓库点赞(<a href="https://github.com/slot181/GuiXu" target="_blank" rel="noopener noreferrer">https://github.com/slot181/GuiXu</a>)、在使用中反馈问题或提出建议。
-              最后，赞美牢星！
+            <div class="attributes-list" style="gap:8px;">
+              <div class="attribute-item" style="justify-content:flex-start; gap:10px;">
+                <span class="attribute-name">点赞与分享</span>
+                <span class="attribute-value" style="font-weight:400;">喜欢本项目，欢迎到 <a href="https://github.com/slot181/GuiXu" target="_blank" rel="noopener noreferrer">GitHub 仓库</a> 点赞并分享给朋友。</span>
+              </div>
+              <div class="attribute-item" style="justify-content:flex-start; gap:10px;">
+                <span class="attribute-name">反馈与建议</span>
+                <span class="attribute-value" style="font-weight:400;">在使用中遇到任何问题或有改进建议，随时可以提出。</span>
+              </div>
+              <div class="attribute-item" style="justify-content:flex-start; gap:10px;">
+                <span class="attribute-name">鸣谢</span>
+                <span class="attribute-value" style="font-weight:400;">最后，赞美梦星！</span>
+              </div>
             </div>
           </div>
 
