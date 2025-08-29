@@ -185,8 +185,6 @@
       }
 
                   // 初始数据加载与渲染
-      this._fixSettingsResolutionRowLayout();
-      this._ensureResolutionInputsUsable();
       this.syncUserPreferencesFromRoaming().finally(() => this.applyUserPreferences());
       this.loadInputDraft();
       this.updateDynamicData().catch(err => console.error('[归墟] 初次加载失败:', err));
@@ -334,7 +332,7 @@
             }
             #guixu-action-guidelines .action-guideline-btn {
               width: 100% !important;
-              text-align: left;
+              text-align: center; /* 文本居中，桌面/移动端一致 */
               white-space: normal !important;
               word-break: break-word;
               line-height: 1.5;
@@ -342,6 +340,10 @@
               font-size: 13px;
               height: auto;
               box-sizing: border-box;
+              /* 使用可配置的文字颜色与背景透明度（覆盖通用按钮风格） */
+              color: var(--guixu-guideline-text-color, #e0dcd1) !important;
+              background: rgba(15, 15, 35, var(--guixu-guideline-bg-opacity, 0.6)) !important;
+              border: 1px solid #c9aa71 !important;
             }
             .guixu-root-container.mobile-view #guixu-action-guidelines .action-guideline-btn {
               font-size: 12px;
@@ -457,10 +459,6 @@ if (!document.getElementById('guixu-font-override-style')) {
       $('#btn-save-load-manager')?.addEventListener('click', () => window.GuixuActionService?.showSaveLoadManager?.());
       $('#btn-settings')?.addEventListener('click', () => { 
         window.SettingsComponent?.show?.(); 
-        setTimeout(() => { 
-          this._fixSettingsResolutionRowLayout(); 
-          this._ensureResolutionInputsUsable(); 
-        }, 0); 
       });
       $('#btn-intro-guide')?.addEventListener('click', () => window.IntroModalComponent?.show?.());
       $('#btn-view-statuses')?.addEventListener('click', () => window.StatusesComponent?.show?.());
@@ -956,78 +954,20 @@ if (!document.getElementById('guixu-font-override-style')) {
       } catch (_) {}
     },
 
-    // 修复：移动端设置中心“分辨率-自定义”一行的布局（宽、高与提示在同一行）
+    // 修复：移动端设置中心“分辨率-自定义”一行的布局（已废弃：分辨率模块移除）
     _fixSettingsResolutionRowLayout() {
       try {
-        const root = document.querySelector('.guixu-root-container');
-        const viewport = this._getViewportEl();
-        const isMobile = !!(root && (root.classList.contains('mobile-view') || viewport?.classList?.contains('mobile-view')));
-        const w = document.getElementById('pref-ui-res-width');
-        const h = document.getElementById('pref-ui-res-height');
-        if (!w || !h) return;
-        const row = w.closest('.attribute-item');
-        if (!row) return;
-
-        if (isMobile) {
-          // 在移动端允许换行，但保证两个输入框并排；提示挪到下一行，避免挤压导致看不见或无法点击
-          row.style.setProperty('flex-wrap', 'wrap', 'important');
-          row.style.alignItems = 'center';
-          row.style.gap = '6px';
-          // 恢复输入框宽度，由移动端CSS控制为两列自适应
-          w.style.removeProperty('width');
-          h.style.removeProperty('width');
-          // 将“（选择‘自定义’后可用）”提示放到下一行并允许换行
-          const tips = Array.from(row.querySelectorAll('.attribute-name')).find(el => (el.textContent || '').includes('自定义') === false);
-          const tip2 = Array.from(row.querySelectorAll('.attribute-name')).find(el => /（.*自定义.*）/.test(el.textContent || ''));
-          const tip = tip2 || tips;
-          if (tip) {
-            tip.style.whiteSpace = 'normal';
-            tip.style.flex = '1 1 100%';
-            tip.style.fontSize = '11px';
-            tip.style.marginTop = '4px';
-          }
-        } else {
-          // 桌面端恢复默认
-          row.style.removeProperty('flex-wrap');
-          w.style.width = '';
-          h.style.width = '';
-        }
-
-        // 绑定一次下拉事件，切换为“自定义”时确保输入可编辑
-        try {
-          const presetEl = document.getElementById('pref-ui-res-preset');
-          if (presetEl && !presetEl.dataset.guixuBind) {
-            presetEl.addEventListener('change', () => this._ensureResolutionInputsUsable());
-            presetEl.dataset.guixuBind = '1';
-          }
-          this._ensureResolutionInputsUsable();
-        } catch(_) {}
+        // 已移除分辨率UI，保留空实现用于兼容旧引用
       } catch (_) {}
     },
 
-    // 保证在“自定义”模式下两个输入框可编辑且可见（修复移动端某些浏览器禁用/覆盖问题）
+    // 保证在“自定义”模式下两个输入框可编辑（已废弃：分辨率模块移除）
     _ensureResolutionInputsUsable() {
       try {
-        const modal = document.getElementById('settings-modal');
-        if (!modal || getComputedStyle(modal).display === 'none') return;
-        const presetEl = document.getElementById('pref-ui-res-preset');
-        const isCustom = String(presetEl?.value || 'keep') === 'custom';
-        const w = document.getElementById('pref-ui-res-width');
-        const h = document.getElementById('pref-ui-res-height');
-        [w, h].forEach(inp => {
-          if (!inp) return;
-          // 解除禁用并增强移动端输入体验
-          inp.disabled = !isCustom ? true : false;
-          inp.readOnly = !isCustom ? true : false;
-          inp.style.pointerEvents = isCustom ? 'auto' : 'none';
-          inp.style.opacity = isCustom ? '1' : '0.6';
-          inp.setAttribute('inputmode', 'numeric');
-          inp.setAttribute('pattern', '[0-9]*');
-          inp.style.color = '#e0dcd1';
-          inp.style.caretColor = '#e0dcd1';
-        });
+        // 已移除分辨率UI，保留空实现用于兼容旧引用
       } catch (_) {}
     },
+
 
     _ensureMobileFABs() {
       try {
@@ -1339,12 +1279,47 @@ if (!document.getElementById('guixu-font-override-style')) {
           const style = document.createElement('style');
           style.id = 'guixu-embedded-fix-style';
           style.textContent = `
-            .guixu-viewport.embedded-fix{width:100%!important;height:auto!important;overflow:visible!important;}
-            .guixu-viewport.embedded-fix .guixu-root-container{position:static!important;left:auto!important;top:auto!important;width:100%!important;height:auto!important;}
-            .guixu-root-container.embedded-fix .game-container{display:flex!important;flex-direction:column!important;gap:0!important;min-height:480px;height:auto!important;}
-            .guixu-root-container.embedded-fix .main-content{flex:1 1 auto!important;min-height:0!important;overflow-y:auto!important;}
+            /* 仅桌面非全屏下的嵌入式兜底（更强覆盖） */
+            .guixu-viewport.embedded-fix:not(.mobile-view){
+              display:block!important;
+              width:100%!important;
+              height:auto!important;
+              overflow:visible!important;
+              min-height:640px!important;
+            }
+            .guixu-viewport.embedded-fix:not(.mobile-view) .guixu-root-container:not(:fullscreen){
+              display:block!important;
+              position:static!important;
+              left:auto!important;
+              top:auto!important;
+              width:100%!important;
+              height:auto!important;
+              min-height:640px!important;
+              overflow:visible!important;
+            }
+            .guixu-root-container.embedded-fix:not(.mobile-view):not(:fullscreen) .game-container{
+              display:flex!important;
+              flex-direction:column!important;
+              gap:0!important;
+              min-height:760px!important;
+              height:auto!important;
+            }
+            .guixu-root-container.embedded-fix:not(.mobile-view):not(:fullscreen) .main-content{
+              flex:1 1 auto!important;
+              min-height:0!important;
+              overflow-y:auto!important;
+            }
           `;
           document.head.appendChild(style);
+        }
+
+        // 在移动端或全屏下不启用 embedded-fix（仅桌面+非全屏兜底）
+        const isMobile = root.classList.contains('mobile-view') || (viewport && viewport.classList.contains('mobile-view'));
+        const isFull = !!document.fullscreenElement;
+        if (isMobile || isFull) {
+          root.classList.remove('embedded-fix');
+          viewport.classList.remove('embedded-fix');
+          return;
         }
 
         // 计算当前可见高度（避免 transform/absolute 影响导致为 0）
@@ -1352,7 +1327,7 @@ if (!document.getElementById('guixu-font-override-style')) {
         const h = rect.height || root.offsetHeight || root.scrollHeight || 0;
 
         // 条件：内容高度过小或 viewport 不可见时，开启兜底
-        const needFix = h < 260 || !(rect.width > 0 && rect.height > 0);
+        const needFix = h < 560 || !(rect.width > 0 && rect.height > 0);
         root.classList.toggle('embedded-fix', needFix);
         viewport.classList.toggle('embedded-fix', needFix);
       } catch (e) {
@@ -1374,13 +1349,64 @@ if (!document.getElementById('guixu-font-override-style')) {
         if (ae && (ae.id === 'quick-send-input' || ae.classList?.contains('quick-send-input')) && !forceOnEditing) return;
 
         const isMobile = root.classList.contains('mobile-view') || (viewport && viewport.classList.contains('mobile-view'));
+        const isFullscreen = !!document.fullscreenElement;
+
+        // 桌面端 非全屏：同样限制正文高度并启用滚动，避免被长文本拉伸父页面
+        if (!isMobile && !isFullscreen) {
+          const vvH = (window.visualViewport && window.visualViewport.height) ? window.visualViewport.height : 0;
+          const docH = document.documentElement?.clientHeight || 0;
+          const baseH = Math.max(vvH, window.innerHeight || 0, docH);
+
+          const topEl = document.querySelector('.top-status');
+          const bottomEl = document.getElementById('bottom-status-container');
+          const topH = topEl ? topEl.getBoundingClientRect().height : 0;
+          const bottomH = bottomEl ? bottomEl.getBoundingClientRect().height : 0;
+          const reserves = 12;
+
+          let available = baseH - topH - bottomH - reserves;
+          if (!isFinite(available) || available <= 0) {
+            available = Math.floor((baseH || 800) * 0.75);
+          }
+          // 防抖上限，避免多次重排越算越大；并给出合理下限
+          available = Math.min(available, Math.max(240, baseH - reserves));
+          const target = Math.max(420, Math.round(available));
+
+          // 三栏统一限高 + 滚动：左（角色）、中（正文）、右（功能）
+          const charEl = document.querySelector('.character-panel');
+          const rightEl = document.querySelector('.interaction-panel');
+
+          const applyPane = (el) => {
+            if (!el) return;
+            el.style.flex = '0 0 auto';
+            el.style.height = `${target}px`;
+            el.style.maxHeight = `${target}px`;
+            el.style.minHeight = '360px';
+            el.style.overflowY = 'auto';
+          };
+
+          applyPane(main);
+          applyPane(charEl);
+          applyPane(rightEl);
+          return;
+        }
+
         if (!isMobile) {
-          // 桌面视图还原
-          main.style.height = '';
-          main.style.maxHeight = '';
-          main.style.minHeight = '';
-          main.style.flex = '';
-          main.style.overflowY = '';
+          // 桌面视图（全屏时）还原，交由全屏样式处理
+          const charEl = document.querySelector('.character-panel');
+          const rightEl = document.querySelector('.interaction-panel');
+
+          const resetPane = (el) => {
+            if (!el) return;
+            el.style.height = '';
+            el.style.maxHeight = '';
+            el.style.minHeight = '';
+            el.style.flex = '';
+            el.style.overflowY = '';
+          };
+
+          resetPane(main);
+          resetPane(charEl);
+          resetPane(rightEl);
           return;
         }
 
@@ -1943,7 +1969,7 @@ if (!document.getElementById('guixu-font-override-style')) {
               container.style.cssText = 'margin-top:8px;border-top:1px solid rgba(201,170,113,0.3);padding-top:6px;display:flex;flex-direction:column;gap:8px;';
 
               const label = document.createElement('span');
-              label.textContent = '行动方针';
+              label.textContent = '行动选项';
               label.className = 'guideline-label';
               container.appendChild(label);
 
@@ -2154,7 +2180,7 @@ if (!document.getElementById('guixu-font-override-style')) {
         const container = document.querySelector('.guixu-root-container');
         if (!container) return;
         const state = window.GuixuState?.getState?.();
-        const defaults = { backgroundUrl: '', bgMaskOpacity: 0.7, storyFontSize: 14, storyFontColor: '#e0dcd1', storyDefaultColor: '#e0dcd1', storyQuoteColor: '#ff4d4f', thinkingTextColor: '#e0dcd1', thinkingBgOpacity: 0.85, bgFitMode: 'cover', uiResolutionPreset: 'keep', uiCustomWidth: 900, uiCustomHeight: 600, customFontName: '', customFontDataUrl: '' };
+        const defaults = { backgroundUrl: '', bgMaskOpacity: 0.7, storyFontSize: 14, storyFontColor: '#e0dcd1', storyDefaultColor: '#e0dcd1', storyQuoteColor: '#ff4d4f', thinkingTextColor: '#e0dcd1', thinkingBgOpacity: 0.85, guidelineTextColor: '#e0dcd1', guidelineBgOpacity: 0.6, bgFitMode: 'cover', customFontName: '', customFontDataUrl: '' };
         const prefs = Object.assign({}, defaults, (prefsOverride || state?.userPreferences || {}));
 
         // 遮罩透明度（0~0.8）
@@ -2225,6 +2251,12 @@ if (!document.getElementById('guixu-font-override-style')) {
         const tbg = Math.min(1, Math.max(0, Number(prefs.thinkingBgOpacity ?? defaults.thinkingBgOpacity)));
         container.style.setProperty('--guixu-thinking-bg-opacity', String(tbg));
 
+        // 行动选项（按钮）颜色与背景透明度
+        const guidelineTextColor = String(prefs.guidelineTextColor || defaults.guidelineTextColor);
+        container.style.setProperty('--guixu-guideline-text-color', guidelineTextColor);
+        const guidelineBgOpacity = Math.min(1, Math.max(0, Number(prefs.guidelineBgOpacity ?? defaults.guidelineBgOpacity)));
+        container.style.setProperty('--guixu-guideline-bg-opacity', String(guidelineBgOpacity));
+
         // 自定义字体（以 dataURL 持久化）
         try {
           const fontDataUrl = String(prefs.customFontDataUrl || '');
@@ -2272,76 +2304,34 @@ container.style.fontFamily = `"Microsoft YaHei", "Noto Sans SC", "PingFang SC", 
       }
     },
 
-    // 新增：应用非全屏分辨率与等比例缩放
+    // 新增：统一自适应视口（移除窗口模式分辨率缩放/固定）
     _applyViewportSizing(prefs) {
       try {
-        const baseW = 512;
-        const baseH = 768;
         const viewport = document.getElementById('guixu-viewport');
         const root = document.querySelector('.guixu-root-container');
         if (!viewport || !root) return;
 
-        // 移动端视图下禁用缩放与固定分辨率，开启自然滚动
-        const isMobileView = root.classList.contains('mobile-view') || viewport.classList.contains('mobile-view');
-        if (isMobileView) {
-          root.style.transformOrigin = 'top left';
-          root.style.transform = 'none';
-          root.style.left = '0px';
-          root.style.top = '0px';
-          viewport.classList.add('mobile-view');
-          // 清除任何强制尺寸/变量，交给 CSS 去控制（高度按用户设置优先）
+        // 统一自适应：取消任何缩放与固定尺寸，交由 CSS 和父容器决定
+        root.style.transformOrigin = 'top left';
+        root.style.transform = 'none';
+        root.style.left = '0px';
+        root.style.top = '0px';
+
+        // 清除通过 CSS 变量/内联设置的目标分辨率
+        try {
           viewport.style.removeProperty('--viewport-w');
           viewport.style.removeProperty('--viewport-h');
-          viewport.style.removeProperty('width');
-          try {
-            viewport.style.removeProperty('height');
-          } catch (_) {}
-          return;
-        }
+        } catch (_) {}
+        viewport.style.width = '100%';
+        viewport.style.height = 'auto';
 
-        // 全屏时忽略自定义分辨率与缩放
+        // 全屏同样保持自然尺寸（不再做额外缩放）
         if (document.fullscreenElement) {
-          root.style.transformOrigin = 'top left';
-          // 避免在全屏下创建新的层叠上下文/包含块，防止 iPad/Safari 等环境下 position:fixed 浮层被裁剪或失效
-          root.style.transform = 'none';
-          root.style.left = '0px';
-          root.style.top = '0px';
           return;
         }
 
-        const preset = String(prefs.uiResolutionPreset || 'keep');
-        let targetW = baseW;
-        let targetH = baseH;
-        if (preset === 'custom') {
-          const w = Number(prefs.uiCustomWidth || baseW);
-          const h = Number(prefs.uiCustomHeight || baseH);
-          targetW = Math.max(300, Math.min(7680, isFinite(w) ? w : baseW));
-          targetH = Math.max(200, Math.min(4320, isFinite(h) ? h : baseH));
-        } else if (preset === 'keep') {
-          targetW = baseW;
-          targetH = baseH;
-        } else {
-          const m = preset.match(/^(\d+)x(\d+)$/);
-          if (m) {
-            targetW = parseInt(m[1], 10);
-            targetH = parseInt(m[2], 10);
-          }
-        }
-
-        viewport.style.setProperty('--viewport-w', `${targetW}px`);
-        viewport.style.setProperty('--viewport-h', `${targetH}px`);
-
-        const scaleW = targetW / baseW;
-        const scaleH = targetH / baseH;
-        const s = Math.min(scaleW, scaleH);
-
-        root.style.transformOrigin = 'top left';
-        root.style.transform = `scale(${s})`;
-
-        const left = Math.max(0, (targetW - baseW * s) / 2);
-        const top = Math.max(0, (targetH - baseH * s) / 2);
-        root.style.left = `${left}px`;
-        root.style.top = `${top}px`;
+        // 移动端/桌面端均不再根据预设/自定义分辨率进行缩放
+        return;
       } catch (e) {
         console.warn('[归墟] _applyViewportSizing 出错:', e);
       }

@@ -49,19 +49,16 @@
               <li>底部输入区输入后点击“发送”即可与伟大梦星交流。</li>
               <li>右上角按钮可在<strong>移动端/桌面端</strong>间切换；移动端有悬浮“角色/功能/设置”按钮。</li>
               <li>点击右上角“⛶”进入全屏（横屏设备下更沉浸）。退出全屏后将自动恢复视图布局。</li>
-              <li>右侧“人物关系/背包/归墟系统/世界线回顾”面板可查看与管理进度。</li>
             </ol>
           </div>
 
           <div class="panel-section">
             <div class="section-title">注意事项</div>
             <ol class="intro-ol">
-              <li>桌面端 UI 窗口显示不全：打开<strong>设置中心</strong>，找到分辨率模块，设置为自定义并手动调整分辨率大小。</li>
               <li>网络要求：此卡通过 <strong>JsDelivr</strong> 加载脚本，必须确保网络连接良好。</li>
               <li>渲染失败或一直加载中：若 UI 渲染失效或一两分钟仍在加载，请点击右上角<strong>小铅笔图标</strong>重新加载。</li>
               <li>正文错乱：若正文出现思维链等无关内容，请用小铅笔检查正文是否被 gametxt 标签正常包裹。</li>
               <li>行动选项：若行动选项未触发，请用小铅笔检查 action 标签是否正确包裹。</li>
-              <li>存档方式：正文使用<strong>世界书云存档</strong>，与开局本地存档不通用，请在正文前端读档。</li>
               <li>开启新档：要开启干净存档，请修改读写序号，或在存档管理中<strong>一键清除所有存档</strong>。</li>
             </ol>
           </div>
@@ -156,7 +153,7 @@
       }
     },
     // 锁定首次弹窗关闭，倒计时期间禁止关闭
-    lockCloseFor(ms = 60000) {
+    lockCloseFor(ms = 1000) {
       try {
         const overlay = document.getElementById('intro-modal') || this.ensure();
         if (!overlay) return;

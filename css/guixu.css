@@ -1,5 +1,9 @@
 @import url('?family=ZCOOL+KuaiLe&family=Ma+Shan+Zheng&display=swap');
 
+/* 基础尺寸：避免在嵌入式 iframe 中锁死文档高度，允许内容自撑高 */
+html, body { height: auto; min-height: 100%; }
+body { margin: 0; }
+
 /* --- 基础与布局 --- */
 .guixu-root-container {
   --guixu-story-font-size: 14px;
@@ -33,12 +37,10 @@
   box-shadow: 0 0 15px rgba(201, 170, 113, 0.2);
   position: relative;
   width: 100%;
-  /* aspect-ratio: 16 / 9; */
-  /* 移除宽高比，使用固定高度 */
-  width: 900px;
-  height: 600px;
+  /* 统一自适应：取消固定 900x600，使用容器尺寸 */
+  width: 100%;
+  height: auto;
   max-width: none;
-  /* 恢复原始宽度 */
 }
 
 .guixu-root-container::before {
@@ -63,6 +65,41 @@
   gap: 1px;
   height: 100%;
   /* 固定高度以便滚动 */
+}
+
+/* 桌面端 非全屏 嵌入修复：
+   - 在酒馆楼层(iframe)里，祖先高度链路可能不完整，导致网格的 1fr 行过小。
+   - 仅针对“桌面端 + 非全屏”启用，移动端与全屏不受影响。 */
+.guixu-root-container:not(.mobile-view):not(:fullscreen) {
+  /* 以视口高度兜底，避免被父容器的 auto 高度链路压扁 */
+  min-height: 100vh;
+  min-height: 100svh;
+  min-height: 100dvh;
+  /* 嵌入式(酒馆楼层)外层未定高时，使用绝对像素下限保证视窗不至于过小 */
+  min-height: 640px;
+  height: auto;
+}
+.guixu-viewport {
+  /* 视口容器同样给出最小高度，确保根容器可撑开（使用动态视口单位以适配移动端地址栏） */
+  min-height: 100vh;
+  min-height: 100svh;
+  min-height: 100dvh;
+  /* 嵌入式下的像素级下限，促使宿主容器按内容自增高 */
+  min-height: 640px;
+}
+.guixu-root-container:not(.mobile-view):not(:fullscreen) .game-container {
+  /* 网格容器在桌面非全屏下至少占满视口高度（去除祖先链影响）；使用多种视口单位兜底 */
+  min-height: calc(100vh - 0px);
+  min-height: calc(100svh - 0px);
+  min-height: calc(100dvh - 0px);
+  /* 嵌入式外层未定高时的硬下限，保证主体区域不被压扁 */
+  min-height: 640px;
+  height: auto;
+}
+.guixu-root-container:not(.mobile-view):not(:fullscreen) .main-content {
+  /* Grid 子项需要 min-height:0 才能正确分配剩余空间并滚动 */
+  min-height: 0;
+  overflow-y: auto;
 }
 
 .guixu-root-container * {
@@ -2769,17 +2806,6 @@
   outline: none;
 }
 /* 分辨率模块：预设与自定义在移动端分行排布，输入框等分 */
-.guixu-root-container.mobile-view #settings-modal #pref-ui-res-preset {
-  flex: 1 1 100% !important;
-  min-width: 0 !important;
-  max-width: 100% !important;
-}
-.guixu-root-container.mobile-view #settings-modal #pref-ui-res-width,
-.guixu-root-container.mobile-view #settings-modal #pref-ui-res-height {
-  width: calc(50% - 10px) !important;
-  min-width: 0 !important;
-  box-sizing: border-box !important;
-}
 .guixu-root-container.mobile-view #settings-modal .attributes-list .attribute-item .attribute-name {
   white-space: nowrap;
 }
@@ -2814,13 +2840,13 @@
 /* 视口容器：控制非全屏分辨率与统一缩放的包裹层 */
 .guixu-viewport {
   position: relative;
-  width: var(--viewport-w, 900px);
-  height: var(--viewport-h, 600px);
+  width: 100%;
+  height: auto;
   margin: 0 auto;
-  overflow: hidden;
+  overflow: auto;
 }
 .guixu-viewport .guixu-root-container {
-  position: absolute;
+  position: relative;
   left: 0;
   top: 0;
 }
@@ -2925,16 +2951,16 @@
 
 /* 强制桌面：覆盖小屏兜底与 viewport 定位，恢复绝对定位与固定基准尺寸 */
 .guixu-root-container.force-desktop {
-  width: 900px !important;
-  height: 600px !important;
+  width: 100% !important;
+  height: 100% !important;
 }
 #guixu-viewport.force-desktop {
-  width: var(--viewport-w, 900px) !important;
-  height: var(--viewport-h, 600px) !important;
-  overflow: hidden !important;
+  width: 100% !important;
+  height: 100% !important;
+  overflow: auto !important;
 }
 #guixu-viewport.force-desktop .guixu-root-container {
-  position: absolute !important;
+  position: relative !important;
   left: 0 !important;
   top: 0 !important;
 }
@@ -3429,4 +3455,36 @@
   min-width: 0;
   padding: 0 10px;
   box-sizing: border-box;
+}
+
+/* ================= 行动选项按钮：悬停/按下动态效果（桌面端优先） ================= */
+/* 说明：
+   - 作用于正文中的“行动选项”按钮（#guixu-action-guidelines .action-guideline-btn）
+   - 与 JS 动态注入的基础视觉（背景/边框）配合，增加 hover/active 动效
+   - 不影响移动端（移动端无 hover），保持全局视觉一致 */
+#guixu-action-guidelines .action-guideline-btn {
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+  will-change: transform, box-shadow, background-color;
+}
+#guixu-action-guidelines .action-guideline-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 14px rgba(201, 170, 113, 0.22);
+  border-color: #daa520 !important;
+  background: rgba(15, 15, 35, 0.72) !important; /* 比默认更亮一点的透明度，体现悬停 */
+  color: #fff !important;
+}
+#guixu-action-guidelines .action-guideline-btn:active {
+  transform: translateY(0);
+  box-shadow: inset 0 2px 8px rgba(201, 170, 113, 0.18);
+  background: rgba(15, 15, 35, 0.85) !important; /* 按下时略深，形成压感 */
+}
+#guixu-action-guidelines .action-guideline-btn:focus-visible {
+  outline: 2px solid rgba(218, 165, 32, 0.55);
+  outline-offset: 2px;
+}
+/* 降低动画：尊重系统“减少动态效果”偏好 */
+@media (prefers-reduced-motion: reduce) {
+  #guixu-action-guidelines .action-guideline-btn {
+    transition: none;
+  }
 }
