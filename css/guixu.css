@@ -75,6 +75,8 @@ body { margin: 0; }
   min-height: 100vh;
   min-height: 100svh;
   min-height: 100dvh;
+  /* 嵌入式(酒馆楼层)外层未定高时，使用绝对像素下限保证视窗不至于过小 */
+  min-height: 640px;
   height: auto;
 }
 .guixu-viewport {
@@ -82,12 +84,16 @@ body { margin: 0; }
   min-height: 100vh;
   min-height: 100svh;
   min-height: 100dvh;
+  /* 嵌入式下的像素级下限，促使宿主容器按内容自增高 */
+  min-height: 640px;
 }
 .guixu-root-container:not(.mobile-view):not(:fullscreen) .game-container {
   /* 网格容器在桌面非全屏下至少占满视口高度（去除祖先链影响）；使用多种视口单位兜底 */
   min-height: calc(100vh - 0px);
   min-height: calc(100svh - 0px);
   min-height: calc(100dvh - 0px);
+  /* 嵌入式外层未定高时的硬下限，保证主体区域不被压扁 */
+  min-height: 640px;
   height: auto;
 }
 .guixu-root-container:not(.mobile-view):not(:fullscreen) .main-content {

@@ -1279,12 +1279,47 @@ if (!document.getElementById('guixu-font-override-style')) {
           const style = document.createElement('style');
           style.id = 'guixu-embedded-fix-style';
           style.textContent = `
-            .guixu-viewport.embedded-fix{width:100%!important;height:auto!important;overflow:visible!important;}
-            .guixu-viewport.embedded-fix .guixu-root-container{position:static!important;left:auto!important;top:auto!important;width:100%!important;height:auto!important;}
-            .guixu-root-container.embedded-fix .game-container{display:flex!important;flex-direction:column!important;gap:0!important;min-height:480px;height:auto!important;}
-            .guixu-root-container.embedded-fix .main-content{flex:1 1 auto!important;min-height:0!important;overflow-y:auto!important;}
+            /* 仅桌面非全屏下的嵌入式兜底（更强覆盖） */
+            .guixu-viewport.embedded-fix:not(.mobile-view){
+              display:block!important;
+              width:100%!important;
+              height:auto!important;
+              overflow:visible!important;
+              min-height:640px!important;
+            }
+            .guixu-viewport.embedded-fix:not(.mobile-view) .guixu-root-container:not(:fullscreen){
+              display:block!important;
+              position:static!important;
+              left:auto!important;
+              top:auto!important;
+              width:100%!important;
+              height:auto!important;
+              min-height:640px!important;
+              overflow:visible!important;
+            }
+            .guixu-root-container.embedded-fix:not(.mobile-view):not(:fullscreen) .game-container{
+              display:flex!important;
+              flex-direction:column!important;
+              gap:0!important;
+              min-height:760px!important;
+              height:auto!important;
+            }
+            .guixu-root-container.embedded-fix:not(.mobile-view):not(:fullscreen) .main-content{
+              flex:1 1 auto!important;
+              min-height:0!important;
+              overflow-y:auto!important;
+            }
           `;
           document.head.appendChild(style);
+        }
+
+        // 在移动端或全屏下不启用 embedded-fix（仅桌面+非全屏兜底）
+        const isMobile = root.classList.contains('mobile-view') || (viewport && viewport.classList.contains('mobile-view'));
+        const isFull = !!document.fullscreenElement;
+        if (isMobile || isFull) {
+          root.classList.remove('embedded-fix');
+          viewport.classList.remove('embedded-fix');
+          return;
         }
 
         // 计算当前可见高度（避免 transform/absolute 影响导致为 0）
@@ -1292,7 +1327,7 @@ if (!document.getElementById('guixu-font-override-style')) {
         const h = rect.height || root.offsetHeight || root.scrollHeight || 0;
 
         // 条件：内容高度过小或 viewport 不可见时，开启兜底
-        const needFix = h < 260 || !(rect.width > 0 && rect.height > 0);
+        const needFix = h < 560 || !(rect.width > 0 && rect.height > 0);
         root.classList.toggle('embedded-fix', needFix);
         viewport.classList.toggle('embedded-fix', needFix);
       } catch (e) {
