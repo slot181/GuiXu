@@ -84,11 +84,11 @@
               </div>
               <div class="attribute-item" style="justify-content:flex-start; gap:10px;">
                 <span class="attribute-name">正文错乱</span>
-                <span class="attribute-value" style="font-weight:400;">若正文出现思维链等无关内容，请用小铅笔检查正文是否被 <code><gametxt></gametxt></code> 标签正常包裹。</span>
+                <span class="attribute-value" style="font-weight:400;">若正文出现思维链等无关内容，请用小铅笔检查正文是否被 gametxt标签正常包裹。</span>
               </div>
               <div class="attribute-item" style="justify-content:flex-start; gap:10px;">
                 <span class="attribute-name">行动选项</span>
-                <span class="attribute-value" style="font-weight:400;">若行动选项未触发，请用小铅笔检查<code><action></action></code>标签是否正确包裹。</span>
+                <span class="attribute-value" style="font-weight:400;">若行动选项未触发，请用小铅笔检查action标签是否正确包裹。</span>
               </div>
               <div class="attribute-item" style="justify-content:flex-start; gap:10px;">
                 <span class="attribute-name">存档方式</span>
