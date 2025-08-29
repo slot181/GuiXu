@@ -35,6 +35,7 @@
         titleEl.textContent = '支持与游玩指南';
 
         const closeBtn = document.createElement('button');
+        closeBtn.id = 'intro-close-btn';
         closeBtn.className = 'modal-close-btn';
         closeBtn.innerHTML = '&times;';
 
@@ -71,16 +72,16 @@
             <div class="section-title">注意事项</div>
             <div class="attributes-list" style="gap:8px;">
               <div class="attribute-item" style="justify-content:flex-start; gap:10px;">
-                <span class="attribute-name">升级必读</span>
-                <span class="attribute-value" style="font-weight:400;"><strong>必须重开，旧存档不兼容</strong>。请务必删除旧版 "1归墟" 世界书。</span>
+                <span class="attribute-name">桌面端UI窗口显示不全</span>
+                <span class="attribute-value" style="font-weight:400;">打开<strong>设置中心</strong> ，找到分辨率模块，然后设置为自定义，手动设置一下分辨率大小</span>
               </div>
               <div class="attribute-item" style="justify-content:flex-start; gap:10px;">
                 <span class="attribute-name">网络要求</span>
                 <span class="attribute-value" style="font-weight:400;">此卡通过 <strong>JsDelivr</strong> 加载脚本，必须确保网络连接良好。</span>
               </div>
               <div class="attribute-item" style="justify-content:flex-start; gap:10px;">
-                <span class="attribute-name">渲染失败</span>
-                <span class="attribute-value" style="font-weight:400;">若UI渲染失效或加载不全，请点击右上角<strong>小铅笔图标</strong>重新加载。</span>
+                <span class="attribute-name">渲染失败或一直加载中</span>
+                <span class="attribute-value" style="font-weight:400;">若UI渲染失效或或一直加载中（等待一两分钟还在加载的话），请点击右上角<strong>小铅笔图标</strong>重新加载。</span>
               </div>
               <div class="attribute-item" style="justify-content:flex-start; gap:10px;">
                 <span class="attribute-name">正文错乱</span>
@@ -130,10 +131,12 @@
         footer.className = 'confirm-modal-buttons';
         footer.style.marginTop = '16px';
         const okBtn = document.createElement('button');
+        okBtn.id = 'intro-ok-btn';
         okBtn.className = 'interaction-btn primary-btn';
         okBtn.textContent = '立即开始';
 
         const laterBtn = document.createElement('button');
+        laterBtn.id = 'intro-later-btn';
         laterBtn.className = 'interaction-btn';
         laterBtn.textContent = '稍后再看';
 
@@ -154,6 +157,7 @@
         // 行为：关闭/确认
         const closeOverlay = (persist) => {
           try {
+            if (overlay && overlay.dataset && overlay.dataset.allowClose === '0') return;
             const dont = document.getElementById('intro-dont-show');
             if (persist && dont && dont.checked) {
               try { localStorage.setItem(STORAGE_KEY, '1'); } catch (_) {}
@@ -192,10 +196,75 @@
         const shown = localStorage.getItem(STORAGE_KEY) === '1';
         if (shown) return;
         // 延时展示，等待布局稳定与宿主样式应用
-        setTimeout(() => this.show(), Math.max(0, delayMs|0));
+        setTimeout(() => {
+          this.show();
+          try { this.lockCloseFor(60000); } catch (_) {}
+        }, Math.max(0, delayMs|0));
       } catch (e) {
         console.warn('[归墟] IntroModalComponent.showFirstTimeIfNeeded 失败:', e);
       }
+    },
+    // 锁定首次弹窗关闭，倒计时期间禁止关闭
+    lockCloseFor(ms = 60000) {
+      try {
+        const overlay = document.getElementById('intro-modal') || this.ensure();
+        if (!overlay) return;
+        overlay.dataset.allowClose = '0';
+        const closeBtn = overlay.querySelector('#intro-close-btn');
+        const okBtn = overlay.querySelector('#intro-ok-btn');
+        const laterBtn = overlay.querySelector('#intro-later-btn');
+        const dont = overlay.querySelector('#intro-dont-show');
+
+        if (closeBtn) closeBtn.style.display = 'none';
+        if (okBtn) { okBtn.disabled = true; okBtn.style.pointerEvents = 'none'; }
+        if (laterBtn) { laterBtn.disabled = true; laterBtn.style.pointerEvents = 'none'; }
+        if (dont) { dont.disabled = true; dont.style.opacity = '0.6'; }
+
+        let remain = Math.max(1, Math.round(ms / 1000));
+        const okBase = okBtn ? (okBtn.dataset.baseText || okBtn.textContent || '立即开始') : '立即开始';
+        const laterBase = laterBtn ? (laterBtn.dataset.baseText || laterBtn.textContent || '稍后再看') : '稍后再看';
+        if (okBtn) okBtn.dataset.baseText = okBase;
+        if (laterBtn) laterBtn.dataset.baseText = laterBase;
+
+        const tick = () => {
+          if (okBtn) okBtn.textContent = `${okBase}(${remain})`;
+          if (laterBtn) laterBtn.textContent = `${laterBase}(${remain})`;
+          remain -= 1;
+          if (remain < 0) {
+            this._unlockIntroLock();
+            return;
+          }
+          this._introLockTimer = setTimeout(tick, 1000);
+        };
+        clearTimeout(this._introLockTimer);
+        this._introLockTimer = setTimeout(tick, 0);
+      } catch (_) {}
+    },
+
+    _unlockIntroLock() {
+      try {
+        clearTimeout(this._introLockTimer);
+      } catch (_) {}
+      try {
+        const overlay = document.getElementById('intro-modal');
+        if (!overlay) return;
+        overlay.dataset.allowClose = '1';
+        const closeBtn = overlay.querySelector('#intro-close-btn');
+        const okBtn = overlay.querySelector('#intro-ok-btn');
+        const laterBtn = overlay.querySelector('#intro-later-btn');
+        const dont = overlay.querySelector('#intro-dont-show');
+
+        if (closeBtn) closeBtn.style.display = '';
+        if (okBtn) {
+          okBtn.disabled = false; okBtn.style.pointerEvents = '';
+          if (okBtn.dataset.baseText) okBtn.textContent = okBtn.dataset.baseText;
+        }
+        if (laterBtn) {
+          laterBtn.disabled = false; laterBtn.style.pointerEvents = '';
+          if (laterBtn.dataset.baseText) laterBtn.textContent = laterBtn.dataset.baseText;
+        }
+        if (dont) { dont.disabled = false; dont.style.opacity = ''; }
+      } catch (_) {}
     }
   };
 

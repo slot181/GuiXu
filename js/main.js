@@ -462,6 +462,7 @@ if (!document.getElementById('guixu-font-override-style')) {
           this._ensureResolutionInputsUsable(); 
         }, 0); 
       });
+      $('#btn-intro-guide')?.addEventListener('click', () => window.IntroModalComponent?.show?.());
       $('#btn-view-statuses')?.addEventListener('click', () => window.StatusesComponent?.show?.());
       // 新增：创建底部“状态一览”弹窗按钮（替代滚动条）
       this.ensureStatusPopupButton();
@@ -578,10 +579,15 @@ if (!document.getElementById('guixu-font-override-style')) {
           return;
         }
 
-        // 通用模态关闭委托：点击右上角X或遮罩空白处关闭
+        // 通用模态关闭委托：点击右上角X或遮罩空白处关闭（尊重 data-allow-close）
         const closeBtn = e.target.closest?.('.modal-close-btn');
         if (closeBtn) {
           const overlay = closeBtn.closest('.modal-overlay');
+          if (overlay && overlay.dataset && overlay.dataset.allowClose === '0') {
+            e.preventDefault();
+            e.stopPropagation();
+            return;
+          }
           if (overlay) {
             overlay.style.display = 'none';
           } else {
@@ -591,9 +597,15 @@ if (!document.getElementById('guixu-font-override-style')) {
           e.stopPropagation();
           return;
         }
-        // 点击遮罩空白处关闭（仅当直接点到 overlay 自身时）
+        // 点击遮罩空白处关闭（仅当直接点到 overlay 自身时，且允许关闭）
         if (e.target && e.target.classList && e.target.classList.contains('modal-overlay')) {
-          e.target.style.display = 'none';
+          const ov = e.target;
+          if (ov && ov.dataset && ov.dataset.allowClose === '0') {
+            e.preventDefault();
+            e.stopPropagation();
+            return;
+          }
+          ov.style.display = 'none';
           e.preventDefault();
           e.stopPropagation();
           return;
@@ -623,12 +635,17 @@ if (!document.getElementById('guixu-font-override-style')) {
         } catch (_) {}
       });
 
-      // 按下 ESC 关闭最顶部模态
+      // 按下 ESC 关闭最顶部模态（尊重 data-allow-close）
       document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') {
           const overlays = Array.from(document.querySelectorAll('.modal-overlay')).filter(el => getComputedStyle(el).display !== 'none');
           if (overlays.length > 0) {
             const top = overlays[overlays.length - 1];
+            if (top && top.dataset && top.dataset.allowClose === '0') {
+              e.preventDefault();
+              e.stopPropagation();
+              return;
+            }
             top.style.display = 'none';
             e.preventDefault();
             e.stopPropagation();
@@ -1139,7 +1156,6 @@ if (!document.getElementById('guixu-font-override-style')) {
             b.addEventListener('click', (e) => { e.stopPropagation(); this.hideSettingsFabMenu(); handler(); });
             return b;
           };
-          menu.appendChild(mkBtn('设置', () => window.SettingsComponent?.show?.()));
           menu.appendChild(mkBtn('全屏切换', () => this.toggleFullscreen()));
           menu.appendChild(mkBtn('切到桌面端', () => this.setMobileView(false)));
           root.appendChild(menu);
@@ -2259,8 +2275,8 @@ container.style.fontFamily = `"Microsoft YaHei", "Noto Sans SC", "PingFang SC", 
     // 新增：应用非全屏分辨率与等比例缩放
     _applyViewportSizing(prefs) {
       try {
-        const baseW = 900;
-        const baseH = 600;
+        const baseW = 512;
+        const baseH = 768;
         const viewport = document.getElementById('guixu-viewport');
         const root = document.querySelector('.guixu-root-container');
         if (!viewport || !root) return;
