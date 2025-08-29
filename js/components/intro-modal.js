@@ -20,11 +20,8 @@
 
         // 内容容器（遵循 .modal-content 风格，适度收窄）
         const content = document.createElement('div');
+        // 使用通用模态尺寸，保持与其他桌面端面板一致
         content.className = 'modal-content';
-        content.style.maxWidth = '640px';
-        content.style.width = '92%';
-        content.style.height = 'auto';
-        content.style.maxHeight = '90vh';
 
         // 头部
         const header = document.createElement('div');
@@ -35,6 +32,7 @@
         titleEl.textContent = '支持与游玩指南';
 
         const closeBtn = document.createElement('button');
+        closeBtn.id = 'intro-close-btn';
         closeBtn.className = 'modal-close-btn';
         closeBtn.innerHTML = '&times;';
 
@@ -45,50 +43,41 @@
         const body = document.createElement('div');
         body.className = 'modal-body';
         body.innerHTML = `
-          <div class="panel-section" style="margin-bottom:12px;">
+          <div class="panel-section">
             <div class="section-title">快速上手</div>
-            <div class="attributes-list" style="gap:8px;">
-              <div class="attribute-item" style="justify-content:flex-start; gap:10px;">
-                <span class="attribute-name">发送与回复</span>
-                <span class="attribute-value" style="font-weight:400;">底部输入区输入后点击“发送”即可与伟大梦星交流。</span>
-              </div>
-              <div class="attribute-item" style="justify-content:flex-start; gap:10px;">
-                <span class="attribute-name">视图切换</span>
-                <span class="attribute-value" style="font-weight:400;">右上角按钮可在<strong>移动端/桌面端</strong>间切换；移动端有悬浮“角色/功能/设置”按钮。</span>
-              </div>
-              <div class="attribute-item" style="justify-content:flex-start; gap:10px;">
-                <span class="attribute-name">全屏模式</span>
-                <span class="attribute-value" style="font-weight:400;">右上角“⛶”进入全屏（横屏设备下更沉浸）。退出全屏后将自动恢复视图布局。</span>
-              </div>
-              <div class="attribute-item" style="justify-content:flex-start; gap:10px;">
-                <span class="attribute-name">状态与历史</span>
-                <span class="attribute-value" style="font-weight:400;">右侧“人物关系/背包/归墟系统/世界线回顾”面板可查看与管理进度。</span>
-              </div>
-            </div>
+            <ol class="intro-ol">
+              <li>底部输入区输入后点击“发送”即可与伟大梦星交流。</li>
+              <li>右上角按钮可在<strong>移动端/桌面端</strong>间切换；移动端有悬浮“角色/功能/设置”按钮。</li>
+              <li>点击右上角“⛶”进入全屏（横屏设备下更沉浸）。退出全屏后将自动恢复视图布局。</li>
+              <li>右侧“人物关系/背包/归墟系统/世界线回顾”面板可查看与管理进度。</li>
+            </ol>
           </div>
 
-          <div class="panel-section" style="margin-bottom:12px;">
-            <div class="section-title">在“酒馆楼层”中运行的说明</div>
-            <div style="color:#a09c91; font-size:12px; line-height:1.7;">
-              本界面通常运行在宿主页面的嵌入容器中。如遇滚动/遮挡问题（希望不会），建议：
-              <ul style="margin:6px 0 0 18px; list-style: disc;">
-                <li>优先切换到移动端视图；</li>
-                <li>必要时切换全屏，避免宿主页面样式干扰；</li>
-                <li>若按钮遮挡，请拖动移动端的悬浮按钮，位置会自动记忆。</li>
-              </ul>
-            </div>
+          <div class="panel-section">
+            <div class="section-title">注意事项</div>
+            <ol class="intro-ol">
+              <li>桌面端 UI 窗口显示不全：打开<strong>设置中心</strong>，找到分辨率模块，设置为自定义并手动调整分辨率大小。</li>
+              <li>网络要求：此卡通过 <strong>JsDelivr</strong> 加载脚本，必须确保网络连接良好。</li>
+              <li>渲染失败或一直加载中：若 UI 渲染失效或一两分钟仍在加载，请点击右上角<strong>小铅笔图标</strong>重新加载。</li>
+              <li>正文错乱：若正文出现思维链等无关内容，请用小铅笔检查正文是否被 gametxt 标签正常包裹。</li>
+              <li>行动选项：若行动选项未触发，请用小铅笔检查 action 标签是否正确包裹。</li>
+              <li>存档方式：正文使用<strong>世界书云存档</strong>，与开局本地存档不通用，请在正文前端读档。</li>
+              <li>开启新档：要开启干净存档，请修改读写序号，或在存档管理中<strong>一键清除所有存档</strong>。</li>
+            </ol>
           </div>
 
-          <div class="panel-section" style="margin-bottom:12px;">
+          <div class="panel-section">
             <div class="section-title">支持作者</div>
-            <div style="color:#a09c91; font-size:12px; line-height:1.7; margin-top:6px;">
-              喜欢本项目的话，欢迎分享给朋友、为代码仓库点赞(https://github.com/slot181/GuiXu)、在使用中反馈问题或提出建议。
-            </div>
+            <ol class="intro-ol">
+              <li>喜欢本项目，欢迎到 <a href="https://github.com/slot181/GuiXu" target="_blank" rel="noopener noreferrer">GitHub 仓库</a> 点赞并分享给朋友。</li>
+              <li>在使用中遇到任何问题，可来 Discord 提出你的问题 <a href="https://discord.com/channels/1134557553011998840/1395002325751300227" target="_blank" rel="noopener noreferrer">原贴讨论</a>。</li>
+              <li>最后，赞美梦星！</li>
+            </ol>
           </div>
 
-          <label style="display:flex; align-items:center; gap:8px; margin-top:8px;">
+          <label class="intro-dont-show">
             <input id="intro-dont-show" type="checkbox" checked />
-            <span style="color:#8b7355; font-size:12px;">下次不再提示</span>
+            <span>下次不再提示</span>
           </label>
         `;
 
@@ -97,10 +86,12 @@
         footer.className = 'confirm-modal-buttons';
         footer.style.marginTop = '16px';
         const okBtn = document.createElement('button');
+        okBtn.id = 'intro-ok-btn';
         okBtn.className = 'interaction-btn primary-btn';
         okBtn.textContent = '立即开始';
 
         const laterBtn = document.createElement('button');
+        laterBtn.id = 'intro-later-btn';
         laterBtn.className = 'interaction-btn';
         laterBtn.textContent = '稍后再看';
 
@@ -117,6 +108,7 @@
         // 行为：关闭/确认
         const closeOverlay = (persist) => {
           try {
+            if (overlay && overlay.dataset && overlay.dataset.allowClose === '0') return;
             const dont = document.getElementById('intro-dont-show');
             if (persist && dont && dont.checked) {
               try { localStorage.setItem(STORAGE_KEY, '1'); } catch (_) {}
@@ -155,10 +147,75 @@
         const shown = localStorage.getItem(STORAGE_KEY) === '1';
         if (shown) return;
         // 延时展示，等待布局稳定与宿主样式应用
-        setTimeout(() => this.show(), Math.max(0, delayMs|0));
+        setTimeout(() => {
+          this.show();
+          try { this.lockCloseFor(60000); } catch (_) {}
+        }, Math.max(0, delayMs|0));
       } catch (e) {
         console.warn('[归墟] IntroModalComponent.showFirstTimeIfNeeded 失败:', e);
       }
+    },
+    // 锁定首次弹窗关闭，倒计时期间禁止关闭
+    lockCloseFor(ms = 60000) {
+      try {
+        const overlay = document.getElementById('intro-modal') || this.ensure();
+        if (!overlay) return;
+        overlay.dataset.allowClose = '0';
+        const closeBtn = overlay.querySelector('#intro-close-btn');
+        const okBtn = overlay.querySelector('#intro-ok-btn');
+        const laterBtn = overlay.querySelector('#intro-later-btn');
+        const dont = overlay.querySelector('#intro-dont-show');
+
+        if (closeBtn) closeBtn.style.display = 'none';
+        if (okBtn) { okBtn.disabled = true; okBtn.style.pointerEvents = 'none'; }
+        if (laterBtn) { laterBtn.disabled = true; laterBtn.style.pointerEvents = 'none'; }
+        if (dont) { dont.disabled = true; dont.style.opacity = '0.6'; }
+
+        let remain = Math.max(1, Math.round(ms / 1000));
+        const okBase = okBtn ? (okBtn.dataset.baseText || okBtn.textContent || '立即开始') : '立即开始';
+        const laterBase = laterBtn ? (laterBtn.dataset.baseText || laterBtn.textContent || '稍后再看') : '稍后再看';
+        if (okBtn) okBtn.dataset.baseText = okBase;
+        if (laterBtn) laterBtn.dataset.baseText = laterBase;
+
+        const tick = () => {
+          if (okBtn) okBtn.textContent = `${okBase}(${remain})`;
+          if (laterBtn) laterBtn.textContent = `${laterBase}(${remain})`;
+          remain -= 1;
+          if (remain < 0) {
+            this._unlockIntroLock();
+            return;
+          }
+          this._introLockTimer = setTimeout(tick, 1000);
+        };
+        clearTimeout(this._introLockTimer);
+        this._introLockTimer = setTimeout(tick, 0);
+      } catch (_) {}
+    },
+
+    _unlockIntroLock() {
+      try {
+        clearTimeout(this._introLockTimer);
+      } catch (_) {}
+      try {
+        const overlay = document.getElementById('intro-modal');
+        if (!overlay) return;
+        overlay.dataset.allowClose = '1';
+        const closeBtn = overlay.querySelector('#intro-close-btn');
+        const okBtn = overlay.querySelector('#intro-ok-btn');
+        const laterBtn = overlay.querySelector('#intro-later-btn');
+        const dont = overlay.querySelector('#intro-dont-show');
+
+        if (closeBtn) closeBtn.style.display = '';
+        if (okBtn) {
+          okBtn.disabled = false; okBtn.style.pointerEvents = '';
+          if (okBtn.dataset.baseText) okBtn.textContent = okBtn.dataset.baseText;
+        }
+        if (laterBtn) {
+          laterBtn.disabled = false; laterBtn.style.pointerEvents = '';
+          if (laterBtn.dataset.baseText) laterBtn.textContent = laterBtn.dataset.baseText;
+        }
+        if (dont) { dont.disabled = false; dont.style.opacity = ''; }
+      } catch (_) {}
     }
   };
 

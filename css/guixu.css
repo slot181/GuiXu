@@ -557,6 +557,30 @@
   position: relative; /* 供 #trade-tooltip 等浮窗进行相对定位 */
 }
 
+/* Intro 引导浮窗：有序列表与链接色，尺寸与 .modal-content 保持一致 */
+#intro-modal a, #intro-modal a:visited { color:#3b82f6 !important; text-decoration: underline; }
+#intro-modal a:hover { color:#2563eb !important; }
+#intro-modal .panel-section { margin-bottom: 10px; }
+#intro-modal .section-title { font-size: 14px; margin-bottom: 6px; }
+#intro-modal .intro-ol {
+  list-style: decimal;
+  margin: 0 0 0 1.25em;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  color: #e0dcd1;
+  font-size: 12px;
+}
+#intro-modal .intro-ol li { line-height: 1.6; }
+#intro-modal .intro-dont-show {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  color: #8b7355;
+  font-size: 12px;
+}
+
 /* --- 大事记时间线样式 (参考 修仙之路) --- */
 .timeline-container {
   position: relative;
