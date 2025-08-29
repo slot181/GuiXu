@@ -1,7 +1,7 @@
 @import url('?family=ZCOOL+KuaiLe&family=Ma+Shan+Zheng&display=swap');
 
-/* 基础尺寸：让 100% 高度链路成立（iframe/嵌入容器内自适应） */
-html, body { height: 100%; }
+/* 基础尺寸：避免在嵌入式 iframe 中锁死文档高度，允许内容自撑高 */
+html, body { height: auto; min-height: 100%; }
 body { margin: 0; }
 
 /* --- 基础与布局 --- */
@@ -39,7 +39,7 @@ body { margin: 0; }
   width: 100%;
   /* 统一自适应：取消固定 900x600，使用容器尺寸 */
   width: 100%;
-  height: 100%;
+  height: auto;
   max-width: none;
 }
 
@@ -2841,7 +2841,7 @@ body { margin: 0; }
 .guixu-viewport {
   position: relative;
   width: 100%;
-  height: 100%;
+  height: auto;
   margin: 0 auto;
   overflow: auto;
 }

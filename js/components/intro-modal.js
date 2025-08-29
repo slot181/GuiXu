@@ -156,7 +156,7 @@
       }
     },
     // 锁定首次弹窗关闭，倒计时期间禁止关闭
-    lockCloseFor(ms = 60000) {
+    lockCloseFor(ms = 1000) {
       try {
         const overlay = document.getElementById('intro-modal') || this.ensure();
         if (!overlay) return;

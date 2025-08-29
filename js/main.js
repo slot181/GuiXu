@@ -2272,7 +2272,7 @@ container.style.fontFamily = `"Microsoft YaHei", "Noto Sans SC", "PingFang SC", 
           viewport.style.removeProperty('--viewport-h');
         } catch (_) {}
         viewport.style.width = '100%';
-        viewport.style.height = '100%';
+        viewport.style.height = 'auto';
 
         // 全屏同样保持自然尺寸（不再做额外缩放）
         if (document.fullscreenElement) {
