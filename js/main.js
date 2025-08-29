@@ -1371,21 +1371,42 @@ if (!document.getElementById('guixu-font-override-style')) {
           available = Math.min(available, Math.max(240, baseH - reserves));
           const target = Math.max(420, Math.round(available));
 
-          main.style.flex = '0 0 auto';
-          main.style.height = `${target}px`;
-          main.style.maxHeight = `${target}px`;
-          main.style.minHeight = '360px';
-          main.style.overflowY = 'auto';
+          // 三栏统一限高 + 滚动：左（角色）、中（正文）、右（功能）
+          const charEl = document.querySelector('.character-panel');
+          const rightEl = document.querySelector('.interaction-panel');
+
+          const applyPane = (el) => {
+            if (!el) return;
+            el.style.flex = '0 0 auto';
+            el.style.height = `${target}px`;
+            el.style.maxHeight = `${target}px`;
+            el.style.minHeight = '360px';
+            el.style.overflowY = 'auto';
+          };
+
+          applyPane(main);
+          applyPane(charEl);
+          applyPane(rightEl);
           return;
         }
 
         if (!isMobile) {
           // 桌面视图（全屏时）还原，交由全屏样式处理
-          main.style.height = '';
-          main.style.maxHeight = '';
-          main.style.minHeight = '';
-          main.style.flex = '';
-          main.style.overflowY = '';
+          const charEl = document.querySelector('.character-panel');
+          const rightEl = document.querySelector('.interaction-panel');
+
+          const resetPane = (el) => {
+            if (!el) return;
+            el.style.height = '';
+            el.style.maxHeight = '';
+            el.style.minHeight = '';
+            el.style.flex = '';
+            el.style.overflowY = '';
+          };
+
+          resetPane(main);
+          resetPane(charEl);
+          resetPane(rightEl);
           return;
         }
 

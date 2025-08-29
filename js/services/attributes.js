@@ -163,11 +163,43 @@
         mergeBonus(totalPercentBonuses, percent);
       };
 
-      // 装备
+      // 装备（优先从状态管理器，其次从 MVU 变量读取；两者去重，避免重复计入）
       try {
+        const seen = new Set();
+        const keyOf = (it) => {
+          try {
+            const id = H.SafeGetValue(it, 'id', '');
+            const name = H.SafeGetValue(it, 'name', H.SafeGetValue(it, '名称', ''));
+            return id ? `id:${id}` : (name ? `name:${name}` : '');
+          } catch (_) { return ''; }
+        };
+        const pushIfNew = (it) => {
+          if (!it || typeof it !== 'object') return;
+          const sig = keyOf(it);
+          if (sig && !seen.has(sig)) {
+            seen.add(sig);
+            addItem(it);
+          }
+        };
+
+        // 1) 来自本地 equippedItems（读档可能缺失该缓存，若存在则优先使用）
         if (equippedItems && typeof equippedItems === 'object') {
-          Object.values(equippedItems).forEach(addItem);
+          Object.values(equippedItems).forEach(pushIfNew);
         }
+
+        // 2) 回退/补充：从 stat_data 的“已装备”字段读取（与 UI 渲染来源一致）
+        // 兼容对象/数组两种旧形态；若 helper 不存在则静默跳过
+        const slots = ['武器','主修功法','辅修心法','防具','饰品','法宝'];
+        slots.forEach(k => {
+          try {
+            const v = H.readEquipped ? H.readEquipped(stat_data, k) : null;
+            if (Array.isArray(v)) {
+              v.forEach(pushIfNew);
+            } else {
+              pushIfNew(v);
+            }
+          } catch (_) {}
+        });
       } catch (_) {}
 
       // 天赋（兼容对象列表）
@@ -228,10 +260,39 @@
         sources.push({ type, name, flat, percent });
       };
 
-      // 装备
+      // 装备（与计算一致：合并本地缓存与 MVU 变量并去重）
       try {
+        const seen = new Set();
+        const keyOf = (it) => {
+          try {
+            const id = H.SafeGetValue(it, 'id', '');
+            const name = H.SafeGetValue(it, 'name', H.SafeGetValue(it, '名称', ''));
+            return id ? `id:${id}` : (name ? `name:${name}` : '');
+          } catch (_) { return ''; }
+        };
+        const pushIfNew = (it) => {
+          if (!it || typeof it !== 'object') return;
+          const sig = keyOf(it);
+          if (sig && !seen.has(sig)) {
+            seen.add(sig);
+            pushItem('物品', it);
+          }
+        };
+
+        // 1) 本地 equippedItems
         const eq = st.equippedItems || {};
-        Object.values(eq).forEach(it => { if (it) pushItem('物品', it); });
+        Object.values(eq).forEach(pushIfNew);
+
+        // 2) MVU 槽位
+        const slots = ['武器','主修功法','辅修心法','防具','饰品','法宝'];
+        const sd = st.currentMvuState?.stat_data || {};
+        slots.forEach(k => {
+          try {
+            const v = H.readEquipped ? H.readEquipped(sd, k) : null;
+            if (Array.isArray(v)) v.forEach(pushIfNew);
+            else pushIfNew(v);
+          } catch (_) {}
+        });
       } catch (_) {}
 
       // 天赋（兼容对象列表）
