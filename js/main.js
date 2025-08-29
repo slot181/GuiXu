@@ -146,6 +146,7 @@
 
       // 嵌入式(iframe)可见性兜底修复 + 移动端主内容固定高度
       this._applyEmbeddedVisibilityFix();
+      this._updateWindowedClass();
       this._reflowMobileLayout();
       // 初始一帧后再恢复一次FAB位置，避免早期布局尺寸为0导致的夹紧错位
       setTimeout(() => this._restoreFabPositions(), 100);
@@ -409,6 +410,7 @@ if (!document.getElementById('guixu-font-override-style')) {
       document.addEventListener('fullscreenchange', () => { 
         this._updateFullscreenButtonState(); 
         this.applyUserPreferences(); 
+        this._updateWindowedClass();
         // 全屏进入/退出时，确保移动端 FAB 存在并位于全屏子树内可见
         this._ensureFABsVisibleInFullscreen();
         this._restoreFabPositions();
@@ -431,6 +433,7 @@ if (!document.getElementById('guixu-font-override-style')) {
       document.addEventListener('webkitfullscreenchange', () => { 
         this._updateFullscreenButtonState(); 
         this.applyUserPreferences(); 
+        this._updateWindowedClass();
         this._ensureFABsVisibleInFullscreen();
         this._restoreFabPositions();
         this._pulseFastReflow(300);
@@ -2610,6 +2613,18 @@ container.style.fontFamily = `"Microsoft YaHei", "Noto Sans SC", "PingFang SC", 
           && root.classList.contains('mobile-view')
           && window.matchMedia('(orientation: landscape)').matches;
         root.classList.toggle('mobile-landscape-fullscreen', cond);
+      } catch (_) {}
+    },
+
+    // 新增：窗口模式标记（用于覆盖非全屏 min-height 兜底，消除底部多余空白）
+    _updateWindowedClass() {
+      try {
+        const vp = document.getElementById('guixu-viewport');
+        const root = document.querySelector('.guixu-root-container');
+        if (!vp || !root) return;
+        const isFull = !!document.fullscreenElement;
+        vp.classList.toggle('windowed', !isFull);
+        root.classList.toggle('windowed', !isFull);
       } catch (_) {}
     },
 

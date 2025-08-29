@@ -1,0 +1,33 @@
+/* 归墟 - 非全屏窗口模式底部空白修复（移动端/桌面端通用）
+   问题成因（摘要）：
+   - 视口容器(.guixu-viewport)与根容器(.guixu-root-container)在非全屏模式设置了 min-height: 100vh/640px 等兜底，
+     而内部主体(.game-container)在多数情况下是“按内容自适应高度”的（height: auto），未真正拉伸至与父容器等高，
+     导致根容器底部出现“多出一小截”的留白区域。
+   方案：
+   - 在窗口模式下动态加上 .windowed 类（由 JS 切换），对 viewport/root/game-container 的 min-height/height 做精确覆盖，
+     统一改回按内容自适应，从而去除根容器底部多余高度。
+   - 同时关闭横向滚动条，避免因子元素偶发超宽导致出现底部水平滚动条的“细条”错觉。
+*/
+
+/* 默认关闭横向滚动，避免出现水平滚动条“细条”视觉 */
+.guixu-viewport {
+  overflow-x: hidden;
+}
+
+/* 非全屏窗口模式（由 JS 切换 .windowed 类）统一按内容自适应高度 */
+.guixu-viewport.windowed,
+.guixu-root-container.windowed {
+  min-height: auto !important;
+  height: auto !important;
+}
+
+/* 在窗口模式下，清除桌面兜底 min-height，避免 root 与 grid 主体高度不一致 */
+.guixu-root-container.windowed .game-container {
+  min-height: auto !important;
+  height: auto !important;
+}
+
+/* 移动端窗口模式：明确不预留额外底部空间 */
+.guixu-root-container.mobile-view.windowed .game-container {
+  padding-bottom: 0 !important;
+}
