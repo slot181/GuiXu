@@ -185,8 +185,6 @@
       }
 
                   // 初始数据加载与渲染
-      this._fixSettingsResolutionRowLayout();
-      this._ensureResolutionInputsUsable();
       this.syncUserPreferencesFromRoaming().finally(() => this.applyUserPreferences());
       this.loadInputDraft();
       this.updateDynamicData().catch(err => console.error('[归墟] 初次加载失败:', err));
@@ -457,10 +455,6 @@ if (!document.getElementById('guixu-font-override-style')) {
       $('#btn-save-load-manager')?.addEventListener('click', () => window.GuixuActionService?.showSaveLoadManager?.());
       $('#btn-settings')?.addEventListener('click', () => { 
         window.SettingsComponent?.show?.(); 
-        setTimeout(() => { 
-          this._fixSettingsResolutionRowLayout(); 
-          this._ensureResolutionInputsUsable(); 
-        }, 0); 
       });
       $('#btn-intro-guide')?.addEventListener('click', () => window.IntroModalComponent?.show?.());
       $('#btn-view-statuses')?.addEventListener('click', () => window.StatusesComponent?.show?.());
@@ -956,78 +950,20 @@ if (!document.getElementById('guixu-font-override-style')) {
       } catch (_) {}
     },
 
-    // 修复：移动端设置中心“分辨率-自定义”一行的布局（宽、高与提示在同一行）
+    // 修复：移动端设置中心“分辨率-自定义”一行的布局（已废弃：分辨率模块移除）
     _fixSettingsResolutionRowLayout() {
       try {
-        const root = document.querySelector('.guixu-root-container');
-        const viewport = this._getViewportEl();
-        const isMobile = !!(root && (root.classList.contains('mobile-view') || viewport?.classList?.contains('mobile-view')));
-        const w = document.getElementById('pref-ui-res-width');
-        const h = document.getElementById('pref-ui-res-height');
-        if (!w || !h) return;
-        const row = w.closest('.attribute-item');
-        if (!row) return;
-
-        if (isMobile) {
-          // 在移动端允许换行，但保证两个输入框并排；提示挪到下一行，避免挤压导致看不见或无法点击
-          row.style.setProperty('flex-wrap', 'wrap', 'important');
-          row.style.alignItems = 'center';
-          row.style.gap = '6px';
-          // 恢复输入框宽度，由移动端CSS控制为两列自适应
-          w.style.removeProperty('width');
-          h.style.removeProperty('width');
-          // 将“（选择‘自定义’后可用）”提示放到下一行并允许换行
-          const tips = Array.from(row.querySelectorAll('.attribute-name')).find(el => (el.textContent || '').includes('自定义') === false);
-          const tip2 = Array.from(row.querySelectorAll('.attribute-name')).find(el => /（.*自定义.*）/.test(el.textContent || ''));
-          const tip = tip2 || tips;
-          if (tip) {
-            tip.style.whiteSpace = 'normal';
-            tip.style.flex = '1 1 100%';
-            tip.style.fontSize = '11px';
-            tip.style.marginTop = '4px';
-          }
-        } else {
-          // 桌面端恢复默认
-          row.style.removeProperty('flex-wrap');
-          w.style.width = '';
-          h.style.width = '';
-        }
-
-        // 绑定一次下拉事件，切换为“自定义”时确保输入可编辑
-        try {
-          const presetEl = document.getElementById('pref-ui-res-preset');
-          if (presetEl && !presetEl.dataset.guixuBind) {
-            presetEl.addEventListener('change', () => this._ensureResolutionInputsUsable());
-            presetEl.dataset.guixuBind = '1';
-          }
-          this._ensureResolutionInputsUsable();
-        } catch(_) {}
+        // 已移除分辨率UI，保留空实现用于兼容旧引用
       } catch (_) {}
     },
 
-    // 保证在“自定义”模式下两个输入框可编辑且可见（修复移动端某些浏览器禁用/覆盖问题）
+    // 保证在“自定义”模式下两个输入框可编辑（已废弃：分辨率模块移除）
     _ensureResolutionInputsUsable() {
       try {
-        const modal = document.getElementById('settings-modal');
-        if (!modal || getComputedStyle(modal).display === 'none') return;
-        const presetEl = document.getElementById('pref-ui-res-preset');
-        const isCustom = String(presetEl?.value || 'keep') === 'custom';
-        const w = document.getElementById('pref-ui-res-width');
-        const h = document.getElementById('pref-ui-res-height');
-        [w, h].forEach(inp => {
-          if (!inp) return;
-          // 解除禁用并增强移动端输入体验
-          inp.disabled = !isCustom ? true : false;
-          inp.readOnly = !isCustom ? true : false;
-          inp.style.pointerEvents = isCustom ? 'auto' : 'none';
-          inp.style.opacity = isCustom ? '1' : '0.6';
-          inp.setAttribute('inputmode', 'numeric');
-          inp.setAttribute('pattern', '[0-9]*');
-          inp.style.color = '#e0dcd1';
-          inp.style.caretColor = '#e0dcd1';
-        });
+        // 已移除分辨率UI，保留空实现用于兼容旧引用
       } catch (_) {}
     },
+
 
     _ensureMobileFABs() {
       try {
@@ -2154,7 +2090,7 @@ if (!document.getElementById('guixu-font-override-style')) {
         const container = document.querySelector('.guixu-root-container');
         if (!container) return;
         const state = window.GuixuState?.getState?.();
-        const defaults = { backgroundUrl: '', bgMaskOpacity: 0.7, storyFontSize: 14, storyFontColor: '#e0dcd1', storyDefaultColor: '#e0dcd1', storyQuoteColor: '#ff4d4f', thinkingTextColor: '#e0dcd1', thinkingBgOpacity: 0.85, bgFitMode: 'cover', uiResolutionPreset: 'keep', uiCustomWidth: 900, uiCustomHeight: 600, customFontName: '', customFontDataUrl: '' };
+        const defaults = { backgroundUrl: '', bgMaskOpacity: 0.7, storyFontSize: 14, storyFontColor: '#e0dcd1', storyDefaultColor: '#e0dcd1', storyQuoteColor: '#ff4d4f', thinkingTextColor: '#e0dcd1', thinkingBgOpacity: 0.85, bgFitMode: 'cover', customFontName: '', customFontDataUrl: '' };
         const prefs = Object.assign({}, defaults, (prefsOverride || state?.userPreferences || {}));
 
         // 遮罩透明度（0~0.8）
@@ -2272,76 +2208,34 @@ container.style.fontFamily = `"Microsoft YaHei", "Noto Sans SC", "PingFang SC", 
       }
     },
 
-    // 新增：应用非全屏分辨率与等比例缩放
+    // 新增：统一自适应视口（移除窗口模式分辨率缩放/固定）
     _applyViewportSizing(prefs) {
       try {
-        const baseW = 512;
-        const baseH = 768;
         const viewport = document.getElementById('guixu-viewport');
         const root = document.querySelector('.guixu-root-container');
         if (!viewport || !root) return;
 
-        // 移动端视图下禁用缩放与固定分辨率，开启自然滚动
-        const isMobileView = root.classList.contains('mobile-view') || viewport.classList.contains('mobile-view');
-        if (isMobileView) {
-          root.style.transformOrigin = 'top left';
-          root.style.transform = 'none';
-          root.style.left = '0px';
-          root.style.top = '0px';
-          viewport.classList.add('mobile-view');
-          // 清除任何强制尺寸/变量，交给 CSS 去控制（高度按用户设置优先）
+        // 统一自适应：取消任何缩放与固定尺寸，交由 CSS 和父容器决定
+        root.style.transformOrigin = 'top left';
+        root.style.transform = 'none';
+        root.style.left = '0px';
+        root.style.top = '0px';
+
+        // 清除通过 CSS 变量/内联设置的目标分辨率
+        try {
           viewport.style.removeProperty('--viewport-w');
           viewport.style.removeProperty('--viewport-h');
-          viewport.style.removeProperty('width');
-          try {
-            viewport.style.removeProperty('height');
-          } catch (_) {}
-          return;
-        }
+        } catch (_) {}
+        viewport.style.width = '100%';
+        viewport.style.height = '100%';
 
-        // 全屏时忽略自定义分辨率与缩放
+        // 全屏同样保持自然尺寸（不再做额外缩放）
         if (document.fullscreenElement) {
-          root.style.transformOrigin = 'top left';
-          // 避免在全屏下创建新的层叠上下文/包含块，防止 iPad/Safari 等环境下 position:fixed 浮层被裁剪或失效
-          root.style.transform = 'none';
-          root.style.left = '0px';
-          root.style.top = '0px';
           return;
         }
 
-        const preset = String(prefs.uiResolutionPreset || 'keep');
-        let targetW = baseW;
-        let targetH = baseH;
-        if (preset === 'custom') {
-          const w = Number(prefs.uiCustomWidth || baseW);
-          const h = Number(prefs.uiCustomHeight || baseH);
-          targetW = Math.max(300, Math.min(7680, isFinite(w) ? w : baseW));
-          targetH = Math.max(200, Math.min(4320, isFinite(h) ? h : baseH));
-        } else if (preset === 'keep') {
-          targetW = baseW;
-          targetH = baseH;
-        } else {
-          const m = preset.match(/^(\d+)x(\d+)$/);
-          if (m) {
-            targetW = parseInt(m[1], 10);
-            targetH = parseInt(m[2], 10);
-          }
-        }
-
-        viewport.style.setProperty('--viewport-w', `${targetW}px`);
-        viewport.style.setProperty('--viewport-h', `${targetH}px`);
-
-        const scaleW = targetW / baseW;
-        const scaleH = targetH / baseH;
-        const s = Math.min(scaleW, scaleH);
-
-        root.style.transformOrigin = 'top left';
-        root.style.transform = `scale(${s})`;
-
-        const left = Math.max(0, (targetW - baseW * s) / 2);
-        const top = Math.max(0, (targetH - baseH * s) / 2);
-        root.style.left = `${left}px`;
-        root.style.top = `${top}px`;
+        // 移动端/桌面端均不再根据预设/自定义分辨率进行缩放
+        return;
       } catch (e) {
         console.warn('[归墟] _applyViewportSizing 出错:', e);
       }

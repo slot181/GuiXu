@@ -13,9 +13,6 @@
     thinkingTextColor: '#e0dcd1',
     thinkingBgOpacity: 0.85,
     bgFitMode: 'cover',
-    uiResolutionPreset: 'keep',
-    uiCustomWidth: 900,
-    uiCustomHeight: 600,
     // 自定义字体（以 dataURL 形式缓存）
     customFontName: '',
     customFontDataUrl: '',
@@ -73,10 +70,6 @@
       const btnSaveClose = $('#pref-save-close');
       const fitSelect = $('#pref-bg-fit-mode');
 
-      // 新增：分辨率控件
-      const resPreset = $('#pref-ui-res-preset');
-      const resW = $('#pref-ui-res-width');
-      const resH = $('#pref-ui-res-height');
 
       // 动态注入：正文字体与颜色面板（保持与现有风格一致）
       try {
@@ -277,7 +270,6 @@
           { selector: '.panel-section .section-title', match: '背景显示方式', text: '设置背景图的铺放方式（cover/contain/repeat/stretch/center）。' },
           { selector: '.panel-section .section-title', match: '背景压缩', text: '上传本地图片时按此质量进行压缩（默认WebP，范围0.60-1.00）；勾选“保留原始尺寸”则不缩放，仅按质量压缩。仅影响上传后的存储，不改变当前已选背景清晰度。' },
           { selector: '.panel-section .section-title', match: '故事文本字号', text: '控制中央正文区域的基础字号大小。' },
-          { selector: '.panel-section .section-title', match: '桌面视图分辨率', text: '仅桌面端窗口模式有效，用于缩放内部 UI 的参考分辨率。' },
           { selector: '.panel-section .section-title', match: '流式请求', text: '此开关只是以流式请求的方式进行请求，并不会真的流式输出在正文窗口里。' },
           { selector: '#section-title-story-font', match: null, text: '可分别设置：正文颜色、方括号文本颜色、引号文本颜色、思维链文字颜色以及其背景透明度；并可上传本地字体文件（TTF/OTF/WOFF/WOFF2）。字体以本地缓存方式加载，刷新后仍有效（强制清缓存除外）。' },
         ];
@@ -313,33 +305,6 @@
         this.applyPreview(this.readValues());
       });
 
-      // 分辨率预设切换
-      const toggleCustomEnabled = () => {
-        const enable = String(resPreset?.value || 'keep') === 'custom';
-        if (resW) resW.disabled = !enable;
-        if (resH) resH.disabled = !enable;
-      };
-      resPreset?.addEventListener('change', () => {
-        const preset = String(resPreset.value || 'keep');
-        // 预设时同步显示数值（仅展示，不会强制保存）
-        if (preset !== 'custom' && preset !== 'keep') {
-          const m = preset.match(/^(\d+)x(\d+)$/);
-          if (m) {
-            if (resW) resW.value = m[1];
-            if (resH) resH.value = m[2];
-          }
-        }
-        toggleCustomEnabled();
-        this.applyPreview(this.readValues());
-      });
-      // 自定义宽高变化时应用预览（仅当处于自定义模式）
-      const onCustomSizeInput = () => {
-        if (String(resPreset?.value || 'keep') === 'custom') {
-          this.applyPreview(this.readValues());
-        }
-      };
-      resW?.addEventListener('input', onCustomSizeInput);
-      resH?.addEventListener('input', onCustomSizeInput);
 
       // 本地上传 -> 压缩 -> 新建世界书条目（不覆盖）
       bgUploadBtn?.addEventListener('click', () => this.uploadBackground());
@@ -490,9 +455,6 @@
       const fontVal = $('#pref-story-font-size-val');
       const fitSelect = $('#pref-bg-fit-mode');
       const bgSelect = $('#pref-bg-select');
-      const resPreset = $('#pref-ui-res-preset');
-      const resW = $('#pref-ui-res-width');
-      const resH = $('#pref-ui-res-height');
 
       // 新增：颜色与字体 UI
       const storyColorInput = $('#pref-story-font-color');
@@ -565,24 +527,6 @@
         bgSelect.value = selectedComment || '';
       }
 
-      // 分辨率设置回显
-      const preset = String(prefs.uiResolutionPreset || 'keep');
-      if (resPreset) resPreset.value = preset;
-      let showW = Number(prefs.uiCustomWidth || 900);
-      let showH = Number(prefs.uiCustomHeight || 600);
-      const m = preset.match?.(/^(\d+)x(\d+)$/);
-      if (m) {
-        showW = parseInt(m[1], 10);
-        showH = parseInt(m[2], 10);
-      } else if (preset === 'keep') {
-        showW = 900; showH = 600;
-      }
-      if (resW) resW.value = String(showW);
-      if (resH) resH.value = String(showH);
-      // 启用/禁用自定义输入
-      const enable = preset === 'custom';
-      if (resW) resW.disabled = !enable;
-      if (resH) resH.disabled = !enable;
 
       // 流式输出开关回显
       try {
@@ -609,19 +553,13 @@
       const selectedComment = String($('#pref-bg-select')?.value || this._selectedComment || '');
       const backgroundUrl = selectedComment ? `lorebook://${selectedComment}` : '';
 
-      // 分辨率
-      const uiResolutionPreset = String($('#pref-ui-res-preset')?.value || DEFAULTS.uiResolutionPreset);
-      let uiCustomWidth = Number($('#pref-ui-res-width')?.value || DEFAULTS.uiCustomWidth);
-      let uiCustomHeight = Number($('#pref-ui-res-height')?.value || DEFAULTS.uiCustomHeight);
-      uiCustomWidth = Math.max(300, Math.min(7680, isFinite(uiCustomWidth) ? uiCustomWidth : DEFAULTS.uiCustomWidth));
-      uiCustomHeight = Math.max(200, Math.min(4320, isFinite(uiCustomHeight) ? uiCustomHeight : DEFAULTS.uiCustomHeight));
 
       const customFontName = String(this._tempFontName || DEFAULTS.customFontName);
       const customFontDataUrl = String(this._tempFontDataUrl || DEFAULTS.customFontDataUrl);
       const bgCompressQuality = Math.min(1, Math.max(0.6, Number($('#pref-bg-quality')?.value ?? DEFAULTS.bgCompressQuality)));
       const bgKeepSize = !!($('#pref-bg-keep-size')?.checked);
 
-      return { backgroundUrl, bgMaskOpacity, storyFontSize, storyFontColor, storyDefaultColor, storyQuoteColor, thinkingTextColor, thinkingBgOpacity, bgFitMode, uiResolutionPreset, uiCustomWidth, uiCustomHeight, customFontName, customFontDataUrl, bgCompressQuality, bgKeepSize };
+      return { backgroundUrl, bgMaskOpacity, storyFontSize, storyFontColor, storyDefaultColor, storyQuoteColor, thinkingTextColor, thinkingBgOpacity, bgFitMode, customFontName, customFontDataUrl, bgCompressQuality, bgKeepSize };
     },
 
     applyPreview(prefs) {
