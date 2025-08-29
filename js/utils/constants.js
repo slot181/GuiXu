@@ -7,7 +7,7 @@
 
   const Constants = {
     LOREBOOK: {
-      NAME: '1归墟',
+      NAME: '归墟（拼好卡）',
       ENTRIES: {
         JOURNEY: '本世历程',
         PAST_LIVES: '往世涟漪',
