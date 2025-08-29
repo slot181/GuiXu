@@ -332,7 +332,7 @@
             }
             #guixu-action-guidelines .action-guideline-btn {
               width: 100% !important;
-              text-align: left;
+              text-align: center; /* 文本居中，桌面/移动端一致 */
               white-space: normal !important;
               word-break: break-word;
               line-height: 1.5;
@@ -340,6 +340,10 @@
               font-size: 13px;
               height: auto;
               box-sizing: border-box;
+              /* 使用可配置的文字颜色与背景透明度（覆盖通用按钮风格） */
+              color: var(--guixu-guideline-text-color, #e0dcd1) !important;
+              background: rgba(15, 15, 35, var(--guixu-guideline-bg-opacity, 0.6)) !important;
+              border: 1px solid #c9aa71 !important;
             }
             .guixu-root-container.mobile-view #guixu-action-guidelines .action-guideline-btn {
               font-size: 12px;
@@ -1879,7 +1883,7 @@ if (!document.getElementById('guixu-font-override-style')) {
               container.style.cssText = 'margin-top:8px;border-top:1px solid rgba(201,170,113,0.3);padding-top:6px;display:flex;flex-direction:column;gap:8px;';
 
               const label = document.createElement('span');
-              label.textContent = '行动方针';
+              label.textContent = '行动选项';
               label.className = 'guideline-label';
               container.appendChild(label);
 
@@ -2090,7 +2094,7 @@ if (!document.getElementById('guixu-font-override-style')) {
         const container = document.querySelector('.guixu-root-container');
         if (!container) return;
         const state = window.GuixuState?.getState?.();
-        const defaults = { backgroundUrl: '', bgMaskOpacity: 0.7, storyFontSize: 14, storyFontColor: '#e0dcd1', storyDefaultColor: '#e0dcd1', storyQuoteColor: '#ff4d4f', thinkingTextColor: '#e0dcd1', thinkingBgOpacity: 0.85, bgFitMode: 'cover', customFontName: '', customFontDataUrl: '' };
+        const defaults = { backgroundUrl: '', bgMaskOpacity: 0.7, storyFontSize: 14, storyFontColor: '#e0dcd1', storyDefaultColor: '#e0dcd1', storyQuoteColor: '#ff4d4f', thinkingTextColor: '#e0dcd1', thinkingBgOpacity: 0.85, guidelineTextColor: '#e0dcd1', guidelineBgOpacity: 0.6, bgFitMode: 'cover', customFontName: '', customFontDataUrl: '' };
         const prefs = Object.assign({}, defaults, (prefsOverride || state?.userPreferences || {}));
 
         // 遮罩透明度（0~0.8）
@@ -2160,6 +2164,12 @@ if (!document.getElementById('guixu-font-override-style')) {
 
         const tbg = Math.min(1, Math.max(0, Number(prefs.thinkingBgOpacity ?? defaults.thinkingBgOpacity)));
         container.style.setProperty('--guixu-thinking-bg-opacity', String(tbg));
+
+        // 行动选项（按钮）颜色与背景透明度
+        const guidelineTextColor = String(prefs.guidelineTextColor || defaults.guidelineTextColor);
+        container.style.setProperty('--guixu-guideline-text-color', guidelineTextColor);
+        const guidelineBgOpacity = Math.min(1, Math.max(0, Number(prefs.guidelineBgOpacity ?? defaults.guidelineBgOpacity)));
+        container.style.setProperty('--guixu-guideline-bg-opacity', String(guidelineBgOpacity));
 
         // 自定义字体（以 dataURL 持久化）
         try {

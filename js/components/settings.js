@@ -12,6 +12,9 @@
     storyQuoteColor: '#ff4d4f',
     thinkingTextColor: '#e0dcd1',
     thinkingBgOpacity: 0.85,
+    // 行动选项样式
+    guidelineTextColor: '#e0dcd1',
+    guidelineBgOpacity: 0.6,
     bgFitMode: 'cover',
     // 自定义字体（以 dataURL 形式缓存）
     customFontName: '',
@@ -108,6 +111,17 @@
                 <input id="pref-thinking-bg-opacity" type="range" min="0" max="1" step="0.05" value="0.85" style="width:160px;">
                 <span id="pref-thinking-bg-opacity-val" class="attribute-value">0.85</span>
               </div>
+              <!-- 3) 行动选项（按钮）颜色与背景透明度 -->
+              <div class="attribute-item" style="gap:10px; align-items:center;">
+                <span class="attribute-name" style="min-width:90px;">行动选项文字</span>
+                <input id="pref-guideline-text-color" type="color" value="#e0dcd1" style="width:44px; height:28px; padding:0; background:transparent; border:1px solid #8b7355; border-radius: 4px;">
+                <span id="pref-guideline-text-color-val" class="attribute-value">#E0DCD1</span>
+              </div>
+              <div class="attribute-item" style="gap:10px; align-items:center;">
+                <span class="attribute-name" style="min-width:90px;">行动选项背景</span>
+                <input id="pref-guideline-bg-opacity" type="range" min="0" max="1" step="0.05" value="0.60" style="width:160px;">
+                <span id="pref-guideline-bg-opacity-val" class="attribute-value">0.60</span>
+              </div>
               <div class="attribute-item" style="gap:8px; align-items:center; flex-wrap: wrap;">
                 <span class="attribute-name" style="min-width:90px;">自定义字体</span>
                 <button id="pref-font-upload" class="interaction-btn" style="padding: 4px 8px; font-size: 12px;">本地上传</button>
@@ -141,6 +155,10 @@
       const thinkingTextColorVal = $('#pref-thinking-text-color-val');
       const thinkingBgOpacityRange = $('#pref-thinking-bg-opacity');
       const thinkingBgOpacityVal = $('#pref-thinking-bg-opacity-val');
+      const guidelineTextColorInput = $('#pref-guideline-text-color');
+      const guidelineTextColorVal = $('#pref-guideline-text-color-val');
+      const guidelineBgOpacityRange = $('#pref-guideline-bg-opacity');
+      const guidelineBgOpacityVal = $('#pref-guideline-bg-opacity-val');
       const qualityRange = $('#pref-bg-quality');
       const qualityVal = $('#pref-bg-quality-val');
       const keepSizeCheckbox = $('#pref-bg-keep-size');
@@ -168,6 +186,17 @@
       thinkingBgOpacityRange?.addEventListener('input', () => {
         const v = Math.min(1, Math.max(0, Number(thinkingBgOpacityRange.value ?? DEFAULTS.thinkingBgOpacity)));
         if (thinkingBgOpacityVal) thinkingBgOpacityVal.textContent = v.toFixed(2);
+        this.applyPreview(this.readValues());
+      });
+      // 行动选项颜色/背景透明
+      guidelineTextColorInput?.addEventListener('input', () => {
+        const val = String(guidelineTextColorInput.value || '').trim() || '#e0dcd1';
+        if (guidelineTextColorVal) guidelineTextColorVal.textContent = val.toUpperCase();
+        this.applyPreview(this.readValues());
+      });
+      guidelineBgOpacityRange?.addEventListener('input', () => {
+        const v = Math.min(1, Math.max(0, Number(guidelineBgOpacityRange.value ?? DEFAULTS.guidelineBgOpacity)));
+        if (guidelineBgOpacityVal) guidelineBgOpacityVal.textContent = v.toFixed(2);
         this.applyPreview(this.readValues());
       });
 
@@ -467,6 +496,10 @@
       const thinkingTextColorVal = $('#pref-thinking-text-color-val');
       const thinkingBgOpacityRange = $('#pref-thinking-bg-opacity');
       const thinkingBgOpacityVal = $('#pref-thinking-bg-opacity-val');
+      const guidelineTextColorInput = $('#pref-guideline-text-color');
+      const guidelineTextColorVal = $('#pref-guideline-text-color-val');
+      const guidelineBgOpacityRange = $('#pref-guideline-bg-opacity');
+      const guidelineBgOpacityVal = $('#pref-guideline-bg-opacity-val');
       const fontNameEl = $('#pref-font-name');
       const qualityRange = $('#pref-bg-quality');
       const qualityVal = $('#pref-bg-quality-val');
@@ -509,6 +542,15 @@
       if (thinkingBgOpacityRange) thinkingBgOpacityRange.value = String(tbg);
       if (thinkingBgOpacityVal) thinkingBgOpacityVal.textContent = tbg.toFixed(2);
 
+      // 行动选项颜色与背景透明度
+      const gcolor = String(prefs.guidelineTextColor || DEFAULTS.guidelineTextColor);
+      if (guidelineTextColorInput) guidelineTextColorInput.value = gcolor;
+      if (guidelineTextColorVal) guidelineTextColorVal.textContent = gcolor.toUpperCase();
+
+      const gbg = Math.min(1, Math.max(0, Number(prefs.guidelineBgOpacity ?? DEFAULTS.guidelineBgOpacity)));
+      if (guidelineBgOpacityRange) guidelineBgOpacityRange.value = String(gbg);
+      if (guidelineBgOpacityVal) guidelineBgOpacityVal.textContent = gbg.toFixed(2);
+
       // 字体名称/数据
       this._tempFontName = String(prefs.customFontName || '');
       this._tempFontDataUrl = String(prefs.customFontDataUrl || '');
@@ -549,6 +591,8 @@
       const storyQuoteColor = String(($('#pref-story-quote-color')?.value) || DEFAULTS.storyQuoteColor);
       const thinkingTextColor = String(($('#pref-thinking-text-color')?.value) || DEFAULTS.thinkingTextColor);
       const thinkingBgOpacity = Math.min(1, Math.max(0, Number($('#pref-thinking-bg-opacity')?.value ?? DEFAULTS.thinkingBgOpacity)));
+      const guidelineTextColor = String(($('#pref-guideline-text-color')?.value) || DEFAULTS.guidelineTextColor);
+      const guidelineBgOpacity = Math.min(1, Math.max(0, Number($('#pref-guideline-bg-opacity')?.value ?? DEFAULTS.guidelineBgOpacity)));
 
       const selectedComment = String($('#pref-bg-select')?.value || this._selectedComment || '');
       const backgroundUrl = selectedComment ? `lorebook://${selectedComment}` : '';
@@ -559,7 +603,7 @@
       const bgCompressQuality = Math.min(1, Math.max(0.6, Number($('#pref-bg-quality')?.value ?? DEFAULTS.bgCompressQuality)));
       const bgKeepSize = !!($('#pref-bg-keep-size')?.checked);
 
-      return { backgroundUrl, bgMaskOpacity, storyFontSize, storyFontColor, storyDefaultColor, storyQuoteColor, thinkingTextColor, thinkingBgOpacity, bgFitMode, customFontName, customFontDataUrl, bgCompressQuality, bgKeepSize };
+      return { backgroundUrl, bgMaskOpacity, storyFontSize, storyFontColor, storyDefaultColor, storyQuoteColor, thinkingTextColor, thinkingBgOpacity, guidelineTextColor, guidelineBgOpacity, bgFitMode, customFontName, customFontDataUrl, bgCompressQuality, bgKeepSize };
     },
 
     applyPreview(prefs) {
