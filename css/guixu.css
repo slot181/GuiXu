@@ -73,15 +73,21 @@ body { margin: 0; }
 .guixu-root-container:not(.mobile-view):not(:fullscreen) {
   /* 以视口高度兜底，避免被父容器的 auto 高度链路压扁 */
   min-height: 100vh;
+  min-height: 100svh;
+  min-height: 100dvh;
   height: auto;
 }
-.guixu-viewport:not(.mobile-view) {
-  /* 视口容器同样给出最小高度，确保根容器可撑开 */
+.guixu-viewport {
+  /* 视口容器同样给出最小高度，确保根容器可撑开（使用动态视口单位以适配移动端地址栏） */
   min-height: 100vh;
+  min-height: 100svh;
+  min-height: 100dvh;
 }
 .guixu-root-container:not(.mobile-view):not(:fullscreen) .game-container {
-  /* 网格容器在桌面非全屏下至少占满视口高度（去除祖先链影响） */
+  /* 网格容器在桌面非全屏下至少占满视口高度（去除祖先链影响）；使用多种视口单位兜底 */
   min-height: calc(100vh - 0px);
+  min-height: calc(100svh - 0px);
+  min-height: calc(100dvh - 0px);
   height: auto;
 }
 .guixu-root-container:not(.mobile-view):not(:fullscreen) .main-content {
