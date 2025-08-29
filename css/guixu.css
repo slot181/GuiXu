@@ -3456,3 +3456,35 @@ body { margin: 0; }
   padding: 0 10px;
   box-sizing: border-box;
 }
+
+/* ================= 行动选项按钮：悬停/按下动态效果（桌面端优先） ================= */
+/* 说明：
+   - 作用于正文中的“行动选项”按钮（#guixu-action-guidelines .action-guideline-btn）
+   - 与 JS 动态注入的基础视觉（背景/边框）配合，增加 hover/active 动效
+   - 不影响移动端（移动端无 hover），保持全局视觉一致 */
+#guixu-action-guidelines .action-guideline-btn {
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+  will-change: transform, box-shadow, background-color;
+}
+#guixu-action-guidelines .action-guideline-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 14px rgba(201, 170, 113, 0.22);
+  border-color: #daa520 !important;
+  background: rgba(15, 15, 35, 0.72) !important; /* 比默认更亮一点的透明度，体现悬停 */
+  color: #fff !important;
+}
+#guixu-action-guidelines .action-guideline-btn:active {
+  transform: translateY(0);
+  box-shadow: inset 0 2px 8px rgba(201, 170, 113, 0.18);
+  background: rgba(15, 15, 35, 0.85) !important; /* 按下时略深，形成压感 */
+}
+#guixu-action-guidelines .action-guideline-btn:focus-visible {
+  outline: 2px solid rgba(218, 165, 32, 0.55);
+  outline-offset: 2px;
+}
+/* 降低动画：尊重系统“减少动态效果”偏好 */
+@media (prefers-reduced-motion: reduce) {
+  #guixu-action-guidelines .action-guideline-btn {
+    transition: none;
+  }
+}

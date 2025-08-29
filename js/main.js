@@ -1349,8 +1349,38 @@ if (!document.getElementById('guixu-font-override-style')) {
         if (ae && (ae.id === 'quick-send-input' || ae.classList?.contains('quick-send-input')) && !forceOnEditing) return;
 
         const isMobile = root.classList.contains('mobile-view') || (viewport && viewport.classList.contains('mobile-view'));
+        const isFullscreen = !!document.fullscreenElement;
+
+        // 桌面端 非全屏：同样限制正文高度并启用滚动，避免被长文本拉伸父页面
+        if (!isMobile && !isFullscreen) {
+          const vvH = (window.visualViewport && window.visualViewport.height) ? window.visualViewport.height : 0;
+          const docH = document.documentElement?.clientHeight || 0;
+          const baseH = Math.max(vvH, window.innerHeight || 0, docH);
+
+          const topEl = document.querySelector('.top-status');
+          const bottomEl = document.getElementById('bottom-status-container');
+          const topH = topEl ? topEl.getBoundingClientRect().height : 0;
+          const bottomH = bottomEl ? bottomEl.getBoundingClientRect().height : 0;
+          const reserves = 12;
+
+          let available = baseH - topH - bottomH - reserves;
+          if (!isFinite(available) || available <= 0) {
+            available = Math.floor((baseH || 800) * 0.75);
+          }
+          // 防抖上限，避免多次重排越算越大；并给出合理下限
+          available = Math.min(available, Math.max(240, baseH - reserves));
+          const target = Math.max(420, Math.round(available));
+
+          main.style.flex = '0 0 auto';
+          main.style.height = `${target}px`;
+          main.style.maxHeight = `${target}px`;
+          main.style.minHeight = '360px';
+          main.style.overflowY = 'auto';
+          return;
+        }
+
         if (!isMobile) {
-          // 桌面视图还原
+          // 桌面视图（全屏时）还原，交由全屏样式处理
           main.style.height = '';
           main.style.maxHeight = '';
           main.style.minHeight = '';
