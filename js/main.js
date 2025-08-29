@@ -1279,15 +1279,15 @@ if (!document.getElementById('guixu-font-override-style')) {
           const style = document.createElement('style');
           style.id = 'guixu-embedded-fix-style';
           style.textContent = `
-            /* 仅桌面非全屏下的嵌入式兜底（更强覆盖） */
-            .guixu-viewport.embedded-fix:not(.mobile-view){
+            /* 非全屏（桌面/移动）嵌入式兜底（更强覆盖） */
+            .guixu-viewport.embedded-fix{
               display:block!important;
               width:100%!important;
               height:auto!important;
               overflow:visible!important;
               min-height:640px!important;
             }
-            .guixu-viewport.embedded-fix:not(.mobile-view) .guixu-root-container:not(:fullscreen){
+            .guixu-root-container.embedded-fix:not(:fullscreen){
               display:block!important;
               position:static!important;
               left:auto!important;
@@ -1297,26 +1297,38 @@ if (!document.getElementById('guixu-font-override-style')) {
               min-height:640px!important;
               overflow:visible!important;
             }
-            .guixu-root-container.embedded-fix:not(.mobile-view):not(:fullscreen) .game-container{
+            .guixu-root-container.embedded-fix:not(:fullscreen) .game-container{
               display:flex!important;
               flex-direction:column!important;
               gap:0!important;
               min-height:760px!important;
               height:auto!important;
             }
-            .guixu-root-container.embedded-fix:not(.mobile-view):not(:fullscreen) .main-content{
+            .guixu-root-container.embedded-fix:not(:fullscreen) .main-content{
               flex:1 1 auto!important;
               min-height:0!important;
               overflow-y:auto!important;
+            }
+            /* 移动端额外兜底：动态视口单位，适配地址栏收起/展开 */
+            .guixu-viewport.embedded-fix.mobile-view{
+              min-height:100svh!important;
+              min-height:100dvh!important;
+            }
+            .guixu-root-container.embedded-fix.mobile-view{
+              min-height:100svh!important;
+              min-height:100dvh!important;
+            }
+            .guixu-root-container.embedded-fix.mobile-view .game-container{
+              min-height:calc(100svh - 0px)!important;
+              min-height:calc(100dvh - 0px)!important;
             }
           `;
           document.head.appendChild(style);
         }
 
-        // 在移动端或全屏下不启用 embedded-fix（仅桌面+非全屏兜底）
-        const isMobile = root.classList.contains('mobile-view') || (viewport && viewport.classList.contains('mobile-view'));
+        // 全屏下不启用 embedded-fix（避免与全屏布局冲突）
         const isFull = !!document.fullscreenElement;
-        if (isMobile || isFull) {
+        if (isFull) {
           root.classList.remove('embedded-fix');
           viewport.classList.remove('embedded-fix');
           return;
@@ -1330,6 +1342,34 @@ if (!document.getElementById('guixu-font-override-style')) {
         const needFix = h < 560 || !(rect.width > 0 && rect.height > 0);
         root.classList.toggle('embedded-fix', needFix);
         viewport.classList.toggle('embedded-fix', needFix);
+
+        // 若宿主固定了 iframe 高度，启用“缩放适配”以在有限高度内完整显示主要区域
+        // 设计基准高度 baseH：与游戏主体最小可用高度一致（720）
+        try {
+          const baseH = 720;
+          const vvH = (window.visualViewport && window.visualViewport.height) ? window.visualViewport.height : 0;
+          const winH = window.innerHeight || 0;
+          const availH = Math.max(vvH, winH, rect.height || 0);
+          if (needFix && availH > 0) {
+            const scale = Math.max(0.35, Math.min(1, (availH - 8) / baseH));
+            // 缩放根容器，但限制布局容器高度为缩放后高度，避免出现双重滚动与被宿主裁切
+            root.style.transformOrigin = 'top left';
+            root.style.transform = `scale(${scale})`;
+            root.style.height = `${baseH}px`;       // 布局高度按未缩放尺寸
+            viewport.style.height = `${Math.round(baseH * scale)}px`; // 实际可见高度
+            viewport.style.overflow = 'hidden';     // 避免出现内部滚动条被宿主再裁切
+          } else {
+            // 还原（桌面正常/全屏/已恢复正常高度）
+            root.style.transform = 'none';
+            root.style.height = '';
+            viewport.style.height = '';
+            viewport.style.overflow = 'auto';
+          }
+        } catch (_) {}
+
+        // 调试与父窗口通知（便于定位宿主是否限制 iframe 高度）
+        try { this._updateEmbeddedDebugPanel && this._updateEmbeddedDebugPanel({ h, rect, needFix }); } catch (_) {}
+        try { this._notifyParentForResize && this._notifyParentForResize(); } catch (_) {}
       } catch (e) {
         console.warn('[归墟] _applyEmbeddedVisibilityFix 失败:', e);
       }
@@ -1400,6 +1440,93 @@ if (!document.getElementById('guixu-font-override-style')) {
         root.classList.add('fast-reflow');
         clearTimeout(this._frTimer);
         this._frTimer = setTimeout(() => root.classList.remove('fast-reflow'), Math.max(50, duration|0));
+      } catch (_) {}
+    },
+
+    // 观测辅助：在嵌入高度异常时显示调试条，并输出到控制台
+    _updateEmbeddedDebugPanel(info = {}) {
+      try {
+        const viewport = this._getViewportEl();
+        const root = document.querySelector('.guixu-root-container');
+        const game = document.querySelector('.game-container');
+        const main = document.querySelector('.main-content');
+        if (!viewport || !root) return;
+
+        // 仅在高度过小或显式开启时展示（避免影响正常场景）
+        const tooSmall = (info && typeof info.h === 'number') ? info.h < 600 : (root.getBoundingClientRect().height < 600);
+        if (!tooSmall && !this._debugAlways) {
+          const ex = document.getElementById('guixu-embedded-debug');
+          if (ex) ex.remove();
+          return;
+        }
+
+        const get = (el) => {
+          if (!el) return { n: 'NA' };
+          const cs = getComputedStyle(el);
+          const r = el.getBoundingClientRect();
+          return {
+            n: el.id ? `#${el.id}` : (el.className ? `.${String(el.className).split(' ')[0]}` : el.tagName.toLowerCase()),
+            h: Math.round(r.height), sh: Math.round(el.scrollHeight || 0), oh: Math.round(el.offsetHeight || 0),
+            pos: cs.position, ovf: cs.overflowY || cs.overflow,
+            minh: cs.minHeight, hcss: cs.height
+          };
+        };
+
+        const rows = [
+          { k: 'window', v: `ih=${window.innerHeight}, vv=${window.visualViewport?.height|0}, doc=${document.documentElement?.clientHeight|0}` },
+          { k: 'html', v: JSON.stringify(get(document.documentElement)) },
+          { k: 'body', v: JSON.stringify(get(document.body)) },
+          { k: 'viewport', v: JSON.stringify(get(viewport)) },
+          { k: 'root', v: JSON.stringify(get(root)) },
+          { k: '.game-container', v: JSON.stringify(get(game)) },
+          { k: '.main-content', v: JSON.stringify(get(main)) },
+          { k: 'needFix', v: String(!!info.needFix) }
+        ];
+
+        let panel = document.getElementById('guixu-embedded-debug');
+        if (!panel) {
+          panel = document.createElement('div');
+          panel.id = 'guixu-embedded-debug';
+          panel.style.cssText = 'position:fixed;right:8px;bottom:8px;z-index:10080;background:rgba(15,15,35,0.92);border:1px solid #c9aa71;border-radius:6px;color:#e0dcd1;font-size:11px;line-height:1.5;max-width:66vw;max-height:48vh;overflow:auto;padding:8px 10px;box-shadow:0 6px 16px rgba(0,0,0,0.45)';
+          const title = document.createElement('div');
+          title.textContent = '嵌入调试(高度链路)';
+          title.style.cssText = 'color:#c9aa71;font-weight:700;margin-bottom:6px';
+          panel.appendChild(title);
+          document.body.appendChild(panel);
+        }
+        const pre = document.createElement('pre');
+        pre.style.cssText = 'margin:0;white-space:pre-wrap;word-break:break-all';
+        pre.textContent = rows.map(r => `${r.k}: ${r.v}`).join('\n');
+        panel.innerHTML = `<div style="color:#c9aa71;font-weight:700;margin-bottom:6px">嵌入调试(高度链路)</div>`;
+        panel.appendChild(pre);
+
+        // 控制台一次性输出（节流）
+        if (!this._debugLoggedOnce) {
+          this._debugLoggedOnce = true;
+          console.warn('[归墟][嵌入调试] 宿主可能限制了 iframe 高度。以下为各层高度/样式：\n' + rows.map(r => `${r.k}: ${r.v}`).join('\n'));
+        }
+      } catch (_) {}
+    },
+
+    // 子页尝试通知父页：请求调整 iframe 高度（宿主若未实现监听则忽略）
+    _notifyParentForResize() {
+      try {
+        if (!window.parent || window.parent === window) return;
+        clearTimeout(this._pmTimer);
+        this._pmTimer = setTimeout(() => {
+          try {
+            const viewport = this._getViewportEl();
+            const root = document.querySelector('.guixu-root-container');
+            const h = Math.max(
+              document.documentElement?.scrollHeight || 0,
+              document.body?.scrollHeight || 0,
+              viewport?.scrollHeight || 0,
+              root?.scrollHeight || 0,
+              800
+            );
+            window.parent.postMessage({ type: 'guixu-embed-resize', height: h, source: 'guixu' }, '*');
+          } catch (_) {}
+        }, 120);
       } catch (_) {}
     },
  
