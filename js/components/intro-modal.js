@@ -146,7 +146,7 @@
         // 延时展示，等待布局稳定与宿主样式应用
         setTimeout(() => {
           this.show();
-          try { this.lockCloseFor(60000); } catch (_) {}
+          try { this.lockCloseFor(1000); } catch (_) {}
         }, Math.max(0, delayMs|0));
       } catch (e) {
         console.warn('[归墟] IntroModalComponent.showFirstTimeIfNeeded 失败:', e);
