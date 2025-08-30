@@ -399,6 +399,9 @@
                     if (existingSave && existingSave.lorebook_entries) {
                         await GuixuState.deleteLorebookBackup(existingSave);
                     }
+                    // 在保存前进行一次属性重算与上限回写，确保存档中包含最新的四维上限
+                    try { window.GuixuAttributeService?.calculateFinalAttributes?.(); } catch (_) {}
+
                     const lorebookEntries = await GuixuLorebookService.backupActiveLore(`${saveName}-本世历程`, `${saveName}-往世涟漪`, state.unifiedIndex);
                     const saveDataPayload = {
                         timestamp: new Date().toISOString(),
@@ -456,20 +459,20 @@
                         GuixuState.update('unifiedIndex', saveData.unified_index);
                     }
 
-                    // 直接设置第 0 楼的数据与正文，并刷新整个聊天
-                    const update = [{
-                        message_id: 0,
-                        message: saveData.message_content || '',
-                        data: saveData.mvu_data
-                    }];
-                    await GuixuAPI.setChatMessages(update, { refresh: 'all' });
+                    // 双写：当前楼层与第 0 楼（保持与装备事务一致）
+                    const currentId = GuixuAPI.getCurrentMessageId();
+                    const updates = [
+                        { message_id: currentId, data: saveData.mvu_data },
+                        { message_id: 0, message: saveData.message_content || '', data: saveData.mvu_data }
+                    ];
+                    await GuixuAPI.setChatMessages(updates, { refresh: 'none' });
 
-                    // 刷新前端 UI 并关闭模态
-                    setTimeout(() => {
-                        try { window.GuixuMain?.updateDynamicData?.(); } catch (_) {}
-                        try { window.GuixuBaseModal?.closeAll?.(); } catch (_) {}
-                        GuixuHelpers.showTemporaryMessage(`读档"${saveData.save_name}"成功！`);
-                    }, 300);
+                    // 同步前端缓存并触发渲染与属性重算+上限回写
+                    try { window.GuixuState.update('currentMvuState', saveData.mvu_data); } catch (_) {}
+                    try { window.GuixuMain?.updateDynamicData?.(); } catch (_) {}
+                    try { window.GuixuAttributeService?.calculateFinalAttributes?.(); } catch (_) {}
+                    try { window.GuixuBaseModal?.closeAll?.(); } catch (_) {}
+                    GuixuHelpers.showTemporaryMessage(`读档"${saveData.save_name}"成功！`);
 
                 } catch (error) {
                     console.error('读档失败:', error);
