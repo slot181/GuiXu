@@ -399,6 +399,9 @@
                     if (existingSave && existingSave.lorebook_entries) {
                         await GuixuState.deleteLorebookBackup(existingSave);
                     }
+                    // 在保存前进行一次属性重算与上限回写，确保存档中包含最新的四维上限
+                    try { window.GuixuAttributeService?.calculateFinalAttributes?.(); } catch (_) {}
+
                     const lorebookEntries = await GuixuLorebookService.backupActiveLore(`${saveName}-本世历程`, `${saveName}-往世涟漪`, state.unifiedIndex);
                     const saveDataPayload = {
                         timestamp: new Date().toISOString(),
@@ -456,20 +459,20 @@
                         GuixuState.update('unifiedIndex', saveData.unified_index);
                     }
 
-                    // 直接设置第 0 楼的数据与正文，并刷新整个聊天
-                    const update = [{
-                        message_id: 0,
-                        message: saveData.message_content || '',
-                        data: saveData.mvu_data
-                    }];
-                    await GuixuAPI.setChatMessages(update, { refresh: 'all' });
+                    // 双写：当前楼层与第 0 楼（保持与装备事务一致）
+                    const currentId = GuixuAPI.getCurrentMessageId();
+                    const updates = [
+                        { message_id: currentId, data: saveData.mvu_data },
+                        { message_id: 0, message: saveData.message_content || '', data: saveData.mvu_data }
+                    ];
+                    await GuixuAPI.setChatMessages(updates, { refresh: 'none' });
 
-                    // 刷新前端 UI 并关闭模态
-                    setTimeout(() => {
-                        try { window.GuixuMain?.updateDynamicData?.(); } catch (_) {}
-                        try { window.GuixuBaseModal?.closeAll?.(); } catch (_) {}
-                        GuixuHelpers.showTemporaryMessage(`读档"${saveData.save_name}"成功！`);
-                    }, 300);
+                    // 同步前端缓存并触发渲染与属性重算+上限回写
+                    try { window.GuixuState.update('currentMvuState', saveData.mvu_data); } catch (_) {}
+                    try { window.GuixuMain?.updateDynamicData?.(); } catch (_) {}
+                    try { window.GuixuAttributeService?.calculateFinalAttributes?.(); } catch (_) {}
+                    try { window.GuixuBaseModal?.closeAll?.(); } catch (_) {}
+                    GuixuHelpers.showTemporaryMessage(`读档"${saveData.save_name}"成功！`);
 
                 } catch (error) {
                     console.error('读档失败:', error);
@@ -501,27 +504,73 @@
         },
 
         async clearAllSaves() {
-            (window.GuixuMain && typeof window.GuixuMain.showCustomConfirm === 'function'
-              ? window.GuixuMain.showCustomConfirm
-              : (msg, ok) => { if (confirm(msg)) ok(); }
-            )(`确定要清除所有存档吗？`, async () => {
+            const allSaves = await this.getSavesFromStorage();
+            const saveKeys = Object.keys(allSaves);
+
+            if (saveKeys.length === 0) {
+                GuixuHelpers.showTemporaryMessage("没有可清除的存档数据。");
+                return;
+            }
+
+            const confirmMsg = `你确定要清除所有 ${saveKeys.length} 个存档吗？\n此操作将删除所有存档及其关联的世界书快照，且不可恢复。`;
+            
+            const confirmAction = async () => {
+                try { window.GuixuMain?.showWaitingMessage?.('正在清除存档...'); } catch (_) {}
+                
                 try {
-                    const allSaves = await this.getSavesFromStorage();
-                    // 先删除关联的世界书备份条目
-                    for (const slotId in allSaves) {
-                        await GuixuState.deleteLorebookBackup(allSaves[slotId]);
+                    const bookName = GuixuConstants.LOREBOOK.NAME;
+                    const allLoreEntries = await GuixuAPI.getLorebookEntries(bookName);
+                    const entryNamesToDelete = new Set();
+                    const entryUidsToDelete = new Set();
+
+                    // 1. 收集所有存档条目的 comment 和 uid
+                    allLoreEntries.forEach(entry => {
+                        if (String(entry.comment).startsWith('存档:')) {
+                            const slotId = entry.comment.slice(3);
+                            if (saveKeys.includes(slotId)) {
+                                entryNamesToDelete.add(entry.comment);
+                                entryUidsToDelete.add(entry.uid);
+                            }
+                        }
+                    });
+
+                    // 2. 从存档内容中收集所有关联的 lorebook_entries 名称
+                    Object.values(allSaves).forEach(saveData => {
+                        if (saveData && saveData.lorebook_entries) {
+                            Object.values(saveData.lorebook_entries).forEach(name => {
+                                if (name) entryNamesToDelete.add(name);
+                            });
+                        }
+                    });
+                    
+                    // 3. 根据名称找到所有关联备份条目的 uid
+                    allLoreEntries.forEach(entry => {
+                        if (entryNamesToDelete.has(entry.name)) {
+                            entryUidsToDelete.add(entry.uid);
+                        }
+                    });
+
+                    if (entryUidsToDelete.size > 0) {
+                        await GuixuAPI.deleteLorebookEntries(bookName, Array.from(entryUidsToDelete));
+                        GuixuHelpers.showTemporaryMessage(`所有存档及关联的世界书快照已清除。`);
+                    } else {
+                        GuixuHelpers.showTemporaryMessage("没有找到需要清除的存档条目。");
                     }
-                    // 再删除所有存档条目本身
-                    for (const slotId in allSaves) {
-                        await this._deleteSaveEntry(slotId);
-                    }
-                    GuixuHelpers.showTemporaryMessage(`所有存档已清除。`);
+                    
                     await this.showSaveLoadManager();
+
                 } catch (error) {
-                    console.error('清除所有存档失败:', error);
+                    console.error('清除所有存档时出错:', error);
                     GuixuHelpers.showTemporaryMessage(`清除存档失败: ${error.message}`);
+                } finally {
+                    try { window.GuixuMain?.hideWaitingMessage?.(); } catch (_) {}
                 }
-            });
+            };
+
+            (window.GuixuMain && typeof window.GuixuMain.showCustomConfirm === 'function'
+                ? window.GuixuMain.showCustomConfirm
+                : (msg, ok) => { if (confirm(msg)) ok(); }
+            )(confirmMsg, confirmAction, "高危操作确认");
         },
 
         async handleFileImport(event) {

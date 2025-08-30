@@ -1,4 +1,4 @@
-@import url('?family=ZCOOL+KuaiLe&family=Ma+Shan+Zheng&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=ZCOOL+KuaiLe&family=Ma+Shan+Zheng&display=swap');
 
 /* 基础尺寸：避免在嵌入式 iframe 中锁死文档高度，允许内容自撑高 */
 html, body { height: auto; min-height: 100%; }
@@ -1511,18 +1511,52 @@ body { margin: 0; }
 .guixu-root-container.mobile-view #relationships-modal .relationship-header .rel-actions {
   display: grid !important;
   grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
-  grid-auto-rows: minmax(32px, auto) !important;
+  grid-auto-rows: minmax(28px, auto) !important;
   gap: 8px !important;
   width: 100% !important;
 }
 .guixu-root-container.mobile-view #relationships-modal .relationship-header .rel-actions > button {
   width: 100% !important;
-  height: 32px !important;
-  padding: 0 12px !important;
-  font-size: 12px !important;
+  height: 28px !important;
+  padding: 0 10px !important;
+  font-size: 11px !important;
   line-height: normal !important;
   min-width: 0 !important;
   box-sizing: border-box !important;
+}
+
+/* 移动端全屏：人物关系面板按钮按“桌面紧凑尺寸”收紧，避免显得过大 */
+.guixu-root-container:fullscreen.mobile-view #relationships-modal .modal-content,
+.guixu-root-container:-webkit-full-screen.mobile-view #relationships-modal .modal-content {
+  width: 90%;
+  max-width: 800px;
+  height: 90%;
+  max-height: 550px;
+}
+.guixu-root-container:fullscreen.mobile-view #relationships-modal .relationship-header .rel-actions,
+.guixu-root-container:-webkit-full-screen.mobile-view #relationships-modal .relationship-header .rel-actions {
+  display: grid !important;                           /* 保持移动端网格，但用桌面尺寸 */
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  grid-auto-rows: minmax(26px, auto) !important;
+  gap: 6px !important;
+  width: 100% !important;
+}
+.guixu-root-container:fullscreen.mobile-view #relationships-modal .relationship-header .rel-actions > button,
+.guixu-root-container:-webkit-full-screen.mobile-view #relationships-modal .relationship-header .rel-actions > button,
+.guixu-root-container:fullscreen.mobile-view .relationship-card .btn-delete-relationship,
+.guixu-root-container:-webkit-full-screen.mobile-view .relationship-card .btn-delete-relationship {
+  height: 26px !important;                            /* 对齐桌面端尺寸 */
+  padding: 0 8px !important;
+  font-size: 11px !important;
+  min-width: 0 !important;
+  box-sizing: border-box !important;
+}
+/* 关系筛选标签（内联样式里是 36px），全屏移动端下也收紧到 32px */
+.guixu-root-container:fullscreen.mobile-view #relationships-modal .rel-tab,
+.guixu-root-container:-webkit-full-screen.mobile-view #relationships-modal .rel-tab {
+  height: 32px !important;
+  padding: 0 10px !important;
+  font-size: 12px !important;
 }
 
 /* 小屏兜底（限定在 mobile-view 下；桌面非全屏不再触发移动布局） */
@@ -1535,15 +1569,15 @@ body { margin: 0; }
   .guixu-root-container.mobile-view #relationships-modal .relationship-header .rel-actions {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    grid-auto-rows: minmax(32px, auto);
+    grid-auto-rows: minmax(28px, auto);
     gap: 8px;
     width: 100%;
   }
   .guixu-root-container.mobile-view #relationships-modal .relationship-header .rel-actions > button {
     width: 100%;
-    height: 32px;
-    padding: 0 12px;
-    font-size: 12px;
+    height: 28px;
+    padding: 0 10px;
+    font-size: 11px;
     line-height: normal;
     min-width: 0;
     box-sizing: border-box;
@@ -3483,6 +3517,57 @@ body { margin: 0; }
   min-width: 0;
   padding: 0 10px;
   box-sizing: border-box;
+}
+/* 移动端-指令中心：列表项更紧凑，避免在小屏显得“块头过大” */
+.guixu-root-container.mobile-view #command-center-modal .command-center-actions { 
+  display: flex; 
+  flex-direction: column; 
+  gap: 6px; 
+}
+.guixu-root-container.mobile-view #command-center-modal .command-center-action-item {
+  font-size: 12px;
+  padding: 6px 8px;
+}
+
+/* 移动端全屏：指令中心尺寸与按钮收紧（参照设置中心面板布局） */
+.guixu-root-container:fullscreen.mobile-view #command-center-modal .modal-content,
+.guixu-root-container:-webkit-full-screen.mobile-view #command-center-modal .modal-content {
+  width: 90%;
+  max-width: 800px;
+  height: 90%;
+  max-height: 550px;
+}
+.guixu-root-container:fullscreen.mobile-view #command-center-modal .command-center-footer,
+.guixu-root-container:-webkit-full-screen.mobile-view #command-center-modal .command-center-footer {
+  flex-wrap: wrap !important;
+  gap: 8px !important;
+  align-items: stretch !important;
+}
+.guixu-root-container:fullscreen.mobile-view #command-center-modal #btn-refresh-storage,
+.guixu-root-container:-webkit-full-screen.mobile-view #command-center-modal #btn-refresh-storage {
+  flex: 1 1 100% !important;
+  height: 32px !important;          /* 从 36 收紧到 32，避免把面板撑太高 */
+  min-width: 0 !important;
+}
+.guixu-root-container:fullscreen.mobile-view #command-center-modal .command-center-footer > div,
+.guixu-root-container:-webkit-full-screen.mobile-view #command-center-modal .command-center-footer > div {
+  width: 100% !important;
+  display: grid !important;
+  grid-template-columns: 1fr 1fr !important; /* 应用/保存并关闭 两列并排 */
+  gap: 8px !important;
+}
+.guixu-root-container:fullscreen.mobile-view #command-center-modal .command-center-footer > div > button,
+.guixu-root-container:-webkit-full-screen.mobile-view #command-center-modal .command-center-footer > div > button {
+  width: 100% !important;
+  height: 32px !important;          /* 与设置中心一致 */
+  min-width: 0 !important;
+  padding: 0 12px !important;
+  box-sizing: border-box !important;
+}
+.guixu-root-container:fullscreen.mobile-view #command-center-modal .command-center-actions .command-center-action-item,
+.guixu-root-container:-webkit-full-screen.mobile-view #command-center-modal .command-center-actions .command-center-action-item {
+  padding: 4px 8px;                 /* 列表项更紧凑，整体视觉不臃肿 */
+  font-size: 12px;
 }
 
 /* ================= 行动选项按钮：悬停/按下动态效果（桌面端优先） ================= */

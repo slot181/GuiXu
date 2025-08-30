@@ -56,10 +56,11 @@
             <div class="section-title">注意事项</div>
             <ol class="intro-ol">
               <li>网络要求：此卡通过 <strong>JsDelivr</strong> 加载脚本，必须确保网络连接良好。</li>
-              <li>渲染失败或一直加载中：若 UI 渲染失效或一两分钟仍在加载，请点击右上角<strong>小铅笔图标</strong>重新加载。</li>
-              <li>正文错乱：若正文出现思维链等无关内容，请用小铅笔检查正文是否被 gametxt 标签正常包裹。</li>
+              <li>加载失败：若首次开局卡在加载界面或UI渲染错乱，请尝试关闭酒馆页面后，再重新打开并读取。</li>
+              <li>正文错乱：若正文出现变量等无关内容，请用小铅笔检查正文是否被 gametxt 标签正常包裹。</li>
               <li>行动选项：若行动选项未触发，请用小铅笔检查 action 标签是否正确包裹。</li>
               <li>开启新档：要开启干净存档，请修改读写序号，或在存档管理中<strong>一键清除所有存档</strong>。</li>
+              <li>读档异常：若读档后发现装备栏或者有什么东西遗漏，请尝试重新读取存档。</li>
             </ol>
           </div>
 
@@ -146,7 +147,7 @@
         // 延时展示，等待布局稳定与宿主样式应用
         setTimeout(() => {
           this.show();
-          try { this.lockCloseFor(60000); } catch (_) {}
+          try { this.lockCloseFor(1000); } catch (_) {}
         }, Math.max(0, delayMs|0));
       } catch (e) {
         console.warn('[归墟] IntroModalComponent.showFirstTimeIfNeeded 失败:', e);
