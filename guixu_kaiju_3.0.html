@@ -2538,24 +2538,39 @@ function showModal(type, uid = null) {
         }
     }
 
-    function getSavesFromStorage() {
+    async function getSavesFromStorage() {
         try {
-            const saves = localStorage.getItem('guixu_multi_save_data');
-            return saves ? JSON.parse(saves) : {};
+            const bookName = WorldBookManager.LOREBOOK_NAME;
+            const entries = await TavernHelper.getWorldbook(bookName);
+            const map = {};
+            if (!entries) return map;
+
+            entries.forEach(e => {
+                const name = String(e.name || '');
+                if (name.startsWith('存档:')) {
+                    const slotId = name.slice(3); // Remove '存档:' prefix
+                    try {
+                        map[slotId] = JSON.parse(e.content || '{}');
+                    } catch (err) {
+                        console.warn(`Failed to parse save data for slot ${slotId}:`, err);
+                    }
+                }
+            });
+            return map;
         } catch (e) {
-            console.error("获取存档失败:", e);
-            guiXuAlert('错误：主存档文件已损坏，无法读取。', '错误');
+            console.error("获取存档失败 (世界书):", e);
+            await guiXuAlert('错误：无法从世界书读取存档。', '错误');
             return {};
         }
     }
 
-    function showSaveLoadManager() {
+    async function showSaveLoadManager() {
         const modal = document.getElementById('save-load-modal');
         const container = modal.querySelector('.modal-body');
         if (!modal || !container) return;
 
         modal.style.display = 'flex';
-        const saves = getSavesFromStorage();
+        const saves = await getSavesFromStorage();
 
         let autoHtml = `<h3 style="font-size: 14px; color: #8b7355; margin-bottom: 10px;">自动存档</h3>`;
         const autoSlotIds = ['auto_save_slot_0', 'auto_save_slot_1'];
@@ -2611,7 +2626,7 @@ function showModal(type, uid = null) {
     }
     
     async function loadGame(slotId) {
-        const allSaves = getSavesFromStorage();
+        const allSaves = await getSavesFromStorage();
         const saveData = allSaves[slotId];
         if (!saveData) return;
 
@@ -2676,7 +2691,7 @@ function showModal(type, uid = null) {
     }
 
     async function deleteSave(slotId) {
-        const allSaves = getSavesFromStorage();
+        const allSaves = await getSavesFromStorage();
         const saveDataToDelete = allSaves[slotId];
         if (!saveDataToDelete) return;
 
@@ -2688,15 +2703,20 @@ function showModal(type, uid = null) {
         
         if (await guiXuConfirm(confirmMsg)) {
             try {
+                const bookName = WorldBookManager.LOREBOOK_NAME;
+                // Delete lorebook backups
                 if (saveDataToDelete.lorebook_entries) {
-                    const bookName = WorldBookManager.LOREBOOK_NAME;
                     const entryNamesToDelete = Object.values(saveDataToDelete.lorebook_entries);
                     await TavernHelper.updateWorldbookWith(bookName, (worldbook) => {
                         return worldbook.filter(e => !entryNamesToDelete.includes(e.name));
                     });
                 }
-                delete allSaves[slotId];
-                localStorage.setItem('guixu_multi_save_data', JSON.stringify(allSaves));
+                // Delete the save entry itself
+                const saveEntryName = `存档:${slotId}`;
+                await TavernHelper.updateWorldbookWith(bookName, (worldbook) => {
+                    return worldbook.filter(e => e.name !== saveEntryName);
+                });
+
                 await guiXuAlert(`"${slotName}" 已删除。`);
                 showSaveLoadManager();
             } catch (error) {
@@ -2706,79 +2726,46 @@ function showModal(type, uid = null) {
         }
     }
     
-    // === [CORRECTED & PORTED v2] New clearAllSaves function from v2.0 ===
-async function clearAllSaves() {
-    const allSaves = getSavesFromStorage();
-    const hasLocalStorageSaves = Object.keys(allSaves).length > 0;
-    const bookName = WorldBookManager.LOREBOOK_NAME;
-    const lorebookCommentsToDelete = new Set();
-    let uidsToDelete = [];
+    async function clearAllSaves() {
+    const allSaves = await getSavesFromStorage();
+    const saveKeys = Object.keys(allSaves);
 
+    if (saveKeys.length === 0) {
+        await guiXuAlert("没有可清除的存档数据。");
+        return;
+    }
+
+    const confirmMsg = `你确定要清除所有 ${saveKeys.length} 个存档吗？\n此操作将删除所有存档及其关联的世界书快照，且不可恢复。`;
+    if (!(await guiXuConfirm(confirmMsg, "高危操作确认"))) return;
+
+    document.getElementById('loading-overlay').style.display = 'flex';
     try {
-        document.getElementById('loading-overlay').style.display = 'flex';
-        const allLorebookEntries = await TavernHelper.getWorldbook(bookName);
-        
-        // This regex is correct. It matches "本世历程", "本世历程(1)", "往世涟漪", "往世涟漪(10)", etc.
-        const snapshotRegex = /^(本世历程|往世涟漪)(\(\d+\))?$/;
-;
-        
+        const bookName = WorldBookManager.LOREBOOK_NAME;
+        const entryNamesToDelete = new Set();
 
-        // 1. Scan the worldbook for entries matching the snapshot pattern
-        allLorebookEntries.forEach(entry => {
-            // Ensure we are working with a trimmed name
-            const trimmedName = entry.name ? entry.name.trim() : '';
-            if (snapshotRegex.test(trimmedName)) {
-                lorebookCommentsToDelete.add(trimmedName);
-            }
+        // Collect all save entry names (e.g., "存档:slot_1")
+        saveKeys.forEach(slotId => {
+            entryNamesToDelete.add(`存档:${slotId}`);
         });
 
-        // 2. Also check for entries linked in old save files, in case of different naming conventions
-        Object.values(allSaves).forEach(save => {
-            if (save.lorebook_entries) {
-                Object.values(save.lorebook_entries).forEach(name => {
-                    if (name) lorebookCommentsToDelete.add(name);
+        // Collect all backup entry names from the saves (e.g., "自动存档...-本世历程")
+        Object.values(allSaves).forEach(saveData => {
+            if (saveData && saveData.lorebook_entries) {
+                Object.values(saveData.lorebook_entries).forEach(name => {
+                    if (name) entryNamesToDelete.add(name);
                 });
             }
         });
-        
-        // 3. Get the final list of UIDs to delete from the collected names
-        uidsToDelete = allLorebookEntries
-            .filter(entry => {
-                // [FIXED] Use .trim() here as well to ensure consistency
-                const trimmedName = entry.name ? entry.name.trim() : '';
-                return lorebookCommentsToDelete.has(trimmedName);
-            })
-            .map(entry => entry.uid);
 
-        const hasLorebookSnapshots = uidsToDelete.length > 0;
-        if (!hasLocalStorageSaves && !hasLorebookSnapshots) {
-            await guiXuAlert("没有可清除的存档数据。");
-            return;
-        }
-
-        let confirmMsg = `你确定要清除所有存档吗？此操作不可恢复。\n\n`;
-        confirmMsg += hasLocalStorageSaves ? `> 将删除 ${Object.keys(allSaves).length} 个本地存档槽位。\n` : `> 未找到本地存档槽位。\n`;
-        
-        if (hasLorebookSnapshots) {
-            const namesToList = Array.from(lorebookCommentsToDelete).sort().join('\n- ');
-            confirmMsg += `> 将从世界书【${bookName}】中删除以下 ${uidsToDelete.length} 个关联的快照条目：\n- ${namesToList}`;
-        } else {
-            confirmMsg += `> 未在世界书中找到需要删除的存档快照。`;
-        }
-        
-        if (!(await guiXuConfirm(confirmMsg, "高危操作确认"))) return;
-        
-        // 4. Perform deletion
-        if (hasLorebookSnapshots) {
+        if (entryNamesToDelete.size > 0) {
             await TavernHelper.updateWorldbookWith(bookName, (worldbook) => {
-                return worldbook.filter(entry => !uidsToDelete.includes(entry.uid));
+                return worldbook.filter(entry => !entryNamesToDelete.has(entry.name));
             });
+            await guiXuAlert(`所有存档及关联的世界书快照已清除。`);
+        } else {
+            await guiXuAlert("没有找到需要清除的存档条目。");
         }
-        if (hasLocalStorageSaves) {
-            localStorage.removeItem('guixu_multi_save_data');
-        }
-
-        await guiXuAlert(`所有存档及关联的世界书快照已清除。`);
+        
         showSaveLoadManager(); // Refresh the save list UI
 
     } catch (error) {
@@ -2790,7 +2777,7 @@ async function clearAllSaves() {
 }
 
     async function exportSave(slotId) {
-        const allSaves = getSavesFromStorage();
+        const allSaves = await getSavesFromStorage();
         const saveData = allSaves[slotId];
         if (!saveData) return;
 
@@ -2818,6 +2805,29 @@ async function clearAllSaves() {
         }
     }
 
+    async function _upsertSaveEntry(slotId, saveData) {
+        const bookName = WorldBookManager.LOREBOOK_NAME;
+        const entryName = `存档:${slotId}`;
+        const content = JSON.stringify(saveData || {}, null, 0);
+
+        await TavernHelper.updateWorldbookWith(bookName, (worldbook) => {
+            const existingIndex = worldbook.findIndex(e => e.name === entryName);
+            if (existingIndex > -1) {
+                worldbook[existingIndex].content = content;
+            } else {
+                worldbook.push({
+                    name: entryName,
+                    content: content,
+                    keys: [entryName],
+                    enabled: false,
+                    position: { type: 'before_character_definition', order: 10 },
+                    strategy: { type: 'constant' }
+                });
+            }
+            return worldbook;
+        });
+    }
+
     async function handleFileImport(event) {
         const file = event.target.files[0];
         if (!file) return;
@@ -2842,7 +2852,6 @@ async function clearAllSaves() {
                 const slotId = await promptForSlotSelection(saveDataToImport.save_name || '导入的存档');
                 if (!slotId) return;
                 
-                const allSaves = getSavesFromStorage();
                 const bookName = WorldBookManager.LOREBOOK_NAME;
                 
                 // Handle lorebook entries
@@ -2859,8 +2868,7 @@ async function clearAllSaves() {
                     });
                 }
                 
-                allSaves[slotId] = saveDataToImport;
-                localStorage.setItem('guixu_multi_save_data', JSON.stringify(allSaves));
+                await _upsertSaveEntry(slotId, saveDataToImport);
                 await guiXuAlert(`存档已成功导入到 ${slotId.replace('slot_', '存档位 ')}。`);
                 showSaveLoadManager();
 
@@ -2903,7 +2911,7 @@ async function clearAllSaves() {
     }
     
     function setupSaveManagerEventListeners() {
-        document.getElementById('show-save-manager-btn').addEventListener('click', showSaveLoadManager);
+        document.getElementById('show-save-manager-btn').addEventListener('click', () => showSaveLoadManager());
         const modal = document.getElementById('save-load-modal');
         if (!modal) return;
         modal.addEventListener('click', (e) => {
