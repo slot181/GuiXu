@@ -1,4 +1,4 @@
-@import url('?family=ZCOOL+KuaiLe&family=Ma+Shan+Zheng&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=ZCOOL+KuaiLe&family=Ma+Shan+Zheng&display=swap');
 
 /* 基础尺寸：避免在嵌入式 iframe 中锁死文档高度，允许内容自撑高 */
 html, body { height: auto; min-height: 100%; }
