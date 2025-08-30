@@ -1511,15 +1511,15 @@ body { margin: 0; }
 .guixu-root-container.mobile-view #relationships-modal .relationship-header .rel-actions {
   display: grid !important;
   grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
-  grid-auto-rows: minmax(32px, auto) !important;
+  grid-auto-rows: minmax(28px, auto) !important;
   gap: 8px !important;
   width: 100% !important;
 }
 .guixu-root-container.mobile-view #relationships-modal .relationship-header .rel-actions > button {
   width: 100% !important;
-  height: 32px !important;
-  padding: 0 12px !important;
-  font-size: 12px !important;
+  height: 28px !important;
+  padding: 0 10px !important;
+  font-size: 11px !important;
   line-height: normal !important;
   min-width: 0 !important;
   box-sizing: border-box !important;
@@ -1535,15 +1535,15 @@ body { margin: 0; }
   .guixu-root-container.mobile-view #relationships-modal .relationship-header .rel-actions {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    grid-auto-rows: minmax(32px, auto);
+    grid-auto-rows: minmax(28px, auto);
     gap: 8px;
     width: 100%;
   }
   .guixu-root-container.mobile-view #relationships-modal .relationship-header .rel-actions > button {
     width: 100%;
-    height: 32px;
-    padding: 0 12px;
-    font-size: 12px;
+    height: 28px;
+    padding: 0 10px;
+    font-size: 11px;
     line-height: normal;
     min-width: 0;
     box-sizing: border-box;
@@ -3483,6 +3483,16 @@ body { margin: 0; }
   min-width: 0;
   padding: 0 10px;
   box-sizing: border-box;
+}
+/* 移动端-指令中心：列表项更紧凑，避免在小屏显得“块头过大” */
+.guixu-root-container.mobile-view #command-center-modal .command-center-actions { 
+  display: flex; 
+  flex-direction: column; 
+  gap: 6px; 
+}
+.guixu-root-container.mobile-view #command-center-modal .command-center-action-item {
+  font-size: 12px;
+  padding: 6px 8px;
 }
 
 /* ================= 行动选项按钮：悬停/按下动态效果（桌面端优先） ================= */
