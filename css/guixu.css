@@ -1896,6 +1896,34 @@ body { margin: 0; }
   height: auto;
 }
 
+/* 兜底修复：非全屏 + 移动端，确保容器至少占满视口高度，去除底部空白
+   说明：在嵌入式环境下父级多为 auto/min-height，子项百分比高度无法吃到父级高度，
+   导致 .game-container 未铺满根容器，底部栏上方出现“与最外边边框之间的空隙”。
+   这里直接用动态视口单位为 .game-container 提供最小高度，以充满可视区。 */
+.guixu-root-container.mobile-view:not(:fullscreen) .game-container {
+  min-height: calc(100dvh - 0px);
+  min-height: calc(100svh - 0px);
+  min-height: calc(100vh - 0px);
+}
+
+/* 进一步兜底：使“根容器”在移动端非全屏时至少等于可视高度，避免根容器比视口矮导致底部出现留白 */
+.guixu-root-container.mobile-view:not(:fullscreen) {
+  min-height: 100dvh;
+  min-height: 100svh;
+  min-height: 100vh;
+}
+
+/* 统一：非全屏时让网格容器最小高度跟随根容器（覆盖早期 height:auto 场景的百分比失效问题） */
+.guixu-root-container:not(:fullscreen) {
+  display: flex;
+  flex-direction: column;
+}
+.guixu-root-container:not(:fullscreen) .game-container {
+  min-height: 100%;
+  height: auto;
+  flex: 1 1 auto; /* 作为 Flex 子项填满剩余空间，保证底部栏贴边 */
+}
+
 /* 让所有面板占据整行 */
 .mobile-view .top-status,
 .mobile-view .character-panel,
