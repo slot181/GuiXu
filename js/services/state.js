@@ -402,6 +402,8 @@
             message_content: currentMessageContent,
             lorebook_entries: lorebookEntries,
             mvu_data: this.currentMvuState,
+            // 同步保存当前装备槽位（用于跨设备/会话恢复后写回MVU）
+            equipped_items: this.equippedItems,
             unified_index: this.unifiedIndex
           };
 

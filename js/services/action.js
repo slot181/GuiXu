@@ -380,6 +380,61 @@
             }
         },
 
+        // 新增：读档后将 equippedItems 强制写入 MVU 变量并去重背包
+        _mergeEquippedIntoStatData(stat_data, equipped) {
+          try {
+            const H = window.GuixuHelpers || {};
+            const SafeGet = (obj, key, def = null) => (H.SafeGetValue ? H.SafeGetValue(obj, key, def) : (obj && obj[key] !== undefined ? obj[key] : def));
+            const ensureObjectDict = (lv) => {
+              if (Array.isArray(lv)) {
+                const arr = lv[0] || [];
+                const obj = { $meta: { extensible: true } };
+                const used = new Set();
+                arr.forEach((i, idx) => {
+                  let v = i; if (typeof v === 'string') { try { v = JSON.parse(v); } catch (_) {} }
+                  if (!v || typeof v !== 'object') return;
+                  const name = SafeGet(v, 'name', null);
+                  const id = SafeGet(v, 'id', null);
+                  let key = (name && name !== 'N/A') ? String(name) : (id != null ? String(id) : `条目${idx+1}`);
+                  while (Object.prototype.hasOwnProperty.call(obj, key) || used.has(key)) { key = `${key}_`; }
+                  used.add(key);
+                  obj[key] = v;
+                });
+                return obj;
+              }
+              if (!lv || typeof lv !== 'object') return { $meta: { extensible: true } };
+              if (!lv.$meta) { try { lv.$meta = { extensible: true }; } catch (_) {} }
+              return lv;
+            };
+            const mapSlotToMvu = { wuqi: '武器', fangju: '防具', shipin: '饰品', fabao1: '法宝', zhuxiuGongfa: '主修功法', fuxiuXinfa: '辅修心法' };
+            const fallbackMap = { wuqi: '武器列表', fangju: '防具列表', shipin: '饰品列表', fabao1: '法宝列表', zhuxiuGongfa: '功法列表', fuxiuXinfa: '功法列表' };
+            const out = stat_data || {};
+            const eq = equipped || {};
+            for (const [slotKey, mvuKey] of Object.entries(mapSlotToMvu)) {
+              const item = eq[slotKey] || null;
+              out[mvuKey] = (item && typeof item === 'object') ? item : null;
+              if (item) {
+                const listKey = fallbackMap[slotKey];
+                if (listKey) {
+                  const dict = ensureObjectDict(out[listKey]);
+                  out[listKey] = dict;
+                  const id = SafeGet(item, 'id', null);
+                  const name = SafeGet(item, 'name', null);
+                  const keys = Object.keys(dict).filter(k => k !== '$meta');
+                  for (const k of keys) {
+                    let v = dict[k]; if (typeof v === 'string') { try { v = JSON.parse(v); } catch (_) {} }
+                    if (v && typeof v === 'object' && ((id && v.id === id) || (name && v.name === name))) { delete dict[k]; break; }
+                  }
+                }
+              }
+            }
+            return out;
+          } catch (e) {
+            console.warn('[归墟] _mergeEquippedIntoStatData 失败:', e);
+            return stat_data || {};
+          }
+        },
+
         async saveGame(slotId) {
             const saveName = await this.promptForSaveName(slotId);
             if (!saveName) {
@@ -456,13 +511,19 @@
                         GuixuState.update('unifiedIndex', saveData.unified_index);
                     }
 
-                    // 直接设置第 0 楼的数据与正文，并刷新整个聊天
+                    // 将装备写回到 MVU，并设置第 0 楼的数据与正文，刷新整个聊天
+                    const patchedMvu = JSON.parse(JSON.stringify(saveData.mvu_data || {}));
+                    patchedMvu.stat_data = patchedMvu.stat_data || {};
+                    if (saveData.equipped_items) {
+                        patchedMvu.stat_data = this._mergeEquippedIntoStatData(patchedMvu.stat_data, saveData.equipped_items);
+                    }
                     const update = [{
                         message_id: 0,
                         message: saveData.message_content || '',
-                        data: saveData.mvu_data
+                        data: patchedMvu
                     }];
                     await GuixuAPI.setChatMessages(update, { refresh: 'all' });
+                    try { GuixuState.update('currentMvuState', patchedMvu); } catch (_) {}
 
                     // 刷新前端 UI 并关闭模态
                     setTimeout(() => {
