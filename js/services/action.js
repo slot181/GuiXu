@@ -492,6 +492,8 @@
             )(`确定要删除 "${saveDataToDelete.save_name}" 吗？`, async () => {
                 try {
                     await GuixuState.deleteLorebookBackup(saveDataToDelete);
+                    // 额外：清除该存档对应世界序号的所有“本世历程/往世涟漪”激活条目
+                    await GuixuState.deleteWorldLoreForIndex(Number(saveDataToDelete.unified_index) || GuixuState.getState().unifiedIndex || 1);
                     delete allSaves[slotId];
                     await this._deleteSaveEntry(slotId);
                     GuixuHelpers.showTemporaryMessage(`"${saveDataToDelete.save_name}" 已删除。`);
@@ -545,7 +547,7 @@
                     
                     // 3. 根据名称找到所有关联备份条目的 uid
                     allLoreEntries.forEach(entry => {
-                        if (entryNamesToDelete.has(entry.name)) {
+                        if (entryNamesToDelete.has(entry.comment)) {
                             entryUidsToDelete.add(entry.uid);
                         }
                     });
@@ -555,6 +557,14 @@
                         GuixuHelpers.showTemporaryMessage(`所有存档及关联的世界书快照已清除。`);
                     } else {
                         GuixuHelpers.showTemporaryMessage("没有找到需要清除的存档条目。");
+                    }
+
+                    // 额外：按世界序号清除所有“本世历程/往世涟漪”激活条目
+                    const indices = new Set();
+                    Object.values(allSaves).forEach(s => { const idx = Number(s?.unified_index) || 1; indices.add(idx); });
+                    for (const idx of indices) {
+                        try { await GuixuState.deleteWorldLoreForIndex(idx); }
+                        catch (e) { console.warn('清除激活条目失败:', e); }
                     }
                     
                     await this.showSaveLoadManager();
