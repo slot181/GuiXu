@@ -460,6 +460,41 @@
             console.error('删除关联的世界书条目时出错:', error);
             window.GuixuHelpers.showTemporaryMessage('警告：删除关联的世界书条目失败。');
         }
+    },
+
+    /**
+     * 删除指定世界序号的所有“本世历程/往世涟漪”激活条目。
+     * - index=1: 删除“本世历程”“往世涟漪”
+     * - index>1: 删除“本世历程(index)”“往世涟漪(index)”
+     */
+    async deleteWorldLoreForIndex(index) {
+        try {
+            const bookName = window.GuixuConstants.LOREBOOK.NAME;
+            const baseJourney = window.GuixuConstants.LOREBOOK.ENTRIES.JOURNEY;
+            const basePast = window.GuixuConstants.LOREBOOK.ENTRIES.PAST_LIVES;
+            const allEntries = await window.GuixuAPI.getLorebookEntries(bookName);
+            const targets = new Set();
+
+            const matchComment = (comment, base, idx) => {
+                if (idx > 1) return comment === `${base}(${idx})`;
+                return comment === base;
+            };
+
+            for (const entry of allEntries) {
+                const comment = String(entry.comment || '');
+                if (matchComment(comment, baseJourney, Number(index) || 1) || matchComment(comment, basePast, Number(index) || 1)) {
+                    targets.add(entry.uid);
+                }
+            }
+
+            if (targets.size > 0) {
+                await window.GuixuAPI.deleteLorebookEntries(bookName, Array.from(targets));
+                console.log(`[归墟删除] 已清除世界序号 ${index || 1} 的本世历程/往世涟漪激活条目，共 ${targets.size} 条。`);
+            }
+        } catch (error) {
+            console.error('删除指定世界序号的世界书条目时出错:', error);
+            window.GuixuHelpers.showTemporaryMessage('警告：删除世界书激活条目失败。');
+        }
     }
   };
 
