@@ -504,27 +504,73 @@
         },
 
         async clearAllSaves() {
-            (window.GuixuMain && typeof window.GuixuMain.showCustomConfirm === 'function'
-              ? window.GuixuMain.showCustomConfirm
-              : (msg, ok) => { if (confirm(msg)) ok(); }
-            )(`确定要清除所有存档吗？`, async () => {
+            const allSaves = await this.getSavesFromStorage();
+            const saveKeys = Object.keys(allSaves);
+
+            if (saveKeys.length === 0) {
+                GuixuHelpers.showTemporaryMessage("没有可清除的存档数据。");
+                return;
+            }
+
+            const confirmMsg = `你确定要清除所有 ${saveKeys.length} 个存档吗？\n此操作将删除所有存档及其关联的世界书快照，且不可恢复。`;
+            
+            const confirmAction = async () => {
+                try { window.GuixuMain?.showWaitingMessage?.('正在清除存档...'); } catch (_) {}
+                
                 try {
-                    const allSaves = await this.getSavesFromStorage();
-                    // 先删除关联的世界书备份条目
-                    for (const slotId in allSaves) {
-                        await GuixuState.deleteLorebookBackup(allSaves[slotId]);
+                    const bookName = GuixuConstants.LOREBOOK.NAME;
+                    const allLoreEntries = await GuixuAPI.getLorebookEntries(bookName);
+                    const entryNamesToDelete = new Set();
+                    const entryUidsToDelete = new Set();
+
+                    // 1. 收集所有存档条目的 comment 和 uid
+                    allLoreEntries.forEach(entry => {
+                        if (String(entry.comment).startsWith('存档:')) {
+                            const slotId = entry.comment.slice(3);
+                            if (saveKeys.includes(slotId)) {
+                                entryNamesToDelete.add(entry.comment);
+                                entryUidsToDelete.add(entry.uid);
+                            }
+                        }
+                    });
+
+                    // 2. 从存档内容中收集所有关联的 lorebook_entries 名称
+                    Object.values(allSaves).forEach(saveData => {
+                        if (saveData && saveData.lorebook_entries) {
+                            Object.values(saveData.lorebook_entries).forEach(name => {
+                                if (name) entryNamesToDelete.add(name);
+                            });
+                        }
+                    });
+                    
+                    // 3. 根据名称找到所有关联备份条目的 uid
+                    allLoreEntries.forEach(entry => {
+                        if (entryNamesToDelete.has(entry.name)) {
+                            entryUidsToDelete.add(entry.uid);
+                        }
+                    });
+
+                    if (entryUidsToDelete.size > 0) {
+                        await GuixuAPI.deleteLorebookEntries(bookName, Array.from(entryUidsToDelete));
+                        GuixuHelpers.showTemporaryMessage(`所有存档及关联的世界书快照已清除。`);
+                    } else {
+                        GuixuHelpers.showTemporaryMessage("没有找到需要清除的存档条目。");
                     }
-                    // 再删除所有存档条目本身
-                    for (const slotId in allSaves) {
-                        await this._deleteSaveEntry(slotId);
-                    }
-                    GuixuHelpers.showTemporaryMessage(`所有存档已清除。`);
+                    
                     await this.showSaveLoadManager();
+
                 } catch (error) {
-                    console.error('清除所有存档失败:', error);
+                    console.error('清除所有存档时出错:', error);
                     GuixuHelpers.showTemporaryMessage(`清除存档失败: ${error.message}`);
+                } finally {
+                    try { window.GuixuMain?.hideWaitingMessage?.(); } catch (_) {}
                 }
-            });
+            };
+
+            (window.GuixuMain && typeof window.GuixuMain.showCustomConfirm === 'function'
+                ? window.GuixuMain.showCustomConfirm
+                : (msg, ok) => { if (confirm(msg)) ok(); }
+            )(confirmMsg, confirmAction, "高危操作确认");
         },
 
         async handleFileImport(event) {
