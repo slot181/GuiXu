@@ -147,14 +147,14 @@
         // 延时展示，等待布局稳定与宿主样式应用
         setTimeout(() => {
           this.show();
-          try { this.lockCloseFor(1000); } catch (_) {}
+          try { this.lockCloseFor(10000); } catch (_) {}
         }, Math.max(0, delayMs|0));
       } catch (e) {
         console.warn('[归墟] IntroModalComponent.showFirstTimeIfNeeded 失败:', e);
       }
     },
     // 锁定首次弹窗关闭，倒计时期间禁止关闭
-    lockCloseFor(ms = 1000) {
+    lockCloseFor(ms = 10000) {
       try {
         const overlay = document.getElementById('intro-modal') || this.ensure();
         if (!overlay) return;

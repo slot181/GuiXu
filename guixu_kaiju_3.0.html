@@ -3650,7 +3650,9 @@ ${playerInput}
 - 变量结构重构: 变量由数组重构为字典（键值对），彻底解决变量重复增值问题，并提高 LLM 对数值更新的准确性。
 - 优化存档系统: 存档机制重构，游戏记录直接保存至世界书，避免因清理浏览器缓存导致存档丢失。
 
-### 5. 大量Bug的修复
+### 5. 世界书优化和新增
+
+### 6. 大量Bug的修复
 
 ## ✨ 注意事项与常见问题排查
 
@@ -3684,7 +3686,7 @@ ${playerInput}
 
     document.addEventListener('DOMContentLoaded', () => {
       const ABOUT_READ_KEY = 'guixu_has_read_about';
-      const COUNTDOWN_SECONDS = 5;
+      const COUNTDOWN_SECONDS = 120;
       
       const VALID_CODES = [
         '孑孓大人太厉害了!!!!',
