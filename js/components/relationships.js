@@ -65,7 +65,7 @@
     render(relationships) {
       const h = window.GuixuHelpers;
 
-      if (!Array.isArray(relationships) || relationships.length === 0 || relationships[0] === '$__META_EXTENSIBLE__$') {
+      if (!Array.isArray(relationships) || relationships.length === 0) {
         return '<p class="modal-placeholder" style="text-align:center; color:#8b7355; font-size:12px;">红尘俗世，暂无纠葛。</p>';
       }
 
@@ -86,7 +86,7 @@
             ? eventHistoryRaw
             : (eventHistoryRaw && typeof eventHistoryRaw === 'object'
               ? Object.keys(eventHistoryRaw)
-                .filter(k => k !== '$meta' && k !== '$__META_EXTENSIBLE__$')
+                .filter(k => k !== '$meta')
                 .map(k => {
                   const v = eventHistoryRaw[k];
                   if (typeof v === 'string') return v;
@@ -147,7 +147,7 @@
                         <summary class="event-history-summary">过往交集</summary>
                         <ul class="event-history-list">
                           ${eventHistory
-                .map((event, i) => (event !== '$__META_EXTENSIBLE__$' && event !== '...')
+                .map((event, i) => (event)
                   ? `<li class="event-history-item" data-ev-idx="${i}">
                                    <span class="event-text" title="点击可编辑">${event}</span>
                                    <button class="ev-del-btn" title="删除此记录">×</button>
@@ -530,7 +530,7 @@
           const now = obj.event_history;
           if (Array.isArray(now)) return now;
           // 若是对象，则按键顺序转为数组视图（仅用于索引定位），但不回写为数组
-          const keys = Object.keys(now || {}).filter(k => k !== '$meta' && k !== '$__META_EXTENSIBLE__$');
+          const keys = Object.keys(now || {}).filter(k => k !== '$meta');
           return keys.map(k => now[k]);
         };
 
@@ -539,7 +539,7 @@
 
         if (cur && typeof cur === 'object' && !Array.isArray(cur)) {
           // 对象字典：按可见顺序定位键并更新原键；若是新增则生成新键
-          const keys = Object.keys(cur).filter(k => k !== '$meta' && k !== '$__META_EXTENSIBLE__$');
+          const keys = Object.keys(cur).filter(k => k !== '$meta');
           const key = i < keys.length ? keys[i] : `e${Date.now()}`;
           cur[key] = String(newText || '').trim();
         } else {
@@ -632,7 +632,7 @@
         const counts = {};
         let totalCount = 0;
         (Array.isArray(relationships) ? relationships : []).forEach(raw => {
-          if (!raw || raw === '$__META_EXTENSIBLE__$' || raw === '...') return;
+          if (!raw) return;
           try {
             const obj = typeof raw === 'string' ? JSON.parse(raw) : raw;
             const rel = h.SafeGetValue(obj, 'relationship', 'NEUTRAL');
@@ -1020,7 +1020,7 @@
         const filterAndRender = () => {
           const kw = (state.keyword || '').trim().toLowerCase();
           const filtered = (Array.isArray(relationships) ? relationships : []).filter(raw => {
-            if (!raw || raw === '$__META_EXTENSIBLE__$' || raw === '...') return false;
+            if (!raw) return false;
             let obj;
             try { obj = (typeof raw === 'string') ? JSON.parse(raw) : raw; } catch { obj = raw; }
             const relCN = RelationshipsComponent._toChineseRelationship(h.SafeGetValue(obj, 'relationship', 'NEUTRAL'));
@@ -1152,7 +1152,7 @@ const description = h.SafeGetValue(rel, 'description', h.SafeGetValue(rel, '身�
               ? window.GuixuHelpers.readList(rel, '灵根列表')
               : [];
             if (Array.isArray(topLinggens) && topLinggens.length > 0) {
-              const first = topLinggens.find(x => x && x !== '$__META_EXTENSIBLE__$');
+              const first = topLinggens.find(x => x);
               if (first) {
                 try { linggen = typeof first === 'string' ? JSON.parse(first) : first; } catch { linggen = first; }
               }
@@ -1188,7 +1188,7 @@ const description = h.SafeGetValue(rel, 'description', h.SafeGetValue(rel, '身�
             : [];
           const parsedTop = Array.isArray(topTalents)
             ? topTalents
-              .filter(x => x && x !== '$__META_EXTENSIBLE__$')
+              .filter(Boolean)
               .map(x => { try { return typeof x === 'string' ? JSON.parse(x) : x; } catch { return x; } })
               .filter(Boolean)
             : [];
@@ -1213,13 +1213,12 @@ const description = h.SafeGetValue(rel, 'description', h.SafeGetValue(rel, '身�
           }
           const entries = Object.entries(obj).filter(([k, v]) => {
             // 过滤字典元数据占位
-            if (k === '$meta' || k === '$__META_EXTENSIBLE__$') return false;
+            if (k === '$meta') return false;
             if (v === undefined || v === null) return false;
             // 过滤占位符与空串
             const s = typeof v === 'string' ? v.trim() : String(v);
             if (!s) return false;
-            if (s === '$__META_EXTENSIBLE__$' || s === '...') return false;
-            return true;
+                        return true;
           });
           if (entries.length === 0) {
             return '<div class="attribute-item"><span class="attribute-name">无</span><span class="attribute-value">-</span></div>';
@@ -1230,7 +1229,7 @@ const description = h.SafeGetValue(rel, 'description', h.SafeGetValue(rel, '身�
         };
         const renderList = (arr, titleKey = 'name', tierKey = 'tier', descKey = 'description') => {
           if (!Array.isArray(arr) || arr.length === 0) return '<div class="attribute-item"><span class="attribute-name">无</span><span class="attribute-value">-</span></div>';
-          const safeArr = arr.filter(item => item && item !== '$__META_EXTENSIBLE__$');
+          const safeArr = arr.filter(item => item);
           if (safeArr.length === 0) return '<div class="attribute-item"><span class="attribute-name">无</span><span class="attribute-value">-</span></div>';
           return safeArr.map(item => {
             const n = h.SafeGetValue(item, titleKey, h.SafeGetValue(item, '名称', '未知'));
@@ -1249,12 +1248,12 @@ const description = h.SafeGetValue(rel, 'description', h.SafeGetValue(rel, '身�
         // 扩展：功法/天赋的详情信息（属性加成/百分比加成/词条）
         const renderAbilityList = (arr) => {
           if (!Array.isArray(arr) || arr.length === 0) return '<div class="ability-empty">无</div>';
-          const safeArr = arr.filter(item => item && item !== '$__META_EXTENSIBLE__$');
+          const safeArr = arr.filter(item => item);
           if (safeArr.length === 0) return '<div class="ability-empty">无</div>';
           // 词条列表：不按逗号拆分，优先使用原始数组；字符串若为JSON数组则展开，否则整体作为一条
           const effectsList = (v) => {
             const clean = (s) => String(s).trim();
-            const isMeta = (s) => s === '$__META_EXTENSIBLE__$' || s === '...';
+            const isMeta = (s) => false;
             let n = v;
 
             // 字符串：支持 JSON 数组/对象两种形式
@@ -1288,7 +1287,7 @@ const description = h.SafeGetValue(rel, 'description', h.SafeGetValue(rel, '身�
             // 对象字典：输出键名（过滤 $meta），避免把整段 JSON 渲染成一条
             if (n && typeof n === 'object') {
               return Object.keys(n)
-                .filter(k => k !== '$meta' && k !== '$__META_EXTENSIBLE__$')
+                .filter(k => k !== '$meta')
                 .map(k => clean(k))
                 .filter(Boolean);
             }
@@ -1304,7 +1303,7 @@ const description = h.SafeGetValue(rel, 'description', h.SafeGetValue(rel, '身�
             const pb = normalizeField(obj['百分比加成'] ?? obj['percent_bonus'] ?? {}) || {};
             const sePairs = (function (v) {
               const clean = (s) => String(s).trim();
-              const isMeta = (s) => s === '$__META_EXTENSIBLE__$' || s === '...';
+              const isMeta = (s) => false;
               let n = v;
               try {
                 if (typeof n === 'string') {
@@ -1331,7 +1330,7 @@ const description = h.SafeGetValue(rel, 'description', h.SafeGetValue(rel, '身�
                 }
                 if (n && typeof n === 'object') {
                   return Object.entries(n)
-                    .filter(([k, v]) => k !== '$meta' && k !== '$__META_EXTENSIBLE__$' && v != null && clean(v) !== '')
+                    .filter(([k, v]) => k !== '$meta' && v != null && clean(v) !== '')
                     .map(([k, v]) => [clean(k), typeof v === 'string' ? clean(v) : clean(JSON.stringify(v))]);
                 }
                 if (typeof n === 'string') {
@@ -1464,7 +1463,7 @@ const description = h.SafeGetValue(rel, 'description', h.SafeGetValue(rel, '身�
         }
         // 天赋
         (Array.isArray(talentList) ? talentList : []).forEach(t => {
-          if (!t || t === '$__META_EXTENSIBLE__$') return;
+          if (!t) return;
           const obj = (typeof t === 'string') ? (function () { try { return JSON.parse(t); } catch { return null; } })() : t;
           if (!obj) return;
           pushSource('天赋', window.GuixuHelpers.SafeGetValue(obj, 'name', window.GuixuHelpers.SafeGetValue(obj, '名称', '天赋')), obj);
@@ -1483,7 +1482,7 @@ try { await this._syncNpcFourDimMaxToMvu(rel, computedMax); } catch (_) {}
         // 灵根细节：属性加成/百分比加成/词条/当前状态
         const toArray = (v) => {
           const n = normalizeField(v);
-          const isMeta = (s) => s === '$__META_EXTENSIBLE__$' || s === '...';
+          const isMeta = (s) => false;
           if (Array.isArray(n)) {
             return n
               .filter(x => x && !isMeta(x))
@@ -1501,7 +1500,7 @@ try { await this._syncNpcFourDimMaxToMvu(rel, computedMax); } catch (_) {}
         // 统一的词条解析：不按逗号拆分，优先使用原始数组；字符串若为JSON数组则展开，否则整体作为一条
         const effectsList = (v) => {
           const clean = (s) => String(s).trim();
-          const isMeta = (s) => s === '$__META_EXTENSIBLE__$' || s === '...';
+          const isMeta = (s) => false;
           let n = v;
 
           // 字符串：支持 JSON 数组/对象两种形式
@@ -1535,7 +1534,7 @@ try { await this._syncNpcFourDimMaxToMvu(rel, computedMax); } catch (_) {}
           // 对象字典：输出键名（过滤 $meta），避免把整段 JSON 渲染成一条
           if (n && typeof n === 'object') {
             return Object.keys(n)
-              .filter(k => k !== '$meta' && k !== '$__META_EXTENSIBLE__$')
+              .filter(k => k !== '$meta')
               .map(k => clean(k))
               .filter(Boolean);
           }
@@ -1543,7 +1542,7 @@ try { await this._syncNpcFourDimMaxToMvu(rel, computedMax); } catch (_) {}
         };
         const parseEffectsEntries = (v) => {
           const clean = (s) => String(s).trim();
-          const isMeta = (s) => s === '$__META_EXTENSIBLE__$' || s === '...';
+          const isMeta = (s) => false;
           let n = v;
           try {
             // 字符串：尝试解析 JSON；否则解析为“键:值”对
@@ -1573,7 +1572,7 @@ try { await this._syncNpcFourDimMaxToMvu(rel, computedMax); } catch (_) {}
             // 对象字典：输出“键: 值”（过滤 $meta）
             if (n && typeof n === 'object') {
               return Object.entries(n)
-                .filter(([k, v]) => k !== '$meta' && k !== '$__META_EXTENSIBLE__$' && v != null && clean(v) !== '')
+                .filter(([k, v]) => k !== '$meta' && v != null && clean(v) !== '')
                 .map(([k, v]) => [clean(k), typeof v === 'string' ? clean(v) : clean(JSON.stringify(v))]);
             }
             // 纯字符串：按分隔符切成多对
@@ -1890,8 +1889,8 @@ try { await this._syncNpcFourDimMaxToMvu(rel, computedMax); } catch (_) {}
                 }
               }
               if (Array.isArray(v) && v.length > 0 && Array.isArray(v[0])) v = v[0];
-              if (v && !Array.isArray(v) && typeof v === 'object') { v = Object.keys(v).filter(k => k !== '$meta' && k !== '$__META_EXTENSIBLE__$').map(k => v[k]); }
-              v = Array.isArray(v) ? v.filter(x => x && x !== '$__META_EXTENSIBLE__$' && x !== '...') : [];
+              if (v && !Array.isArray(v) && typeof v === 'object') { v = Object.keys(v).filter(k => k !== '$meta').map(k => v[k]); }
+              v = Array.isArray(v) ? v.filter(Boolean) : [];
               v = v.map(x => {
                 if (typeof x === 'string') {
                   const s = x.trim();
@@ -2362,7 +2361,7 @@ try { await this._syncNpcFourDimMaxToMvu(rel, computedMax); } catch (_) {}
 
       if (cur && typeof cur === 'object' && !Array.isArray(cur)) {
         // 对象字典：按当前可见顺序找到第 i 个键并删除
-        const keys = Object.keys(cur).filter(k => k !== '$meta' && k !== '$__META_EXTENSIBLE__$');
+        const keys = Object.keys(cur).filter(k => k !== '$meta');
         const i = Math.max(0, parseInt(evIndex, 10) || 0);
         if (i >= 0 && i < keys.length) {
           const delKey = keys[i];
@@ -2447,7 +2446,7 @@ try { await this._syncNpcFourDimMaxToMvu(rel, computedMax); } catch (_) {}
                 : [];
               if (Array.isArray(arr)) {
                 arr.forEach(raw => {
-                  if (!raw || raw === '$__META_EXTENSIBLE__$') return;
+                  if (!raw) return;
                   try { out.push(typeof raw === 'string' ? JSON.parse(raw) : raw); } catch { /* ignore */ }
                 });
               }
@@ -2617,7 +2616,7 @@ try { await this._syncNpcFourDimMaxToMvu(rel, computedMax); } catch (_) {}
           };
           const buildList = (list, isNpc) => {
             const arr = Array.isArray(list) ? list : [];
-            return arr.filter(x => x && x !== '$__META_EXTENSIBLE__$').map(raw => {
+            return arr.filter(x => x).map(raw => {
               const it = normalizeItem(raw);
               const id = String(window.GuixuHelpers.SafeGetValue(it, 'id', window.GuixuHelpers.SafeGetValue(it, 'uid', 'N/A')));
               const name = window.GuixuHelpers.SafeGetValue(it, 'name', '未知物品');
@@ -3080,7 +3079,7 @@ try { await this._syncNpcFourDimMaxToMvu(rel, computedMax); } catch (_) {}
                     if (Array.isArray(arr)) {
                       for (let i = 0; i < arr.length; i++) {
                         const raw = arr[i];
-                        if (!raw || raw === '$__META_EXTENSIBLE__$') continue;
+                        if (!raw) continue;
                         let it;
                         try { it = typeof raw === 'string' ? JSON.parse(raw) : raw; } catch { it = raw; }
                         if (!it && typeof raw === 'string') {
@@ -3114,7 +3113,7 @@ try { await this._syncNpcFourDimMaxToMvu(rel, computedMax); } catch (_) {}
                     const items = [];
                     if (Array.isArray(arr)) {
                       for (const rawEntry of arr) {
-                        if (!rawEntry || rawEntry === '$__META_EXTENSIBLE__$') continue;
+                        if (!rawEntry) continue;
                         let parsed;
                         try { parsed = typeof rawEntry === 'string' ? JSON.parse(rawEntry) : rawEntry; } catch { parsed = rawEntry; }
                         items.push({
@@ -3674,7 +3673,7 @@ try { await this._syncNpcFourDimMaxToMvu(rel, computedMax); } catch (_) {}
  
         const dict = { $meta: { extensible: true } };
         arr.forEach((raw, i) => {
-          if (!raw || raw === '$__META_EXTENSIBLE__$' || raw === '...') return;
+          if (!raw) return;
           let obj = raw;
           try { obj = (typeof raw === 'string') ? JSON.parse(raw) : raw; } catch { obj = raw; }
           if (!obj || typeof obj !== 'object') return;
@@ -3945,7 +3944,7 @@ try { await this._syncNpcFourDimMaxToMvu(rel, computedMax); } catch (_) {}
       try {
         for (let i = 0; i < npcItems.length; i++) {
           const entry = npcItems[i];
-          if (!entry || entry === '$__META_EXTENSIBLE__$') continue;
+          if (!entry) continue;
           let parsed;
           try { parsed = typeof entry === 'string' ? JSON.parse(entry) : entry; } catch { parsed = entry; }
           const eid = h.SafeGetValue(parsed, 'id', h.SafeGetValue(parsed, 'uid', ''));
@@ -3979,13 +3978,7 @@ try { await this._syncNpcFourDimMaxToMvu(rel, computedMax); } catch (_) {}
         delete pushItem.__userRef;
         pushItem.quantity = sellQuantity;
 
-        const metaExtensible = '$__META_EXTENSIBLE__$';
-        const metaIdx = npcItems.indexOf(metaExtensible);
-        if (metaIdx !== -1) {
-          npcItems.splice(metaIdx, 0, pushItem);
-        } else {
-          npcItems.push(pushItem);
-        }
+        npcItems.push(pushItem);
       }
       if (useBag) {
         const newBag = {};
@@ -4080,7 +4073,7 @@ try { await this._syncNpcFourDimMaxToMvu(rel, computedMax); } catch (_) {}
         const bag = npc && npc['储物袋'];
         if (bag && typeof bag === 'object') {
           return Object.keys(bag)
-            .filter(k => k !== '$meta' && k !== '$__META_EXTENSIBLE__$')
+            .filter(k => k !== '$meta')
             .map(k => {
               let val = bag[k];
               if (!val) return null;
@@ -4096,7 +4089,7 @@ try { await this._syncNpcFourDimMaxToMvu(rel, computedMax); } catch (_) {}
             .filter(Boolean);
         }
         const arr = Array.isArray(npc?.物品列表) ? npc.物品列表 : [];
-        return arr.filter(x => x && x !== '$__META_EXTENSIBLE__$');
+        return arr.filter(Boolean);
       } catch (_) {
         return [];
       }
@@ -4212,7 +4205,7 @@ try { await this._syncNpcFourDimMaxToMvu(rel, computedMax); } catch (_) {}
             const items = list[0];
             for (let i = 0; i < items.length; i++) {
               const rawItem = items[i];
-              if (!rawItem || rawItem === '$__META_EXTENSIBLE__$') continue;
+              if (!rawItem) continue;
 
               try {
                 let item = typeof rawItem === 'string' ? JSON.parse(rawItem) : rawItem;
@@ -4298,7 +4291,7 @@ try { await this._syncNpcFourDimMaxToMvu(rel, computedMax); } catch (_) {}
 
         for (let i = 0; i < relations.length; i++) {
           const rawRel = relations[i];
-          if (!rawRel || rawRel === '$__META_EXTENSIBLE__$') continue;
+          if (!rawRel) continue;
 
           try {
             let rel = typeof rawRel === 'string' ? JSON.parse(rawRel) : rawRel;
@@ -4309,7 +4302,7 @@ try { await this._syncNpcFourDimMaxToMvu(rel, computedMax); } catch (_) {}
 
               for (let j = 0; j < rel.物品列表.length; j++) {
                 const rawItem = rel.物品列表[j];
-                if (!rawItem || rawItem === '$__META_EXTENSIBLE__$') continue;
+                if (!rawItem) continue;
 
                 try {
                   let item = typeof rawItem === 'string' ? JSON.parse(rawItem) : rawItem;
@@ -4476,7 +4469,7 @@ try { await this._syncNpcFourDimMaxToMvu(rel, computedMax); } catch (_) {}
       try {
         for (let i = 0; i < npcItems.length; i++) {
           const entry = npcItems[i];
-          if (!entry || entry === '$__META_EXTENSIBLE__$') continue;
+          if (!entry) continue;
           let parsed;
           try { parsed = typeof entry === 'string' ? JSON.parse(entry) : entry; } catch { parsed = entry; }
           const eid = h.SafeGetValue(parsed, 'id', h.SafeGetValue(parsed, 'uid', ''));
@@ -4713,7 +4706,7 @@ try { await this._syncNpcFourDimMaxToMvu(rel, computedMax); } catch (_) {}
         const processed = [];
 
         for (const raw of list) {
-          if (!raw || raw === '$__META_EXTENSIBLE__$' || raw === '...') continue;
+          if (!raw) continue;
           let rel; try { rel = (typeof raw === 'string') ? JSON.parse(raw) : raw; } catch { rel = raw; }
           const name = window.GuixuHelpers.SafeGetValue(rel, 'name', null);
           if (!name || markedSet.has(String(name))) continue;
@@ -4800,7 +4793,7 @@ const personality = h.SafeGetValue(rel, '性格', h.SafeGetValue(rel, 'personali
         };
         const toArray = (v) => {
           const n = normalizeField(v);
-          const isMeta = (s) => s === '$__META_EXTENSIBLE__$' || s === '...';
+          const isMeta = (s) => false;
           if (Array.isArray(n)) return n.filter(x => x && !isMeta(x));
           if (typeof n === 'string') {
             return n.split(/[，,、\n]+/).map(s => s.trim()).filter(s => s && !isMeta(s));
@@ -4810,7 +4803,7 @@ const personality = h.SafeGetValue(rel, '性格', h.SafeGetValue(rel, 'personali
         // 统一的词条解析：不按逗号拆分，优先使用原始数组；字符串若为JSON数组则展开，否则整体作为一条
         const effectsList = (v) => {
           const clean = (s) => String(s).trim();
-          const isMeta = (s) => s === '$__META_EXTENSIBLE__$' || s === '...';
+          const isMeta = (s) => false;
           let n = v;
           if (typeof n === 'string') {
             const s = clean(n);
@@ -4836,7 +4829,7 @@ const personality = h.SafeGetValue(rel, '性格', h.SafeGetValue(rel, 'personali
           }
           return [];
         };
-        const safeList = (arr) => Array.isArray(arr) ? arr.filter(x => x && x !== '$__META_EXTENSIBLE__$' && x !== '...') : [];
+        const safeList = (arr) => Array.isArray(arr) ? arr.filter(Boolean) : [];
 
         // 四维（当前 / 加成后）优先适配新字典键位
         const keys = ['法力', '神海', '道心', '空速'];
@@ -4905,7 +4898,7 @@ const personality = h.SafeGetValue(rel, '性格', h.SafeGetValue(rel, 'personali
               if (!Object.keys(lg).length) {
                 const topLg = window.GuixuHelpers?.readList?.(rel, '灵根列表') || [];
                 if (Array.isArray(topLg) && topLg.length) {
-                  const first = topLg.find(x => x && x !== '$__META_EXTENSIBLE__$');
+                  const first = topLg.find(x => x);
                   if (first) { try { lg = typeof first === 'string' ? JSON.parse(first) : first; } catch { lg = first; } }
                 }
               }
@@ -4979,10 +4972,10 @@ const personality = h.SafeGetValue(rel, '性格', h.SafeGetValue(rel, 'personali
               lg = pickObj(lg);
               if (!Object.keys(lg).length) {
                 const topLg = window.GuixuHelpers?.readList?.(rel, '灵根列表') || [];
-                if (Array.isArray(topLg) && topLg.length) {
-                  const first = topLg.find(x => x && x !== '$__META_EXTENSIBLE__$');
-                  if (first) { try { lg = typeof first === 'string' ? JSON.parse(first) : first; } catch { lg = first; } }
-                }
+              if (Array.isArray(topLg) && topLg.length) {
+                const first = topLg.find(x => x);
+                if (first) { try { lg = typeof first === 'string' ? JSON.parse(first) : first; } catch { lg = first; } }
+              }
               }
               if (lg && typeof lg === 'object') {
                 const { flat, percent } = extractBonuses(lg);
@@ -5064,7 +5057,7 @@ const personality = h.SafeGetValue(rel, '性格', h.SafeGetValue(rel, 'personali
               const pb = normalizeField(it['百分比加成'] ?? it['percent_bonus'] ?? {}) || {};
               const se = (() => {
                 const v = normalizeField(it['special_effects'] ?? it['词条效果'] ?? it['词条'] ?? []);
-                if (Array.isArray(v)) return v.filter(x => x && x !== '$__META_EXTENSIBLE__$' && x !== '...');
+                if (Array.isArray(v)) return v.filter(x => x);
                 if (typeof v === 'string') return v.split(/[，,、\n]+/).map(s => s.trim()).filter(Boolean);
                 return [];
               })();
@@ -5098,7 +5091,7 @@ const personality = h.SafeGetValue(rel, '性格', h.SafeGetValue(rel, 'personali
               ? window.GuixuHelpers.readList(rel, '灵根列表')
               : [];
             if (Array.isArray(topLinggens) && topLinggens.length > 0) {
-              const first = topLinggens.find(x => x && x !== '$__META_EXTENSIBLE__$');
+              const first = topLinggens.find(x => x);
               if (first) {
                 try { linggen = typeof first === 'string' ? JSON.parse(first) : first; } catch { linggen = first; }
               }
@@ -5154,7 +5147,7 @@ const personality = h.SafeGetValue(rel, '性格', h.SafeGetValue(rel, 'personali
             : [];
           const parsedTop = Array.isArray(topTalents)
             ? topTalents
-              .filter(x => x && x !== '$__META_EXTENSIBLE__$')
+              .filter(Boolean)
               .map(x => { try { return typeof x === 'string' ? JSON.parse(x) : x; } catch { return x; } })
               .filter(Boolean)
             : [];
@@ -5191,7 +5184,7 @@ const personality = h.SafeGetValue(rel, '性格', h.SafeGetValue(rel, 'personali
               const specials = (() => {
                 const v = normalizeField(it['special_effects'] ?? it['词条效果'] ?? it['词条'] ?? []);
                 const clean = s => String(s).trim();
-                if (Array.isArray(v)) return v.filter(x => x && x !== '$__META_EXTENSIBLE__$' && x !== '...').map(x => typeof x === 'string' ? clean(x) : clean(JSON.stringify(x)));
+                if (Array.isArray(v)) return v.filter(Boolean).map(x => typeof x === 'string' ? clean(x) : clean(JSON.stringify(x)));
                 if (typeof v === 'string') {
                   if ((v.trim().startsWith('[') && v.trim().endsWith(']'))) {
                     try { const arr = JSON.parse(v); return Array.isArray(arr) ? arr.map(clean).filter(Boolean) : [clean(v)]; } catch { return [clean(v)]; }
@@ -5239,10 +5232,10 @@ const personality = h.SafeGetValue(rel, '性格', h.SafeGetValue(rel, 'personali
             }
             let list = [];
             if (Array.isArray(ev)) {
-              list = ev.filter(x => x && x !== '$__META_EXTENSIBLE__$' && x !== '...');
+              list = ev.filter(Boolean);
             } else if (ev && typeof ev === 'object') {
               list = Object.entries(ev)
-                .filter(([k]) => k !== '$meta' && k !== '$__META_EXTENSIBLE__$')
+                .filter(([k]) => k !== '$meta')
                 .map(([k, v]) => {
                   if (v == null) return '';
                   if (typeof v === 'string') return v.trim();
@@ -5252,7 +5245,7 @@ const personality = h.SafeGetValue(rel, '性格', h.SafeGetValue(rel, 'personali
                                (function(x){ try { return JSON.stringify(x); } catch { return String(x); } })(v)));
                   } catch { return ''; }
                 })
-                .filter(s => typeof s === 'string' && s && s !== '$__META_EXTENSIBLE__$' && s !== '...');
+                .filter(s => typeof s === 'string' && s);
             } else if (typeof ev === 'string' && ev) {
               // 纯文本：按常见分隔符切分为多条
               list = ev.split(/[\n；;]+/).map(s => s.trim()).filter(Boolean);

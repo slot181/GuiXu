@@ -53,12 +53,13 @@
           </div>
 
           <div class="panel-section">
-            <div class="section-title">注意事项</div>
+            <div class="section-title">注意事项与常见问题排查</div>
             <ol class="intro-ol">
               <li>网络要求：此卡通过 <strong>JsDelivr</strong> 加载脚本，必须确保网络连接良好。</li>
-              <li>加载失败：若首次开局卡在加载界面或UI渲染错乱，请尝试关闭酒馆页面后，再重新打开并读取。</li>
-              <li>正文错乱：若正文出现变量等无关内容，请用小铅笔检查正文是否被 gametxt 标签正常包裹。</li>
-              <li>行动选项：若行动选项未触发，请用小铅笔检查 action 标签是否正确包裹。</li>
+              <li>UI渲染错乱：若UI渲染错乱，请尝试点击右上角小铅笔重新加载一下。</li>
+              <li>首次开局加载：首次开局加载进正文前端页面后，**必须重新刷新酒馆页面**，否则必然卡死。</li>
+              <li>正文错乱：如正文中出现变量代码等无关内容，请使用编辑功能（小铅笔）检查，确保正文被 gametxt 标签完整包裹，若还是无效，优先手动删除思维链里的所有内容。</li>
+              <li>行动选项：若正文没有行动选项按钮，请同样检查并确保该选项被 action 标签正确包裹，若还是无效，同上。</li>
               <li>开启新档：要开启干净存档，请修改读写序号，或在存档管理中<strong>一键清除所有存档</strong>。</li>
               <li>读档异常：若读档后发现装备栏或者有什么东西遗漏，请尝试重新读取存档。</li>
             </ol>
@@ -147,14 +148,14 @@
         // 延时展示，等待布局稳定与宿主样式应用
         setTimeout(() => {
           this.show();
-          try { this.lockCloseFor(1000); } catch (_) {}
+          try { this.lockCloseFor(5000); } catch (_) {}
         }, Math.max(0, delayMs|0));
       } catch (e) {
         console.warn('[归墟] IntroModalComponent.showFirstTimeIfNeeded 失败:', e);
       }
     },
     // 锁定首次弹窗关闭，倒计时期间禁止关闭
-    lockCloseFor(ms = 1000) {
+    lockCloseFor(ms = 5000) {
       try {
         const overlay = document.getElementById('intro-modal') || this.ensure();
         if (!overlay) return;

@@ -20,109 +20,228 @@
   const GuixuMain = {
     _initialized: false,
     // MVU 占位符常量
-    _EXT: '$__META_EXTENSIBLE__$',
+       
     _pendingRestoreMobileOnExitFullscreen: false,
+    // 首轮门禁激活标记：命中后阻止首帧 MVU 抓取/写入/轮询，直至用户“一键刷新”
+    _firstRoundBlockActive: false,
 
-    // 确保数组首位包含占位符（若无则自动补上）
+    // 兼容旧结构：已弃用占位符逻辑，直接透传
     _ensureMetaExtensibleArray(arr) {
-      try {
-        const EXT = this._EXT;
-        if (!Array.isArray(arr)) return arr;
-        // 统一采用“末尾补占位符”的策略，便于 LLM 追加并与示例结构保持一致
-        if (arr.length === 0) return [EXT];
-        if (arr.includes(EXT)) return arr;
-        return [...arr, EXT];
-      } catch (_) { return arr; }
+      try { return arr; } catch (_) { return arr; }
     },
 
     // 对指定路径数组进行“占位符”修复
+    // 已弃用：新结构为字典对象，此处不再处理
     _ensureExtensibleMarkersOnPaths(data, paths) {
-      try {
-        const _ = window.GuixuAPI?.lodash;
-        if (!data || !_) return;
-        paths.forEach((p) => {
-          const arr = _.get(data, p);
-          if (Array.isArray(arr)) {
-            const ensured = this._ensureMetaExtensibleArray(arr);
-            if (ensured !== arr) _.set(data, p, ensured);
-          }
-        });
-      } catch (_) {}
+      try { /* no-op */ } catch (_) {}
     },
 
-    // 针对当前使用到的 MVU 列表字段修复“__META_EXTENSIBLE__”丢失问题
+    // 已弃用：新结构为字典对象，不再进行占位符修复
     _ensureExtensibleMarkers(statData) {
-      try {
-        if (!statData) return;
-        const _ = window.GuixuAPI?.lodash;
-        // 顶层/一层内“列表数组”占位补齐已移除：新形态为对象字典，仅在条目内部的词条数组（special_effects/词条/词条效果）需要占位
-
-        // 2) 列表项内部的“词条数组”（special_effects）保底（用于 LLM 追加新词条）
-        const ensureItemSpecialEffects = (arr) => {
-          if (!Array.isArray(arr)) return;
-          const EXT = this._EXT;
-          arr.forEach((it, idx) => {
-            if (it && typeof it === 'object') {
-              if (Array.isArray(it.special_effects)) {
-                arr[idx].special_effects = this._ensureMetaExtensibleArray(it.special_effects);
-              } else if (it.special_effects == null && it['词条效果'] == null && it['词条'] == null) {
-                // 若不存在任何词条字段，则补一个占位的 special_effects
-                arr[idx].special_effects = [EXT];
-              }
-            }
-          });
-        };
-
-        // 针对装备/功法等：仅为条目内部词条数组补占位（支持对象/数组两种旧形态）
-        ['武器','主修功法','辅修心法','防具','饰品','法宝'].forEach(p => {
-          const v = _?.get(statData, p);
-          const EXT = this._EXT;
-          if (v && typeof v === 'object' && !Array.isArray(v)) {
-            if (Array.isArray(v.special_effects)) {
-              const ensured = this._ensureMetaExtensibleArray(v.special_effects);
-              if (ensured !== v.special_effects) v.special_effects = ensured;
-            } else if (v.special_effects == null && v['词条效果'] == null && v['词条'] == null) {
-              v.special_effects = [EXT];
-            }
-          } else if (Array.isArray(v)) {
-            ensureItemSpecialEffects(v);
-          }
-        });
-
-
-        // 关系对象内不再补顶层列表占位符；仅在渲染端按需处理，条目内部词条数组占位由写路径或具体渲染环节保障
-      } catch (_) {}
+      try { /* no-op */ } catch (_) {}
     },
 
     // 过滤数组中的占位符（用于渲染前忽略）
+    // 已弃用占位符：直接透传
     _stripMeta(arr) {
-      try {
-        const EXT = this._EXT;
-        return Array.isArray(arr) ? arr.filter(x => x !== EXT) : arr;
-      } catch (_) { return arr; }
+      try { return arr; } catch (_) { return arr; }
     },
 
     // 全域“渲染前过滤”：深度复制并删除任意数组中的占位符
+    // 不再移除占位符：保留简单深拷贝（必要层面）
     _deepStripMeta(value) {
-      const EXT = this._EXT;
       const t = Object.prototype.toString.call(value);
       if (t === '[object Array]') {
-        // 逐项深度过滤，但先移除占位符
-        const arr = value.filter(v => v !== EXT);
-        return arr.map(v => this._deepStripMeta(v));
+        return value.map(v => this._deepStripMeta(v));
       }
       if (t === '[object Object]') {
         const out = {};
         for (const k in value) {
-          // 仅对自有属性处理
           if (Object.prototype.hasOwnProperty.call(value, k)) {
             out[k] = this._deepStripMeta(value[k]);
           }
         }
         return out;
       }
-      // 原始类型/函数/其它，直接返回
       return value;
+    },
+
+    // 首轮门禁：是否阻止首帧 MVU 抓取/渲染
+    async _shouldBlockFirstRoundMvuCapture() {
+      try {
+        const idx = window.GuixuState?.getState?.().unifiedIndex || 1;
+        // 若玩家已通过“一键刷新”解锁，则本次放行并清除标记
+        try {
+          const gateKey = `guixu_gate_unblocked_${idx}`;
+          const v = localStorage.getItem(gateKey);
+          if (v === '1') {
+            localStorage.removeItem(gateKey);
+            return false;
+          }
+        } catch (_) {}
+        const LB = window.GuixuConstants?.LOREBOOK;
+        if (!LB?.NAME || !LB?.ENTRIES?.JOURNEY || !window.GuixuAPI?.getLorebookEntries) return false; // 配置缺失：默认不阻止
+        const journeyKey = idx > 1 ? `${LB.ENTRIES.JOURNEY}(${idx})` : LB.ENTRIES.JOURNEY;
+        let entries = [];
+        try {
+          entries = await window.GuixuAPI.getLorebookEntries(LB.NAME) || [];
+        } catch (e) {
+          console.warn('[归墟] 首轮门禁：getLorebookEntries 失败，默认放行', e);
+          return false;
+        }
+        const exists = entries.some(e => String(e?.comment || '').trim() === String(journeyKey).trim());
+        // 不存在“本世历程(当前索引)”即视为首轮：阻止
+        return !exists;
+      } catch (e) {
+        console.warn('[归墟] 首轮门禁检查异常，默认放行', e);
+        return false;
+      }
+    },
+
+    // 统一调整底部输入栏布局为 三段式：左(按钮) - 中(输入) - 右(发送)
+    ensureQuickSendLayout() {
+      try {
+        // 样式注入（仅一次）
+        if (!document.getElementById('guixu-quick-send-layout-style')) {
+          const s = document.createElement('style');
+          s.id = 'guixu-quick-send-layout-style';
+          s.textContent = `
+            .guixu-root-container .quick-send-container{
+              display: grid;
+              grid-template-columns: auto 1fr auto;
+              align-items: center;
+              gap: 8px;
+            }
+            .guixu-root-container .quick-send-container .qs-left,
+            .guixu-root-container .quick-send-container .qs-right{
+              display: flex;
+              align-items: center;
+              gap: 6px;
+            }
+            .guixu-root-container .quick-send-container .qs-center{
+              display: flex;
+              align-items: center;
+            }
+            .guixu-root-container .quick-send-container .qs-center #quick-send-input{
+              width: 100%;
+            }
+          `;
+          document.head.appendChild(s);
+        }
+
+        const qs = document.querySelector('#bottom-status-container .quick-send-container');
+        if (!qs) return;
+
+        let left = qs.querySelector('.qs-left');
+        let center = qs.querySelector('.qs-center');
+        let right = qs.querySelector('.qs-right');
+
+        if (!left || !center || !right) {
+          // 创建三段式容器
+          if (!left) { left = document.createElement('div'); left.className = 'qs-left'; }
+          if (!center) { center = document.createElement('div'); center.className = 'qs-center'; }
+          if (!right) { right = document.createElement('div'); right.className = 'qs-right'; }
+
+          // 采集现有控件
+          const btnCmd = qs.querySelector('#btn-quick-commands');
+          const input = qs.querySelector('#quick-send-input');
+          const btnSend = qs.querySelector('#btn-quick-send');
+
+          // 移除旧 wrapper，避免嵌套
+          qs.querySelectorAll('.qs-left, .qs-center, .qs-right').forEach(el => el.remove());
+
+          // 组装三段式
+          qs.innerHTML = '';
+          qs.appendChild(left);
+          qs.appendChild(center);
+          qs.appendChild(right);
+
+          if (btnCmd) left.appendChild(btnCmd);
+          if (input) center.appendChild(input);
+          if (btnSend) right.appendChild(btnSend);
+        }
+      } catch (e) {
+        console.warn('[归墟] ensureQuickSendLayout 失败:', e);
+      }
+    },
+
+    // 常驻：“一键刷新”按钮（放在输入栏左侧）
+    ensureRefreshButton() {
+      try {
+        const qs = document.querySelector('#bottom-status-container .quick-send-container');
+        if (!qs) return;
+        this.ensureQuickSendLayout();
+        const left = qs.querySelector('.qs-left') || qs;
+
+        let btn = document.getElementById('btn-first-run-refresh');
+        if (!btn) {
+          btn = document.createElement('button');
+          btn.id = 'btn-first-run-refresh';
+          btn.className = 'interaction-btn gate-refresh-btn';
+          btn.type = 'button';
+          btn.textContent = '一键刷新';
+          btn.title = '对整个前端渲染进行最新更新渲染和酒馆MVU变量值抓取';
+          left.insertBefore(btn, left.firstChild || null);
+
+          btn.addEventListener('click', async () => {
+            try {
+              const isFirstRound = await this._shouldBlockFirstRoundMvuCapture();
+              if (isFirstRound) {
+                // 首轮：先弹出确认与倒计时，提醒刷新外层酒馆页面
+                this.showRefreshFirstRoundConfirm(10, () => {
+                  try {
+                    const idx = window.GuixuState?.getState?.().unifiedIndex || 1;
+                    localStorage.setItem(`guixu_gate_unblocked_${idx}`, '1');
+                  } catch (_) {}
+                  window.location.reload();
+                }, () => {
+                  // 取消：不做任何操作，等待用户处理外层页面
+                });
+                return;
+              }
+            } catch (_) {}
+            try {
+              const idx = window.GuixuState?.getState?.().unifiedIndex || 1;
+              // 非首轮或检测失败：直接解锁并刷新
+              localStorage.setItem(`guixu_gate_unblocked_${idx}`, '1');
+            } catch (_) {}
+            window.location.reload();
+          });
+        } else {
+          // 确保位置在左侧容器首位
+          if (btn.parentElement !== left) {
+            left.insertBefore(btn, left.firstChild || null);
+          }
+        }
+      } catch (e) {
+        console.warn('[归墟] ensureRefreshButton 失败:', e);
+      }
+    },
+
+    // 首轮：若判定为“首轮对话”，仅自动刷新一次（避免循环），再等待用户点击“一键刷新”进行解锁
+    _tryAutoRefreshOnceOnFirstRound() {
+      try {
+        const idx = window.GuixuState?.getState?.().unifiedIndex || 1;
+        const skey = `guixu_gate_auto_refreshed_${idx}`;
+        if (sessionStorage.getItem(skey) === '1') return;
+        sessionStorage.setItem(skey, '1');
+        // 轻微延迟以保证首帧 DOM 能落地（避免浏览器拦截紧跟的 reload）
+        setTimeout(() => { try { window.location.reload(); } catch(_) {} }, 50);
+      } catch (_) {}
+    },
+
+    // 评估门禁并根据结果执行自动一次刷新；返回 Promise<boolean> 表示是否阻止
+    async _evaluateFirstRunGateAndMaybeShow() {
+      const block = await this._shouldBlockFirstRoundMvuCapture();
+      this._firstRoundBlockActive = !!block;
+
+      // 常驻按钮：无论是否首轮都提供快速刷新能力
+      this.ensureRefreshButton();
+
+      if (block) {
+        this._tryAutoRefreshOnceOnFirstRound();
+      }
+      return block;
     },
 
     init() {
@@ -132,9 +251,11 @@
       console.info('[归墟] GuixuMain: 启动主入口。');
       hasDeps();
       this.ensureDynamicStyles();
+      // 底部输入栏三段式布局与常驻刷新按钮
+      this.ensureQuickSendLayout();
+      this.ensureRefreshButton();
 
-      // 启动服务轮询
-      this.ensureServices();
+      // 启动服务轮询改为在门禁评估后再启动
 
       // 顶层事件绑定
       this.bindTopLevelListeners();
@@ -187,7 +308,14 @@
                   // 初始数据加载与渲染
       this.syncUserPreferencesFromRoaming().finally(() => this.applyUserPreferences());
       this.loadInputDraft();
-      this.updateDynamicData().catch(err => console.error('[归墟] 初次加载失败:', err));
+
+      // 首轮门禁：首次进入不抓取/渲染 MVU，待玩家“一键刷新”后再启用
+      this._evaluateFirstRunGateAndMaybeShow().then((blocked) => {
+        if (blocked) return;
+        this.ensureServices();
+        this.updateDynamicData().catch(err => console.error('[归墟] 初次加载失败:', err));
+      });
+
       // 首次加载引导弹窗（移动端/桌面端，非全屏优先；嵌入式 iframe 亦适用）
       try { window.IntroModalComponent?.showFirstTimeIfNeeded?.(600); } catch(_) {}
     },
@@ -375,12 +503,42 @@ if (!document.getElementById('guixu-font-override-style')) {
   `;
   document.head.appendChild(s2);
 }
+// 首轮门禁“一键刷新”按钮样式
+if (!document.getElementById('guixu-gate-style')) {
+  const s3 = document.createElement('style');
+  s3.id = 'guixu-gate-style';
+  s3.textContent = `
+    #btn-first-run-refresh.gate-refresh-btn{
+      border:1px solid #c9aa71;
+      background:linear-gradient(45deg,#1a1a2e,#2d1b3d);
+      color:#c9aa71;
+      height:32px;
+      padding:0 10px;
+      border-radius:6px;
+      margin-right:6px;
+      box-shadow:0 3px 10px rgba(0,0,0,0.35);
+    }
+    #btn-first-run-refresh.gate-refresh-btn:hover{
+      background:linear-gradient(45deg,#2d1b3d,#3b2753);
+    }
+    .guixu-root-container.mobile-view #btn-first-run-refresh.gate-refresh-btn{
+      height:30px;
+      padding:0 8px;
+      font-size:12px;
+    }
+  `;
+  document.head.appendChild(s3);
+}
         }
       } catch (_) {}
     },
 
     ensureServices() {
       try {
+        if (this._firstRoundBlockActive) {
+          console.info('[归墟] 首轮门禁激活：延后启动自动轮询/写入');
+          return;
+        }
         if (window.GuixuState) {
           if (typeof window.GuixuState.startAutoTogglePolling === 'function') window.GuixuState.startAutoTogglePolling();
           if (typeof window.GuixuState.startAutoSavePolling === 'function') window.GuixuState.startAutoSavePolling();
@@ -1456,6 +1614,10 @@ if (!document.getElementById('guixu-font-override-style')) {
  
     async updateDynamicData() {
       const $ = (sel, ctx = document) => ctx.querySelector(sel);
+      if (this._firstRoundBlockActive) {
+        console.info('[归墟] 首轮门禁激活：跳过动态数据抓取/渲染');
+        return;
+      }
       try {
         const currentId = window.GuixuAPI.getCurrentMessageId();
         let messages = await window.GuixuAPI.getChatMessages(currentId);
@@ -1609,13 +1771,17 @@ if (!document.getElementById('guixu-font-override-style')) {
         fuxiuXinfa: '辅修心法',
       };
 
+      // 新增：即时覆盖本地 equippedItems，避免等待 MVU 写回造成的渲染延迟
+      const st = window.GuixuState?.getState?.();
+      const localEq = (st && st.equippedItems) ? st.equippedItems : {};
+
       for (const [slotKey, mvuKeys] of Object.entries(candidatesBySlot)) {
         const slot = $(`#equip-${slotKey}`);
         if (!slot) continue;
 
-        // 依次尝试候选MVU键，取首个有值的
-        let item = null;
-        if (window.GuixuHelpers && typeof window.GuixuHelpers.readEquipped === 'function') {
+        // 优先使用本地状态（equippedItems），否则从 MVU 读取
+        let item = localEq && localEq[slotKey] ? localEq[slotKey] : null;
+        if (!item && window.GuixuHelpers && typeof window.GuixuHelpers.readEquipped === 'function') {
           for (const mvuKey of mvuKeys) {
             const found = window.GuixuHelpers.readEquipped(data, mvuKey);
             if (found && typeof found === 'object') { item = found; break; }
@@ -2671,6 +2837,71 @@ container.style.fontFamily = `"Microsoft YaHei", "Noto Sans SC", "PingFang SC", 
           if (typeof onCancel === 'function') onCancel();
         }
       }
+      },
+
+      // 首轮“一键刷新”专用确认（5秒倒计时，期间禁止确认，防误触）
+      showRefreshFirstRoundConfirm(countdownSec = 5, onOk = () => {}, onCancel = () => {}) {
+        try {
+          const overlay = document.getElementById('custom-confirm-modal');
+          const msgEl = document.getElementById('custom-confirm-message');
+          const okBtn = document.getElementById('custom-confirm-btn-ok');
+          const cancelBtn = document.getElementById('custom-confirm-btn-cancel');
+          if (!overlay || !okBtn || !cancelBtn) {
+            const msg = '检测到当前为首轮对话。请先刷新酒馆页面，再回到本页面点击“一键刷新”。是否继续？';
+            if (confirm(msg)) onOk(); else onCancel();
+            return;
+          }
+
+          const message = '检测到当前为首轮对话。\n为避免缓存导致酒馆页面卡死，请先对酒馆页面执行一次刷新。\n刷新完成并重新读卡后，再点击下方“确认”以进行“一键刷新”。';
+          if (msgEl) msgEl.textContent = message;
+
+          // 倒计时期间禁止点击确认，也禁止点遮罩关闭
+          overlay.dataset.allowClose = '0';
+          let sec = Math.max(0, Number(countdownSec) | 0);
+          let timer = null;
+
+          const update = () => {
+            if (sec > 0) {
+              okBtn.disabled = true;
+              okBtn.textContent = `确认(${sec})`;
+              cancelBtn.disabled = false;
+            } else {
+              okBtn.disabled = false;
+              okBtn.textContent = '确认';
+              // 允许点击遮罩关闭
+              overlay.dataset.allowClose = '1';
+            }
+          };
+
+          update();
+          overlay.style.zIndex = '9000';
+          overlay.style.display = 'flex';
+
+          timer = setInterval(() => {
+            sec -= 1;
+            if (sec <= 0) {
+              clearInterval(timer);
+              sec = 0;
+            }
+            update();
+          }, 1000);
+
+          const cleanup = () => {
+            try { if (timer) clearInterval(timer); } catch (_) {}
+            overlay.style.display = 'none';
+            okBtn.removeEventListener('click', okHandler);
+            cancelBtn.removeEventListener('click', cancelHandler);
+          };
+          const okHandler = () => { cleanup(); try { onOk(); } catch (_) {} };
+          const cancelHandler = () => { cleanup(); try { onCancel(); } catch (_) {} };
+
+          okBtn.addEventListener('click', okHandler, { once: true });
+          cancelBtn.addEventListener('click', cancelHandler, { once: true });
+        } catch (e) {
+          console.warn('[归墟] showRefreshFirstRoundConfirm 失败，回退 confirm:', e);
+          const msg = '检测到当前为首轮对话。请先刷新酒馆页面，再回到本页面点击“一键刷新”。是否继续？';
+          if (confirm(msg)) { try { onOk(); } catch (_) {} } else { try { onCancel(); } catch (_) {} }
+        }
       },
 
       // 自定义数字输入弹窗（与UI一致），返回 Promise<number|null>

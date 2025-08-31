@@ -52,7 +52,7 @@
           if (typeof val === 'object') {
             // 兼容：对象字典（无论是否带 $meta）
             const entries = Object.keys(val)
-              .filter(k => k !== '$meta' && k !== '$__META_EXTENSIBLE__$')
+              .filter(k => k !== '$meta')
               .map(k => val[k]);
             if (entries.length > 0) {
               let first = entries[0];
@@ -101,12 +101,12 @@
         // 旧：数组包装 -> 取第0项数组，并过滤占位符
         if (Array.isArray(v)) {
           const arr = v[0] || [];
-          return Array.isArray(arr) ? arr.filter(x => x !== '$__META_EXTENSIBLE__$') : [];
+          return Array.isArray(arr) ? arr : [];
         }
         // 新：对象字典（兼容是否存在 $meta）
         if (v && typeof v === 'object') {
           return Object.keys(v)
-            .filter(k => k !== '$meta' && k !== '$__META_EXTENSIBLE__$')
+            .filter(k => k !== '$meta')
             .map(k => {
               let val = v[k];
               // 尝试解析字符串化 JSON
@@ -135,7 +135,6 @@
 
     /**
      * 读取“装备槽”字段为单个对象（兼容旧数组包装与新对象）
-     * - 旧：stat[slotKey] 为 [ item ] 或 [ '$__META_EXTENSIBLE__$' ]
      * - 新：stat[slotKey] 为对象或 null
      */
     readEquipped(stat, slotKey) {
@@ -143,7 +142,7 @@
         const v = stat && stat[slotKey];
         if (Array.isArray(v)) {
           const first = v[0];
-          if (!first || first === '$__META_EXTENSIBLE__$') return null;
+          if (!first) return null;
           return typeof first === 'object' ? first : null;
         }
         if (v && typeof v === 'object' && !v.$meta) {

@@ -89,7 +89,7 @@
     return String(v);
   }
   function normalizeEffects(eff) {
-    if (eff == null || eff === '$__META_EXTENSIBLE__$' || eff === '...') return [];
+    if (eff == null) return [];
     // Map -> Object / Array
     if (Object.prototype.toString.call(eff) === '[object Map]') {
       eff = mapToObjectIfAllStringKeys(eff);
@@ -105,12 +105,12 @@
         if (m) out.push({ key: m[1].trim(), value: m[2].trim() });
         else out.push({ key: '', value: p });
       }
-      return out.filter(x => x.value && x.value !== '$__META_EXTENSIBLE__$' && x.value !== '...');
+      return out.filter(x => x.value);
     }
     // 数组：混合字符串/对象/二元数组
     if (Array.isArray(eff)) {
       return eff
-        .filter(x => !!x && x !== '$__META_EXTENSIBLE__$' && x !== '...')
+        .filter(x => !!x)
         .map(entry => {
           if (typeof entry === 'string') {
             const p = parsePossibleJson(entry);
@@ -130,7 +130,7 @@
             }
             if (obj && typeof obj === 'object') {
               return Object.entries(obj)
-                .filter(([k]) => k !== '$meta' && k !== '$__META_EXTENSIBLE__$')
+                .filter(([k]) => k !== '$meta')
                 .map(([k, v]) => ({ key: String(k), value: v }));
             }
           }
@@ -149,12 +149,12 @@
           const v = typeof it.value === 'string' ? parsePossibleJson(it.value) : it.value;
           return { key: it.key, value: v };
         })
-        .filter(x => x.value != null && x.value !== '$__META_EXTENSIBLE__$' && x.value !== '...');
+        .filter(x => x.value != null);
     }
     // 对象：以键为“词条名”，值为“效果描述”
     if (typeof eff === 'object') {
       return Object.entries(eff)
-        .filter(([k]) => k !== '$meta' && k !== '$__META_EXTENSIBLE__$')
+        .filter(([k]) => k !== '$meta')
         .map(([k, v]) => {
           const val = typeof v === 'string' ? parsePossibleJson(v) : v;
           return { key: String(k), value: val };
