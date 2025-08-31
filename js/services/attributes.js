@@ -739,30 +739,13 @@
         // 更新内存中的计算上限缓存
         try { st.calculatedMaxAttributes = Object.assign({}, st.calculatedMaxAttributes, { ...maxAttrs }); } catch (_) {}
 
-        // 持久化到当前楼层与第 0 楼，确保“后台 mvu 变量”为最新上限值
+        // 合并/节流写回至 mvu（通过 MvuIO）
         try {
-          const currentId = window.GuixuAPI.getCurrentMessageId();
-          if (typeof currentId !== 'undefined') {
-            (async () => {
-              try {
-                const msgs = await window.GuixuAPI.getChatMessages(currentId);
-                const cur = (msgs && msgs[0] && msgs[0].data) ? msgs[0].data : (st?.currentMvuState || {});
-                const dataObj = cur && typeof cur === 'object' ? cur : { stat_data: {} };
-                const dst = dataObj.stat_data || (dataObj.stat_data = {});
-                // 新结构：写入“四维上限”对象
-                const prev = (dst['四维上限'] && typeof dst['四维上限'] === 'object') ? dst['四维上限'] : {};
-                dst['四维上限'] = Object.assign({}, prev, cnMax);
-
-                const updates = [{ message_id: currentId, data: dataObj }];
-                if (currentId !== 0) updates.push({ message_id: 0, data: dataObj });
-                await window.GuixuAPI.setChatMessages(updates, { refresh: 'none' });
-
-                // 同步前端缓存
-                try { window.GuixuState.update('currentMvuState', dataObj); } catch(_) {}
-              } catch (perr) {
-                console.warn('[归墟] 持久化四维上限到 mvu 失败（已保持内存态）:', perr);
-              }
-            })();
+          if (window.GuixuMvuIO && typeof window.GuixuMvuIO.scheduleStatUpdate === 'function') {
+            window.GuixuMvuIO.scheduleStatUpdate((stat) => {
+              const prev = (stat['四维上限'] && typeof stat['四维上限'] === 'object') ? stat['四维上限'] : {};
+              stat['四维上限'] = Object.assign({}, prev, cnMax);
+            }, { reason: 'attributes:max' });
           }
         } catch (_) {}
       } catch (e) {
