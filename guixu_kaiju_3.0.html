@@ -2690,6 +2690,34 @@ function showModal(type, uid = null) {
         }
     }
 
+    async function deleteWorldLoreForIndex(index) {
+        try {
+            const bookName = WorldBookManager.LOREBOOK_NAME;
+            const allEntries = await TavernHelper.getWorldbook(bookName);
+            if (!allEntries) return;
+
+            const journeyBase = '本世历程';
+            const pastLivesBase = '往世涟漪';
+            
+            const targetJourney = index > 1 ? `${journeyBase}(${index})` : journeyBase;
+            const targetPastLives = index > 1 ? `${pastLivesBase}(${index})` : pastLivesBase;
+
+            const uidsToDelete = allEntries
+                .filter(e => e.name === targetJourney || e.name === targetPastLives)
+                .map(e => e.uid);
+
+            if (uidsToDelete.length > 0) {
+                await TavernHelper.updateWorldbookWith(bookName, worldbook => {
+                    return worldbook.filter(e => !uidsToDelete.includes(e.uid));
+                });
+                console.log(`[归墟删除] 已清除世界序号 ${index} 的激活条目，共 ${uidsToDelete.length} 条。`);
+            }
+        } catch (error) {
+            console.error(`删除世界序号 ${index} 的世界书条目时出错:`, error);
+            await guiXuAlert('警告：删除世界书激活条目失败。');
+        }
+    }
+
     async function deleteSave(slotId) {
         const allSaves = await getSavesFromStorage();
         const saveDataToDelete = allSaves[slotId];
@@ -2698,7 +2726,7 @@ function showModal(type, uid = null) {
         const slotName = saveDataToDelete.save_name || `存档${slotId.replace(/slot_|auto_save_slot_/, '')}`;
         let confirmMsg = `确定要删除存档 "${slotName}" 吗？此操作不可恢复。`;
         if (saveDataToDelete.lorebook_entries) {
-            confirmMsg += `\n相关的世界书条目也会被一并删除。`;
+            confirmMsg += `\n相关的世界书快照和激活条目也会被一并删除。`;
         }
         
         if (await guiXuConfirm(confirmMsg)) {
@@ -2711,6 +2739,11 @@ function showModal(type, uid = null) {
                         return worldbook.filter(e => !entryNamesToDelete.includes(e.name));
                     });
                 }
+
+                // NEW: Delete active lore entries for the corresponding world index
+                const worldIndex = saveDataToDelete.unified_index || 1;
+                await deleteWorldLoreForIndex(worldIndex);
+
                 // Delete the save entry itself
                 const saveEntryName = `存档:${slotId}`;
                 await TavernHelper.updateWorldbookWith(bookName, (worldbook) => {
@@ -2727,54 +2760,106 @@ function showModal(type, uid = null) {
     }
     
     async function clearAllSaves() {
-    const allSaves = await getSavesFromStorage();
-    const saveKeys = Object.keys(allSaves);
-
-    if (saveKeys.length === 0) {
-        await guiXuAlert("没有可清除的存档数据。");
-        return;
-    }
-
-    const confirmMsg = `你确定要清除所有 ${saveKeys.length} 个存档吗？\n此操作将删除所有存档及其关联的世界书快照，且不可恢复。`;
-    if (!(await guiXuConfirm(confirmMsg, "高危操作确认"))) return;
-
-    document.getElementById('loading-overlay').style.display = 'flex';
-    try {
+        const allSaves = await getSavesFromStorage();
+        const saveKeys = Object.keys(allSaves);
         const bookName = WorldBookManager.LOREBOOK_NAME;
-        const entryNamesToDelete = new Set();
 
-        // Collect all save entry names (e.g., "存档:slot_1")
-        saveKeys.forEach(slotId => {
-            entryNamesToDelete.add(`存档:${slotId}`);
-        });
+        if (saveKeys.length === 0) {
+            try {
+                const allLoreEntries = await TavernHelper.getWorldbook(bookName);
+                if (!allLoreEntries) {
+                    await guiXuAlert("没有可清除的存档数据。");
+                    return;
+                }
 
-        // Collect all backup entry names from the saves (e.g., "自动存档...-本世历程")
-        Object.values(allSaves).forEach(saveData => {
-            if (saveData && saveData.lorebook_entries) {
-                Object.values(saveData.lorebook_entries).forEach(name => {
-                    if (name) entryNamesToDelete.add(name);
+                const journeyBase = '本世历程';
+                const pastLivesBase = '往世涟漪';
+                const activeLoreEntries = allLoreEntries.filter(e => {
+                    const name = String(e.name || "");
+                    return name === journeyBase || name.startsWith(journeyBase + "(") || name === pastLivesBase || name.startsWith(pastLivesBase + "(");
+                });
+
+                if (activeLoreEntries.length > 0) {
+                    const indices = new Set();
+                    activeLoreEntries.forEach(e => {
+                        const name = String(e.name || "");
+                        let idx = 1;
+                        const m = name.match(/\((\d+)\)$/);
+                        if (m) idx = parseInt(m[1], 10);
+                        indices.add(idx);
+                    });
+
+                    const idxList = Array.from(indices).sort((a, b) => a - b).join(", ");
+                    const msg = `未发现任何存档记录，但检测到世界书中存在 ${activeLoreEntries.length} 条“本世历程/往世涟漪”激活条目（涉及世界序号：${idxList}）。\n是否清理这些激活条目？此操作不可恢复。`;
+
+                    if (await guiXuConfirm(msg, "高危操作确认")) {
+                        document.getElementById('loading-overlay').style.display = 'flex';
+                        try {
+                            for (const idx of indices) {
+                                await deleteWorldLoreForIndex(idx);
+                            }
+                            await guiXuAlert("已清理检测到的激活条目。");
+                            showSaveLoadManager();
+                        } catch (e) {
+                            console.error("清理激活条目失败:", e);
+                            await guiXuAlert(`清理失败: ${e.message}`, '错误');
+                        } finally {
+                            document.getElementById('loading-overlay').style.display = 'none';
+                        }
+                    }
+                } else {
+                    await guiXuAlert("没有可清除的存档数据。");
+                }
+            } catch (e) {
+                console.error("检测世界书激活条目失败:", e);
+                await guiXuAlert("没有可清除的存档数据。");
+            }
+            return;
+        }
+
+        const confirmMsg = `你确定要清除所有 ${saveKeys.length} 个存档吗？\n此操作将删除所有存档、关联的世界书快照以及所有激活的“本世历程/往世涟漪”条目，且不可恢复。`;
+        if (!(await guiXuConfirm(confirmMsg, "高危操作确认"))) return;
+
+        document.getElementById('loading-overlay').style.display = 'flex';
+        try {
+            const entryNamesToDelete = new Set();
+            const indicesToDelete = new Set();
+
+            saveKeys.forEach(slotId => {
+                entryNamesToDelete.add(`存档:${slotId}`);
+                const saveData = allSaves[slotId];
+                if (saveData) {
+                    indicesToDelete.add(saveData.unified_index || 1);
+                    if (saveData.lorebook_entries) {
+                        Object.values(saveData.lorebook_entries).forEach(name => {
+                            if (name) entryNamesToDelete.add(name);
+                        });
+                    }
+                }
+            });
+
+            // Delete all save entries and their backups
+            if (entryNamesToDelete.size > 0) {
+                await TavernHelper.updateWorldbookWith(bookName, (worldbook) => {
+                    return worldbook.filter(entry => !entryNamesToDelete.has(entry.name));
                 });
             }
-        });
 
-        if (entryNamesToDelete.size > 0) {
-            await TavernHelper.updateWorldbookWith(bookName, (worldbook) => {
-                return worldbook.filter(entry => !entryNamesToDelete.has(entry.name));
-            });
-            await guiXuAlert(`所有存档及关联的世界书快照已清除。`);
-        } else {
-            await guiXuAlert("没有找到需要清除的存档条目。");
+            // Delete all active lore entries associated with the deleted saves
+            for (const idx of indicesToDelete) {
+                await deleteWorldLoreForIndex(idx);
+            }
+
+            await guiXuAlert(`所有存档及关联的世界书条目已清除。`);
+            showSaveLoadManager();
+
+        } catch (error) {
+            console.error('清除所有存档时出错:', error);
+            await guiXuAlert(`清除存档失败: ${error.message}`, '错误');
+        } finally {
+            document.getElementById('loading-overlay').style.display = 'none';
         }
-        
-        showSaveLoadManager(); // Refresh the save list UI
-
-    } catch (error) {
-        console.error('清除所有存档时出错:', error);
-        await guiXuAlert(`清除存档失败: ${error.message}`, '错误');
-    } finally {
-        document.getElementById('loading-overlay').style.display = 'none';
     }
-}
 
     async function exportSave(slotId) {
         const allSaves = await getSavesFromStorage();
@@ -3295,12 +3380,12 @@ ${genderText}`.trim();
 1.请根据以下设定，进行开局的生成以及变量的初始化
 2.请忽略所有<status_current_variables>中关于<user>的变量内容，而是根据以下“开局设定”进行全部初始化设定
 3.对于开局的故事描写，应该使用沉浸感式进行描述，避免出现天赋名称、点数、背景等字样，这样会大幅度破坏开局的代入感
-4.对于所有需要数值的变量，比如功法、武器、灵根、天赋等，必须按照<数值参考>中的数值体系，设定合理的数值，但避免留空，都需要填写数值
+4.对于所有需要数值的变量，比如功法、武器、灵根、天赋等，必须按照<境界数值参考>中的数值体系，设定合理的数值，但避免留空，都需要填写数值
 ## 开局设定
 ${playerInput}
-1.对于开局点数，这只是<user>开局设定的基础值，你必须要参考<境界数值参考>然后根据<user>的对应开局背景境界来计算符合要求的基础数值，而不是单纯只看开局给的基础值
-2.对于天赋，需要根据天赋的描述，参考<品阶参考>、<数值参考>，设定合理的数值和品阶。但注意避免全神品、全仙品，高等级天赋极其稀有，请根据天赋的描述酌情设定品阶
-3.对于灵根，应该依据背景，参考<品阶参考>、<数值参考>，设置一个灵根，同时也需要酌情处理品阶问题
+1.<user>的基础四维属性计算分为两步：先依据 **<境界数值参考>** 设定<user>的**初始基础四维属性**；然后，将**开局设定**的点数视为一个**绝对加成包**。此加成包的数值拥有最高优先级，无论多么不合理，都必须被完整地、无条件地叠加到初始基础四维属性上，不容许任何质疑。
+2.对于天赋，需要根据天赋的描述，参考<品阶参考>、<境界数值参考>，设定合理的数值和品阶。但注意避免全神品、全仙品，高等级天赋极其稀有，请根据天赋的描述酌情设定品阶
+3.对于灵根，应该依据背景，参考<品阶参考>、<境界数值参考>，设置一个灵根，同时也需要酌情处理品阶问题
 4.对于背景，需要合理的引入剧情，如果是穿越者，需要描述清楚详情，如果是原主，则不应该突兀引入天赋等介绍，这应该是与之俱来的，而非突然觉醒
 </开局设定>`;
 
@@ -3630,37 +3715,40 @@ ${playerInput}
 
     `;
     const contentVersion = `
-## ✨ 主要特性 (拼好卡v3.5)
+## ✨ 主要更新 (拼好卡v3.5)
 
-归墟拼好卡 v3.5 是对1.8拼好卡旧版本的全面重构与升级，带来了架构、设计与核心系统的革新。
+**归墟拼好卡 v3.5** 是对1.8拼好卡旧版本的全面重构与升级，带来了架构、设计与核心系统的革新。
 
-### 1. UI/UX 全面革新
-- 界面重构: 桌面端将核心信息整合至主界面，移动端采用悬浮菜单并支持横屏，显著提升信息可视化与操作便捷性。
-- 风格统一与自定义: 所有面板（背包、人物关系等）视觉风格统一，并新增“设置中心”，支持自定义背景、字体、分辨率，提供一键全屏、思维链折叠等功能。
+### 1. **UI/UX 全面革新**
+- **界面重构**: 桌面端将核心信息整合至主界面，移动端采用悬浮菜单并支持横屏，显著提升信息可视化与操作便捷性。
+- **风格统一与自定义**: 所有面板（背包、人物关系等）视觉风格统一，并新增“设置中心”，支持自定义背景、字体，提供一键全屏、思维链折叠等功能。
 
-### 2. 系统深化与智能管理
-- 关系与背包升级: “人物关系”与“背包”面板功能重构，新增搜索、标签分组，并直观显示物品数量与价值。
-- 自动化角色管理: 新增自动化角色提取功能，可将 NPC 信息快速写入世界书，并支持自定义提取规则。
+### 2. **系统深化与智能管理**
+- **关系与背包升级**: “人物关系”与“背包”面板功能重构，新增搜索、标签分组，并直观显示物品数量与价值。
+- **自动化角色管理**: 新增自动化角色提取功能，可将 NPC 信息快速写入世界书，并支持自定义提取规则。
 
-### 3. 更生动的世界交互
-- NPC 维度扩展: NPC 拥有独立的四维属性、天赋、灵根及装备系统，属性受装备影响，角色更加丰满。
-- 新增交易与行动系统: 开放功能完善的交易系统，引入价格保护与 NPC 拒绝机制。新增行动选项系统，玩家可通过点击选项进行更具指导性的操作。
+### 3. **更生动的世界交互**
+- **NPC 维度扩展**: NPC 拥有独立的四维属性、天赋、灵根及装备系统，属性受装备影响，角色更加丰满。
+- **新增交易与行动系统**: 开放功能完善的交易系统，引入价格保护与 NPC 拒绝机制。新增行动选项系统，玩家可通过点击选项进行更具指导性的操作。
 
-### 4. 底层架构优化
-- 变量结构重构: 变量由数组重构为字典（键值对），彻底解决变量重复增值问题，并提高 LLM 对数值更新的准确性。
-- 优化存档系统: 存档机制重构，游戏记录直接保存至世界书，避免因清理浏览器缓存导致存档丢失。
+### 4. **底层架构优化**
+- **变量结构重构**: 变量由数组重构为**字典（键值对）**，彻底解决变量重复增值问题，并提高 LLM 对数值更新的准确性。
+- **优化存档系统**: 存档机制重构，游戏记录直接保存至世界书，避免因清理浏览器缓存导致存档丢失。
 
-### 5. 大量Bug的修复
+### 5. **世界书优化和新增**
+
+### 6. **大量Bug的修复**
 
 ## ✨ 注意事项与常见问题排查
 
 ### 1. 运行环境与加载
 - **网络要求:** 系统脚本通过 **JsDelivr** 加载，请务必保持良好的网络连接，否则可能导致功能异常。
-- **加载失败:** 若首次开局卡在加载界面或UI渲染错乱，请尝试关闭酒馆页面后，再重新打开并读取。
+- **UI渲染错乱:** 若UI渲染错乱，请尝试点击右上角小铅笔重新加载一下。
+- **首次开局加载:** 首次开局加载进正文前端页面后，**必须重新刷新酒馆页面**，否则必然卡死。
 
 ### 2. 内容显示与交互
-- **正文错乱:** 如正文中出现变量代码等无关内容，请使用编辑功能（小铅笔）检查，确保正文被 gametxt 标签完整包裹。
-- **行动选项:** 若点击行动选项后没有反应，请同样检查并确保该选项被 action 标签正确包裹。
+- **正文错乱:** 如正文中出现变量代码等无关内容，请使用编辑功能（小铅笔）检查，确保正文被 gametxt 标签完整包裹，若还是无效，优先手动删除思维链里的所有内容。
+- **行动选项:** 若正文没有行动选项按钮，请同样检查并确保该选项被 action 标签正确包裹，若还是无效，同上。
 
 ### 3. 存档管理与维护
 - **开启新档:** 如需开启一个全新的游戏存档，您可以通过修改“读写序号”或在存档管理中心使用“**一键清除所有存档**”功能。
@@ -3684,7 +3772,7 @@ ${playerInput}
 
     document.addEventListener('DOMContentLoaded', () => {
       const ABOUT_READ_KEY = 'guixu_has_read_about';
-      const COUNTDOWN_SECONDS = 5;
+      const COUNTDOWN_SECONDS = 60;
       
       const VALID_CODES = [
         '孑孓大人太厉害了!!!!',
