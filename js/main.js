@@ -544,6 +544,14 @@ if (!document.getElementById('guixu-gate-style')) {
           if (typeof window.GuixuState.startAutoSavePolling === 'function') window.GuixuState.startAutoSavePolling();
           if (typeof window.GuixuState.startAutoWritePolling === 'function') window.GuixuState.startAutoWritePolling();
           if (typeof window.GuixuState.startNovelModeAutoWritePolling === 'function') window.GuixuState.startNovelModeAutoWritePolling();
+          // 立即对当前序号应用一次世界书开关状态，保证切换实时生效
+          try {
+            const st = window.GuixuState?.getState?.();
+            if (st && st.isAutoToggleLorebookEnabled) {
+              const idxNow = st.unifiedIndex || 1;
+              window.GuixuLorebookService?.toggleLorebook?.(idxNow, true);
+            }
+          } catch (_) {}
         }
       } catch (e) {
         console.warn('[归墟] GuixuMain.ensureServices 警告:', e);
@@ -654,6 +662,13 @@ if (!document.getElementById('guixu-gate-style')) {
         if (!isNaN(val) && val > 0) {
           window.GuixuState.update('unifiedIndex', val);
           window.GuixuHelpers.showTemporaryMessage(`世界书读写序号已更新为 ${val}`);
+          // 若已开启“自动开关世界书”，立即切换到新序号对应的激活条目
+          try {
+            const autoOn = !!(window.GuixuState?.getState?.().isAutoToggleLorebookEnabled);
+            if (autoOn) {
+              window.GuixuLorebookService?.toggleLorebook?.(val, true);
+            }
+          } catch (_) {}
         } else {
           e.target.value = window.GuixuState.getState().unifiedIndex || 1;
         }
@@ -664,6 +679,11 @@ if (!document.getElementById('guixu-gate-style')) {
         const isEnabled = e.target.checked;
         window.GuixuState.update('isAutoToggleLorebookEnabled', isEnabled);
         window.GuixuHelpers.showTemporaryMessage(`自动开关世界书已${isEnabled ? '开启' : '关闭'}`);
+        // 立即生效：立刻对当前序号进行开/关
+        try {
+          const idxNow = window.GuixuState?.getState?.().unifiedIndex || 1;
+          window.GuixuLorebookService?.toggleLorebook?.(idxNow, isEnabled);
+        } catch (_) {}
         if (isEnabled) window.GuixuState.startAutoTogglePolling();
         else window.GuixuState.stopAutoTogglePolling?.();
       });
@@ -1665,6 +1685,9 @@ if (!document.getElementById('guixu-gate-style')) {
         if (autoToggleCheckbox) autoToggleCheckbox.checked = !!state.isAutoToggleLorebookEnabled;
         const autoSaveCheckbox = $('#auto-save-checkbox');
         if (autoSaveCheckbox) autoSaveCheckbox.checked = !!state.isAutoSaveEnabled;
+        // 同步“世界书读写序号”输入框
+        const unifiedIndexInput = $('#unified-index-input');
+        if (unifiedIndexInput) unifiedIndexInput.value = String(state.unifiedIndex || 1);
       } catch (error) {
         console.error('[归墟] 更新动态数据时出错:', error);
       }
