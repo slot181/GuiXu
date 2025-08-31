@@ -932,6 +932,11 @@ if (!document.getElementById('guixu-gate-style')) {
         if (sessionStorage.getItem(shownKey) === '1') return;
 
         const handler = async () => {
+          // 仅当按世界书“本世历程(索引)”不存在判定为首轮时才提示刷新
+          let isFirst = false;
+          try { isFirst = await this._shouldBlockFirstRoundMvuCapture(); } catch(_) {}
+          if (!isFirst) return;
+
           try { sessionStorage.setItem(shownKey, '1'); } catch(_) {}
 
           const message = '检测到当前为“首轮对话”。是否刷新酒馆页面以释放缓存与提高稳定性？\n提示：这将刷新外层的酒馆页面，如果是“首轮对话”，请点击“确定”，否则等会点击“一键刷新”按钮后页面一定会卡死，如果不是，请忽略。';
