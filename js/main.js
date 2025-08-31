@@ -22,6 +22,8 @@
     // MVU 占位符常量
     _EXT: '$__META_EXTENSIBLE__$',
     _pendingRestoreMobileOnExitFullscreen: false,
+    // 首轮门禁激活标记：命中后阻止首帧 MVU 抓取/写入/轮询，直至用户“一键刷新”
+    _firstRoundBlockActive: false,
 
     // 确保数组首位包含占位符（若无则自动补上）
     _ensureMetaExtensibleArray(arr) {
@@ -125,6 +127,81 @@
       return value;
     },
 
+    // 首轮门禁：是否阻止首帧 MVU 抓取/渲染
+    async _shouldBlockFirstRoundMvuCapture() {
+      try {
+        const idx = window.GuixuState?.getState?.().unifiedIndex || 1;
+        // 若玩家已通过“一键刷新”解锁，则本次放行并清除标记
+        try {
+          const gateKey = `guixu_gate_unblocked_${idx}`;
+          const v = localStorage.getItem(gateKey);
+          if (v === '1') {
+            localStorage.removeItem(gateKey);
+            return false;
+          }
+        } catch (_) {}
+        const LB = window.GuixuConstants?.LOREBOOK;
+        if (!LB?.NAME || !LB?.ENTRIES?.JOURNEY || !window.GuixuAPI?.getLorebookEntries) return false; // 配置缺失：默认不阻止
+        const journeyKey = idx > 1 ? `${LB.ENTRIES.JOURNEY}(${idx})` : LB.ENTRIES.JOURNEY;
+        let entries = [];
+        try {
+          entries = await window.GuixuAPI.getLorebookEntries(LB.NAME) || [];
+        } catch (e) {
+          console.warn('[归墟] 首轮门禁：getLorebookEntries 失败，默认放行', e);
+          return false;
+        }
+        const exists = entries.some(e => String(e?.comment || '').trim() === String(journeyKey).trim());
+        // 不存在“本世历程(当前索引)”即视为首轮：阻止
+        return !exists;
+      } catch (e) {
+        console.warn('[归墟] 首轮门禁检查异常，默认放行', e);
+        return false;
+      }
+    },
+
+    // 在底部栏呈现“一键刷新”按钮（仅首轮阻止时）
+    _showFirstRunGateButton() {
+      try {
+        const bottom = document.getElementById('bottom-status-container');
+        if (!bottom) return;
+        if (document.getElementById('btn-first-run-refresh')) return;
+
+        const btn = document.createElement('button');
+        btn.id = 'btn-first-run-refresh';
+        btn.className = 'interaction-btn gate-refresh-btn';
+        btn.type = 'button';
+        btn.textContent = '一键刷新';
+        btn.title = '对整个前端渲染进行最新更新渲染和酒馆MVU变量值抓取';
+
+        // 插到输入框前，保证在移动端也可见
+        const qs = bottom.querySelector('.quick-send-container');
+        bottom.insertBefore(btn, qs || null);
+
+        btn.addEventListener('click', () => {
+          try {
+            const idx = window.GuixuState?.getState?.().unifiedIndex || 1;
+            localStorage.setItem(`guixu_gate_unblocked_${idx}`, '1');
+          } catch (_) {}
+          // 强制刷新，按用户要求“必须手动刷新一次后再启用捕捉”
+          window.location.reload();
+        });
+      } catch (e) {
+        console.warn('[归墟] 显示一键刷新按钮失败:', e);
+      }
+    },
+
+    // 评估门禁并决定是否显示按钮；返回 Promise<boolean> 表示是否阻止
+    async _evaluateFirstRunGateAndMaybeShow() {
+      const block = await this._shouldBlockFirstRoundMvuCapture();
+      this._firstRoundBlockActive = !!block;
+      if (block) {
+        this._showFirstRunGateButton();
+      } else {
+        try { document.getElementById('btn-first-run-refresh')?.remove(); } catch (_) {}
+      }
+      return block;
+    },
+
     init() {
       if (this._initialized) return;
       this._initialized = true;
@@ -133,8 +210,7 @@
       hasDeps();
       this.ensureDynamicStyles();
 
-      // 启动服务轮询
-      this.ensureServices();
+      // 启动服务轮询改为在门禁评估后再启动
 
       // 顶层事件绑定
       this.bindTopLevelListeners();
@@ -187,7 +263,14 @@
                   // 初始数据加载与渲染
       this.syncUserPreferencesFromRoaming().finally(() => this.applyUserPreferences());
       this.loadInputDraft();
-      this.updateDynamicData().catch(err => console.error('[归墟] 初次加载失败:', err));
+
+      // 首轮门禁：首次进入不抓取/渲染 MVU，待玩家“一键刷新”后再启用
+      this._evaluateFirstRunGateAndMaybeShow().then((blocked) => {
+        if (blocked) return;
+        this.ensureServices();
+        this.updateDynamicData().catch(err => console.error('[归墟] 初次加载失败:', err));
+      });
+
       // 首次加载引导弹窗（移动端/桌面端，非全屏优先；嵌入式 iframe 亦适用）
       try { window.IntroModalComponent?.showFirstTimeIfNeeded?.(600); } catch(_) {}
     },
@@ -375,12 +458,42 @@ if (!document.getElementById('guixu-font-override-style')) {
   `;
   document.head.appendChild(s2);
 }
+// 首轮门禁“一键刷新”按钮样式
+if (!document.getElementById('guixu-gate-style')) {
+  const s3 = document.createElement('style');
+  s3.id = 'guixu-gate-style';
+  s3.textContent = `
+    #btn-first-run-refresh.gate-refresh-btn{
+      border:1px solid #c9aa71;
+      background:linear-gradient(45deg,#1a1a2e,#2d1b3d);
+      color:#c9aa71;
+      height:32px;
+      padding:0 10px;
+      border-radius:6px;
+      margin-right:6px;
+      box-shadow:0 3px 10px rgba(0,0,0,0.35);
+    }
+    #btn-first-run-refresh.gate-refresh-btn:hover{
+      background:linear-gradient(45deg,#2d1b3d,#3b2753);
+    }
+    .guixu-root-container.mobile-view #btn-first-run-refresh.gate-refresh-btn{
+      height:30px;
+      padding:0 8px;
+      font-size:12px;
+    }
+  `;
+  document.head.appendChild(s3);
+}
         }
       } catch (_) {}
     },
 
     ensureServices() {
       try {
+        if (this._firstRoundBlockActive) {
+          console.info('[归墟] 首轮门禁激活：延后启动自动轮询/写入');
+          return;
+        }
         if (window.GuixuState) {
           if (typeof window.GuixuState.startAutoTogglePolling === 'function') window.GuixuState.startAutoTogglePolling();
           if (typeof window.GuixuState.startAutoSavePolling === 'function') window.GuixuState.startAutoSavePolling();
@@ -1456,6 +1569,10 @@ if (!document.getElementById('guixu-font-override-style')) {
  
     async updateDynamicData() {
       const $ = (sel, ctx = document) => ctx.querySelector(sel);
+      if (this._firstRoundBlockActive) {
+        console.info('[归墟] 首轮门禁激活：跳过动态数据抓取/渲染');
+        return;
+      }
       try {
         const currentId = window.GuixuAPI.getCurrentMessageId();
         let messages = await window.GuixuAPI.getChatMessages(currentId);
