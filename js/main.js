@@ -606,6 +606,8 @@ if (!document.getElementById('guixu-gate-style')) {
       $('#btn-view-statuses')?.addEventListener('click', () => window.StatusesComponent?.show?.());
       // 新增：创建底部“状态一览”弹窗按钮（替代滚动条）
       this.ensureStatusPopupButton();
+      // 首轮对话：提示刷新酒馆宿主页面（外层浏览器）
+      this._bindTavernFirstDialogueRefreshPrompt();
 
 
       // 世界线回顾
@@ -912,6 +914,81 @@ if (!document.getElementById('guixu-gate-style')) {
         }
       } catch (e) {
         console.warn('[归墟] ensureStatusPopupButton 失败:', e);
+      }
+    },
+
+    // 新增：首轮对话时，提示是否刷新酒馆宿主页面（外层浏览器）；确认后强制刷新 window.top
+    _bindTavernFirstDialogueRefreshPrompt() {
+      try {
+        // 仅在酒馆环境下启用
+        if (typeof eventOn !== 'function' || typeof tavern_events === 'undefined' || !tavern_events.CHARACTER_FIRST_MESSAGE_SELECTED) return;
+        if (this._tavernFirstDialogueBound) return;
+        this._tavernFirstDialogueBound = true;
+
+        // 针对当前聊天，仅提示一次
+        let chatId = '';
+        try { chatId = String(window.SillyTavern?.getCurrentChatId?.() ?? ''); } catch(_) {}
+        const shownKey = `guixu_first_dialogue_refresh_prompt_shown_${chatId || 'unknown'}`;
+        if (sessionStorage.getItem(shownKey) === '1') return;
+
+        const handler = async () => {
+          try { sessionStorage.setItem(shownKey, '1'); } catch(_) {}
+
+          const message = '检测到当前为“首轮对话”。是否刷新酒馆页面以释放缓存与提高稳定性？\n提示：这将刷新外层的酒馆页面，如果是“首轮对话”，请点击“确定”，否则等会点击“一键刷新”按钮后页面一定会卡死，如果不是，请忽略。';
+          let result = undefined;
+
+          try {
+            if (window.SillyTavern?.callGenericPopup) {
+              result = await window.SillyTavern.callGenericPopup(
+                message,
+                window.SillyTavern.POPUP_TYPE.CONFIRM
+              );
+            } else if (window.SillyTavern?.Popup) {
+              const popup = new window.SillyTavern.Popup(message, window.SillyTavern.POPUP_TYPE.CONFIRM);
+              await popup.show();
+              // 旧式 Popup 无返回值时，默认不自动执行刷新
+              result = window.SillyTavern?.POPUP_RESULT?.NEGATIVE;
+            } else {
+              if (confirm(message)) {
+                result = window.SillyTavern?.POPUP_RESULT?.AFFIRMATIVE ?? true;
+              } else {
+                result = window.SillyTavern?.POPUP_RESULT?.NEGATIVE ?? false;
+              }
+            }
+          } catch (_) {}
+
+          const affirmative = result === window.SillyTavern?.POPUP_RESULT?.AFFIRMATIVE || result === true || result === 'true';
+          if (affirmative) {
+            // 刷新酒馆宿主页面（外层浏览器）。同时写入解锁标记，避免刷新后首帧 MVU 被阻塞
+            try {
+              const idx = window.GuixuState?.getState?.().unifiedIndex || 1;
+              try { localStorage.setItem(`guixu_gate_unblocked_${idx}`, '1'); } catch(_) {}
+            } catch(_) {}
+
+            try {
+              if (window.top && window.top !== window) {
+                window.top.location.reload();
+                return;
+              }
+            } catch (_) {}
+            try {
+              window.parent?.location?.reload();
+              return;
+            } catch (_) {}
+            try {
+              window.location.reload();
+            } catch (_) {}
+          }
+        };
+
+        // 使用一次性事件，防止重复弹窗（若不可用则退化为常规事件 + 会话标记防抖）
+        if (typeof eventOnce === 'function') {
+          eventOnce(tavern_events.CHARACTER_FIRST_MESSAGE_SELECTED, handler);
+        } else {
+          eventOn(tavern_events.CHARACTER_FIRST_MESSAGE_SELECTED, handler);
+        }
+      } catch (e) {
+        console.warn('[归墟] 绑定首轮对话刷新提示失败:', e);
       }
     },
 
