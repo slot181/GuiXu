@@ -988,9 +988,18 @@ if (!document.getElementById('guixu-gate-style')) {
 
         // 使用一次性事件，防止重复弹窗（若不可用则退化为常规事件 + 会话标记防抖）
         if (typeof eventOnce === 'function') {
+          // 覆盖多个关键时机，任一时机命中即触发（内部有首轮判定与去重）
           eventOnce(tavern_events.CHARACTER_FIRST_MESSAGE_SELECTED, handler);
+          if (tavern_events.CHAT_CREATED) eventOnce(tavern_events.CHAT_CREATED, handler);
+          if (tavern_events.CHAT_CHANGED) eventOnce(tavern_events.CHAT_CHANGED, handler);
+          if (tavern_events.EXTENSIONS_FIRST_LOAD) eventOnce(tavern_events.EXTENSIONS_FIRST_LOAD, handler);
+          if (tavern_events.SETTINGS_LOADED_AFTER) eventOnce(tavern_events.SETTINGS_LOADED_AFTER, handler);
         } else {
           eventOn(tavern_events.CHARACTER_FIRST_MESSAGE_SELECTED, handler);
+          if (tavern_events.CHAT_CREATED) eventOn(tavern_events.CHAT_CREATED, handler);
+          if (tavern_events.CHAT_CHANGED) eventOn(tavern_events.CHAT_CHANGED, handler);
+          if (tavern_events.EXTENSIONS_FIRST_LOAD) eventOn(tavern_events.EXTENSIONS_FIRST_LOAD, handler);
+          if (tavern_events.SETTINGS_LOADED_AFTER) eventOn(tavern_events.SETTINGS_LOADED_AFTER, handler);
         }
       } catch (e) {
         console.warn('[归墟] 绑定首轮对话刷新提示失败:', e);
