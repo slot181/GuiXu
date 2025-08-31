@@ -2690,6 +2690,34 @@ function showModal(type, uid = null) {
         }
     }
 
+    async function deleteWorldLoreForIndex(index) {
+        try {
+            const bookName = WorldBookManager.LOREBOOK_NAME;
+            const allEntries = await TavernHelper.getWorldbook(bookName);
+            if (!allEntries) return;
+
+            const journeyBase = '本世历程';
+            const pastLivesBase = '往世涟漪';
+            
+            const targetJourney = index > 1 ? `${journeyBase}(${index})` : journeyBase;
+            const targetPastLives = index > 1 ? `${pastLivesBase}(${index})` : pastLivesBase;
+
+            const uidsToDelete = allEntries
+                .filter(e => e.name === targetJourney || e.name === targetPastLives)
+                .map(e => e.uid);
+
+            if (uidsToDelete.length > 0) {
+                await TavernHelper.updateWorldbookWith(bookName, worldbook => {
+                    return worldbook.filter(e => !uidsToDelete.includes(e.uid));
+                });
+                console.log(`[归墟删除] 已清除世界序号 ${index} 的激活条目，共 ${uidsToDelete.length} 条。`);
+            }
+        } catch (error) {
+            console.error(`删除世界序号 ${index} 的世界书条目时出错:`, error);
+            await guiXuAlert('警告：删除世界书激活条目失败。');
+        }
+    }
+
     async function deleteSave(slotId) {
         const allSaves = await getSavesFromStorage();
         const saveDataToDelete = allSaves[slotId];
@@ -2698,7 +2726,7 @@ function showModal(type, uid = null) {
         const slotName = saveDataToDelete.save_name || `存档${slotId.replace(/slot_|auto_save_slot_/, '')}`;
         let confirmMsg = `确定要删除存档 "${slotName}" 吗？此操作不可恢复。`;
         if (saveDataToDelete.lorebook_entries) {
-            confirmMsg += `\n相关的世界书条目也会被一并删除。`;
+            confirmMsg += `\n相关的世界书快照和激活条目也会被一并删除。`;
         }
         
         if (await guiXuConfirm(confirmMsg)) {
@@ -2711,6 +2739,11 @@ function showModal(type, uid = null) {
                         return worldbook.filter(e => !entryNamesToDelete.includes(e.name));
                     });
                 }
+
+                // NEW: Delete active lore entries for the corresponding world index
+                const worldIndex = saveDataToDelete.unified_index || 1;
+                await deleteWorldLoreForIndex(worldIndex);
+
                 // Delete the save entry itself
                 const saveEntryName = `存档:${slotId}`;
                 await TavernHelper.updateWorldbookWith(bookName, (worldbook) => {
@@ -2727,54 +2760,106 @@ function showModal(type, uid = null) {
     }
     
     async function clearAllSaves() {
-    const allSaves = await getSavesFromStorage();
-    const saveKeys = Object.keys(allSaves);
-
-    if (saveKeys.length === 0) {
-        await guiXuAlert("没有可清除的存档数据。");
-        return;
-    }
-
-    const confirmMsg = `你确定要清除所有 ${saveKeys.length} 个存档吗？\n此操作将删除所有存档及其关联的世界书快照，且不可恢复。`;
-    if (!(await guiXuConfirm(confirmMsg, "高危操作确认"))) return;
-
-    document.getElementById('loading-overlay').style.display = 'flex';
-    try {
+        const allSaves = await getSavesFromStorage();
+        const saveKeys = Object.keys(allSaves);
         const bookName = WorldBookManager.LOREBOOK_NAME;
-        const entryNamesToDelete = new Set();
 
-        // Collect all save entry names (e.g., "存档:slot_1")
-        saveKeys.forEach(slotId => {
-            entryNamesToDelete.add(`存档:${slotId}`);
-        });
+        if (saveKeys.length === 0) {
+            try {
+                const allLoreEntries = await TavernHelper.getWorldbook(bookName);
+                if (!allLoreEntries) {
+                    await guiXuAlert("没有可清除的存档数据。");
+                    return;
+                }
 
-        // Collect all backup entry names from the saves (e.g., "自动存档...-本世历程")
-        Object.values(allSaves).forEach(saveData => {
-            if (saveData && saveData.lorebook_entries) {
-                Object.values(saveData.lorebook_entries).forEach(name => {
-                    if (name) entryNamesToDelete.add(name);
+                const journeyBase = '本世历程';
+                const pastLivesBase = '往世涟漪';
+                const activeLoreEntries = allLoreEntries.filter(e => {
+                    const name = String(e.name || "");
+                    return name === journeyBase || name.startsWith(journeyBase + "(") || name === pastLivesBase || name.startsWith(pastLivesBase + "(");
+                });
+
+                if (activeLoreEntries.length > 0) {
+                    const indices = new Set();
+                    activeLoreEntries.forEach(e => {
+                        const name = String(e.name || "");
+                        let idx = 1;
+                        const m = name.match(/\((\d+)\)$/);
+                        if (m) idx = parseInt(m[1], 10);
+                        indices.add(idx);
+                    });
+
+                    const idxList = Array.from(indices).sort((a, b) => a - b).join(", ");
+                    const msg = `未发现任何存档记录，但检测到世界书中存在 ${activeLoreEntries.length} 条“本世历程/往世涟漪”激活条目（涉及世界序号：${idxList}）。\n是否清理这些激活条目？此操作不可恢复。`;
+
+                    if (await guiXuConfirm(msg, "高危操作确认")) {
+                        document.getElementById('loading-overlay').style.display = 'flex';
+                        try {
+                            for (const idx of indices) {
+                                await deleteWorldLoreForIndex(idx);
+                            }
+                            await guiXuAlert("已清理检测到的激活条目。");
+                            showSaveLoadManager();
+                        } catch (e) {
+                            console.error("清理激活条目失败:", e);
+                            await guiXuAlert(`清理失败: ${e.message}`, '错误');
+                        } finally {
+                            document.getElementById('loading-overlay').style.display = 'none';
+                        }
+                    }
+                } else {
+                    await guiXuAlert("没有可清除的存档数据。");
+                }
+            } catch (e) {
+                console.error("检测世界书激活条目失败:", e);
+                await guiXuAlert("没有可清除的存档数据。");
+            }
+            return;
+        }
+
+        const confirmMsg = `你确定要清除所有 ${saveKeys.length} 个存档吗？\n此操作将删除所有存档、关联的世界书快照以及所有激活的“本世历程/往世涟漪”条目，且不可恢复。`;
+        if (!(await guiXuConfirm(confirmMsg, "高危操作确认"))) return;
+
+        document.getElementById('loading-overlay').style.display = 'flex';
+        try {
+            const entryNamesToDelete = new Set();
+            const indicesToDelete = new Set();
+
+            saveKeys.forEach(slotId => {
+                entryNamesToDelete.add(`存档:${slotId}`);
+                const saveData = allSaves[slotId];
+                if (saveData) {
+                    indicesToDelete.add(saveData.unified_index || 1);
+                    if (saveData.lorebook_entries) {
+                        Object.values(saveData.lorebook_entries).forEach(name => {
+                            if (name) entryNamesToDelete.add(name);
+                        });
+                    }
+                }
+            });
+
+            // Delete all save entries and their backups
+            if (entryNamesToDelete.size > 0) {
+                await TavernHelper.updateWorldbookWith(bookName, (worldbook) => {
+                    return worldbook.filter(entry => !entryNamesToDelete.has(entry.name));
                 });
             }
-        });
 
-        if (entryNamesToDelete.size > 0) {
-            await TavernHelper.updateWorldbookWith(bookName, (worldbook) => {
-                return worldbook.filter(entry => !entryNamesToDelete.has(entry.name));
-            });
-            await guiXuAlert(`所有存档及关联的世界书快照已清除。`);
-        } else {
-            await guiXuAlert("没有找到需要清除的存档条目。");
+            // Delete all active lore entries associated with the deleted saves
+            for (const idx of indicesToDelete) {
+                await deleteWorldLoreForIndex(idx);
+            }
+
+            await guiXuAlert(`所有存档及关联的世界书条目已清除。`);
+            showSaveLoadManager();
+
+        } catch (error) {
+            console.error('清除所有存档时出错:', error);
+            await guiXuAlert(`清除存档失败: ${error.message}`, '错误');
+        } finally {
+            document.getElementById('loading-overlay').style.display = 'none';
         }
-        
-        showSaveLoadManager(); // Refresh the save list UI
-
-    } catch (error) {
-        console.error('清除所有存档时出错:', error);
-        await guiXuAlert(`清除存档失败: ${error.message}`, '错误');
-    } finally {
-        document.getElementById('loading-overlay').style.display = 'none';
     }
-}
 
     async function exportSave(slotId) {
         const allSaves = await getSavesFromStorage();
