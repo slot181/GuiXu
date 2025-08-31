@@ -25,46 +25,44 @@
     // 首轮门禁激活标记：命中后阻止首帧 MVU 抓取/写入/轮询，直至用户“一键刷新”
     _firstRoundBlockActive: false,
 
-    // 确保数组首位包含占位符（若无则自动补上）
+    // 兼容旧结构：已弃用占位符逻辑，直接透传
     _ensureMetaExtensibleArray(arr) {
       try { return arr; } catch (_) { return arr; }
     },
 
     // 对指定路径数组进行“占位符”修复
+    // 已弃用：新结构为字典对象，此处不再处理
     _ensureExtensibleMarkersOnPaths(data, paths) {
-      try { /* no-op: meta extensible markers removed */ } catch (_) {}
+      try { /* no-op */ } catch (_) {}
     },
 
-    // 针对当前使用到的 MVU 列表字段修复“__META_EXTENSIBLE__”丢失问题
+    // 已弃用：新结构为字典对象，不再进行占位符修复
     _ensureExtensibleMarkers(statData) {
-      try { /* no-op: meta extensible markers removed */ } catch (_) {}
+      try { /* no-op */ } catch (_) {}
     },
 
     // 过滤数组中的占位符（用于渲染前忽略）
+    // 已弃用占位符：直接透传
     _stripMeta(arr) {
-      try {
-        return arr;
-      } catch (_) { return arr; }
+      try { return arr; } catch (_) { return arr; }
     },
 
     // 全域“渲染前过滤”：深度复制并删除任意数组中的占位符
+    // 不再移除占位符：保留简单深拷贝（必要层面）
     _deepStripMeta(value) {
       const t = Object.prototype.toString.call(value);
       if (t === '[object Array]') {
-        // 逐项深度处理（占位符机制已移除）
         return value.map(v => this._deepStripMeta(v));
       }
       if (t === '[object Object]') {
         const out = {};
         for (const k in value) {
-          // 仅对自有属性处理
           if (Object.prototype.hasOwnProperty.call(value, k)) {
             out[k] = this._deepStripMeta(value[k]);
           }
         }
         return out;
       }
-      // 原始类型/函数/其它，直接返回
       return value;
     },
 
@@ -100,45 +98,132 @@
       }
     },
 
-    // 在底部栏呈现“一键刷新”按钮（仅首轮阻止时）
-    _showFirstRunGateButton() {
+    // 统一调整底部输入栏布局为 三段式：左(按钮) - 中(输入) - 右(发送)
+    ensureQuickSendLayout() {
       try {
-        const bottom = document.getElementById('bottom-status-container');
-        if (!bottom) return;
-        if (document.getElementById('btn-first-run-refresh')) return;
+        // 样式注入（仅一次）
+        if (!document.getElementById('guixu-quick-send-layout-style')) {
+          const s = document.createElement('style');
+          s.id = 'guixu-quick-send-layout-style';
+          s.textContent = `
+            .guixu-root-container .quick-send-container{
+              display: grid;
+              grid-template-columns: auto 1fr auto;
+              align-items: center;
+              gap: 8px;
+            }
+            .guixu-root-container .quick-send-container .qs-left,
+            .guixu-root-container .quick-send-container .qs-right{
+              display: flex;
+              align-items: center;
+              gap: 6px;
+            }
+            .guixu-root-container .quick-send-container .qs-center{
+              display: flex;
+              align-items: center;
+            }
+            .guixu-root-container .quick-send-container .qs-center #quick-send-input{
+              width: 100%;
+            }
+          `;
+          document.head.appendChild(s);
+        }
 
-        const btn = document.createElement('button');
-        btn.id = 'btn-first-run-refresh';
-        btn.className = 'interaction-btn gate-refresh-btn';
-        btn.type = 'button';
-        btn.textContent = '一键刷新';
-        btn.title = '对整个前端渲染进行最新更新渲染和酒馆MVU变量值抓取';
+        const qs = document.querySelector('#bottom-status-container .quick-send-container');
+        if (!qs) return;
 
-        // 插到输入框前，保证在移动端也可见
-        const qs = bottom.querySelector('.quick-send-container');
-        bottom.insertBefore(btn, qs || null);
+        let left = qs.querySelector('.qs-left');
+        let center = qs.querySelector('.qs-center');
+        let right = qs.querySelector('.qs-right');
 
-        btn.addEventListener('click', () => {
-          try {
-            const idx = window.GuixuState?.getState?.().unifiedIndex || 1;
-            localStorage.setItem(`guixu_gate_unblocked_${idx}`, '1');
-          } catch (_) {}
-          // 强制刷新，按用户要求“必须手动刷新一次后再启用捕捉”
-          window.location.reload();
-        });
+        if (!left || !center || !right) {
+          // 创建三段式容器
+          if (!left) { left = document.createElement('div'); left.className = 'qs-left'; }
+          if (!center) { center = document.createElement('div'); center.className = 'qs-center'; }
+          if (!right) { right = document.createElement('div'); right.className = 'qs-right'; }
+
+          // 采集现有控件
+          const btnCmd = qs.querySelector('#btn-quick-commands');
+          const input = qs.querySelector('#quick-send-input');
+          const btnSend = qs.querySelector('#btn-quick-send');
+
+          // 移除旧 wrapper，避免嵌套
+          qs.querySelectorAll('.qs-left, .qs-center, .qs-right').forEach(el => el.remove());
+
+          // 组装三段式
+          qs.innerHTML = '';
+          qs.appendChild(left);
+          qs.appendChild(center);
+          qs.appendChild(right);
+
+          if (btnCmd) left.appendChild(btnCmd);
+          if (input) center.appendChild(input);
+          if (btnSend) right.appendChild(btnSend);
+        }
       } catch (e) {
-        console.warn('[归墟] 显示一键刷新按钮失败:', e);
+        console.warn('[归墟] ensureQuickSendLayout 失败:', e);
       }
     },
 
-    // 评估门禁并决定是否显示按钮；返回 Promise<boolean> 表示是否阻止
+    // 常驻：“一键刷新”按钮（放在输入栏左侧）
+    ensureRefreshButton() {
+      try {
+        const qs = document.querySelector('#bottom-status-container .quick-send-container');
+        if (!qs) return;
+        this.ensureQuickSendLayout();
+        const left = qs.querySelector('.qs-left') || qs;
+
+        let btn = document.getElementById('btn-first-run-refresh');
+        if (!btn) {
+          btn = document.createElement('button');
+          btn.id = 'btn-first-run-refresh';
+          btn.className = 'interaction-btn gate-refresh-btn';
+          btn.type = 'button';
+          btn.textContent = '一键刷新';
+          btn.title = '对整个前端渲染进行最新更新渲染和酒馆MVU变量值抓取';
+          left.insertBefore(btn, left.firstChild || null);
+
+          btn.addEventListener('click', () => {
+            try {
+              const idx = window.GuixuState?.getState?.().unifiedIndex || 1;
+              // 点击刷新时统一设置解锁标记，确保刷新后立即允许 MVU 捕捉
+              localStorage.setItem(`guixu_gate_unblocked_${idx}`, '1');
+            } catch (_) {}
+            window.location.reload();
+          });
+        } else {
+          // 确保位置在左侧容器首位
+          if (btn.parentElement !== left) {
+            left.insertBefore(btn, left.firstChild || null);
+          }
+        }
+      } catch (e) {
+        console.warn('[归墟] ensureRefreshButton 失败:', e);
+      }
+    },
+
+    // 首轮：若判定为“首轮对话”，仅自动刷新一次（避免循环），再等待用户点击“一键刷新”进行解锁
+    _tryAutoRefreshOnceOnFirstRound() {
+      try {
+        const idx = window.GuixuState?.getState?.().unifiedIndex || 1;
+        const skey = `guixu_gate_auto_refreshed_${idx}`;
+        if (sessionStorage.getItem(skey) === '1') return;
+        sessionStorage.setItem(skey, '1');
+        // 轻微延迟以保证首帧 DOM 能落地（避免浏览器拦截紧跟的 reload）
+        setTimeout(() => { try { window.location.reload(); } catch(_) {} }, 50);
+      } catch (_) {}
+    },
+
+    // 评估门禁并根据结果执行自动一次刷新；返回 Promise<boolean> 表示是否阻止
     async _evaluateFirstRunGateAndMaybeShow() {
       const block = await this._shouldBlockFirstRoundMvuCapture();
       this._firstRoundBlockActive = !!block;
+
+      // 常驻按钮：无论是否首轮都提供快速刷新能力
+      this.ensureRefreshButton();
+
       if (block) {
-        this._showFirstRunGateButton();
-      } else {
-        try { document.getElementById('btn-first-run-refresh')?.remove(); } catch (_) {}
+        this._tryAutoRefreshOnceOnFirstRound();
       }
       return block;
     },
@@ -150,6 +235,9 @@
       console.info('[归墟] GuixuMain: 启动主入口。');
       hasDeps();
       this.ensureDynamicStyles();
+      // 底部输入栏三段式布局与常驻刷新按钮
+      this.ensureQuickSendLayout();
+      this.ensureRefreshButton();
 
       // 启动服务轮询改为在门禁评估后再启动
 
