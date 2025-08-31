@@ -68,8 +68,8 @@
           ? window.GuixuHelpers.readList(statData, '当前状态')
           : [];
 
-        // 过滤元标记
-        const cleaned = raw.filter(x => x && x !== '$__META_EXTENSIBLE__$' && x !== '...');
+        // 过滤空/非法项（不再特殊处理旧占位符）
+        const cleaned = raw.filter(Boolean);
 
         // 规范化（绑定 this，避免 this 丢失导致“未知状态”）
         return cleaned.map(item => this._normalizeOne(item));

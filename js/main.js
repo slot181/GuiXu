@@ -20,98 +20,39 @@
   const GuixuMain = {
     _initialized: false,
     // MVU 占位符常量
-    _EXT: '$__META_EXTENSIBLE__$',
+       
     _pendingRestoreMobileOnExitFullscreen: false,
     // 首轮门禁激活标记：命中后阻止首帧 MVU 抓取/写入/轮询，直至用户“一键刷新”
     _firstRoundBlockActive: false,
 
     // 确保数组首位包含占位符（若无则自动补上）
     _ensureMetaExtensibleArray(arr) {
-      try {
-        const EXT = this._EXT;
-        if (!Array.isArray(arr)) return arr;
-        // 统一采用“末尾补占位符”的策略，便于 LLM 追加并与示例结构保持一致
-        if (arr.length === 0) return [EXT];
-        if (arr.includes(EXT)) return arr;
-        return [...arr, EXT];
-      } catch (_) { return arr; }
+      try { return arr; } catch (_) { return arr; }
     },
 
     // 对指定路径数组进行“占位符”修复
     _ensureExtensibleMarkersOnPaths(data, paths) {
-      try {
-        const _ = window.GuixuAPI?.lodash;
-        if (!data || !_) return;
-        paths.forEach((p) => {
-          const arr = _.get(data, p);
-          if (Array.isArray(arr)) {
-            const ensured = this._ensureMetaExtensibleArray(arr);
-            if (ensured !== arr) _.set(data, p, ensured);
-          }
-        });
-      } catch (_) {}
+      try { /* no-op: meta extensible markers removed */ } catch (_) {}
     },
 
     // 针对当前使用到的 MVU 列表字段修复“__META_EXTENSIBLE__”丢失问题
     _ensureExtensibleMarkers(statData) {
-      try {
-        if (!statData) return;
-        const _ = window.GuixuAPI?.lodash;
-        // 顶层/一层内“列表数组”占位补齐已移除：新形态为对象字典，仅在条目内部的词条数组（special_effects/词条/词条效果）需要占位
-
-        // 2) 列表项内部的“词条数组”（special_effects）保底（用于 LLM 追加新词条）
-        const ensureItemSpecialEffects = (arr) => {
-          if (!Array.isArray(arr)) return;
-          const EXT = this._EXT;
-          arr.forEach((it, idx) => {
-            if (it && typeof it === 'object') {
-              if (Array.isArray(it.special_effects)) {
-                arr[idx].special_effects = this._ensureMetaExtensibleArray(it.special_effects);
-              } else if (it.special_effects == null && it['词条效果'] == null && it['词条'] == null) {
-                // 若不存在任何词条字段，则补一个占位的 special_effects
-                arr[idx].special_effects = [EXT];
-              }
-            }
-          });
-        };
-
-        // 针对装备/功法等：仅为条目内部词条数组补占位（支持对象/数组两种旧形态）
-        ['武器','主修功法','辅修心法','防具','饰品','法宝'].forEach(p => {
-          const v = _?.get(statData, p);
-          const EXT = this._EXT;
-          if (v && typeof v === 'object' && !Array.isArray(v)) {
-            if (Array.isArray(v.special_effects)) {
-              const ensured = this._ensureMetaExtensibleArray(v.special_effects);
-              if (ensured !== v.special_effects) v.special_effects = ensured;
-            } else if (v.special_effects == null && v['词条效果'] == null && v['词条'] == null) {
-              v.special_effects = [EXT];
-            }
-          } else if (Array.isArray(v)) {
-            ensureItemSpecialEffects(v);
-          }
-        });
-
-
-        // 关系对象内不再补顶层列表占位符；仅在渲染端按需处理，条目内部词条数组占位由写路径或具体渲染环节保障
-      } catch (_) {}
+      try { /* no-op: meta extensible markers removed */ } catch (_) {}
     },
 
     // 过滤数组中的占位符（用于渲染前忽略）
     _stripMeta(arr) {
       try {
-        const EXT = this._EXT;
-        return Array.isArray(arr) ? arr.filter(x => x !== EXT) : arr;
+        return arr;
       } catch (_) { return arr; }
     },
 
     // 全域“渲染前过滤”：深度复制并删除任意数组中的占位符
     _deepStripMeta(value) {
-      const EXT = this._EXT;
       const t = Object.prototype.toString.call(value);
       if (t === '[object Array]') {
-        // 逐项深度过滤，但先移除占位符
-        const arr = value.filter(v => v !== EXT);
-        return arr.map(v => this._deepStripMeta(v));
+        // 逐项深度处理（占位符机制已移除）
+        return value.map(v => this._deepStripMeta(v));
       }
       if (t === '[object Object]') {
         const out = {};

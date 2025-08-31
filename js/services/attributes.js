@@ -206,7 +206,7 @@
       try {
         const tianfuList = H.readList(stat_data, '天赋列表');
         Array.isArray(tianfuList) && tianfuList.forEach(tf => {
-          if (!tf || tf === '$__META_EXTENSIBLE__$') return;
+          if (!tf) return;
           const obj = typeof tf === 'string' ? (function(){ try { return JSON.parse(tf); } catch { return null; } })() : tf;
           if (obj) addItem(obj);
         });
@@ -216,7 +216,7 @@
       try {
         const linggenList = H.readList(stat_data, '灵根列表');
         Array.isArray(linggenList) && linggenList.forEach(lg => {
-          if (!lg || lg === '$__META_EXTENSIBLE__$') return;
+          if (!lg) return;
           const obj = typeof lg === 'string' ? (function(){ try { return JSON.parse(lg); } catch { return null; } })() : lg;
           if (obj) addItem(obj);
         });
@@ -299,7 +299,7 @@
       try {
         const tianfuList = H.readList(stat_data, '天赋列表');
         Array.isArray(tianfuList) && tianfuList.forEach(tf => {
-          if (!tf || tf === '$__META_EXTENSIBLE__$') return;
+          if (!tf) return;
           const obj = typeof tf === 'string' ? (function(){ try { return JSON.parse(tf); } catch { return null; } })() : tf;
           if (obj) pushItem('天赋', obj);
         });
@@ -308,11 +308,11 @@
       // 灵根（兼容对象列表）
       try {
         const linggenList = H.readList(stat_data, '灵根列表');
-        Array.isArray(linggenList) && linggenList.forEach(lg => {
-          if (!lg || lg === '$__META_EXTENSIBLE__$') return;
-          const obj = typeof lg === 'string' ? (function(){ try { return JSON.parse(lg); } catch { return null; } })() : lg;
-          if (obj) pushItem('灵根', obj);
-        });
+Array.isArray(linggenList) && linggenList.forEach(lg => {
+            if (!lg) return;
+            const obj = typeof lg === 'string' ? (function(){ try { return JSON.parse(lg); } catch { return null; } })() : lg;
+            if (obj) pushItem('灵根', obj);
+          });
       } catch (_) {}
 
       return { base, sources };
@@ -389,7 +389,7 @@
         // 数组
         if (Array.isArray(eff)) {
           return eff
-            .filter(x => !!x && x !== '$__META_EXTENSIBLE__$' && x !== '...')
+            .filter(x => !!x)
             .map(entry => {
               if (typeof entry === 'string') {
                 const m = entry.match(/^([^:：]+)\s*[:：]\s*(.+)$/);
@@ -414,7 +414,7 @@
         // 对象：键-值对
         if (typeof eff === 'object') {
           return Object.entries(eff)
-            .filter(([k]) => k !== '$meta' && k !== '$__META_EXTENSIBLE__$')
+            .filter(([k]) => k !== '$meta')
             .map(([k, v]) => ({ key: String(k), value: v }));
         }
 

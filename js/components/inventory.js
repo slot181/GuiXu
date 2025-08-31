@@ -64,7 +64,6 @@
     },
 
     render(stat_data) {
-      // 渲染前全域过滤，移除任意层出现的 $__META_EXTENSIBLE__$
       if (window.GuixuMain && typeof window.GuixuMain._deepStripMeta === 'function') {
         stat_data = window.GuixuMain._deepStripMeta(stat_data);
       }
@@ -104,7 +103,7 @@
         if (!Array.isArray(rawArr)) return 0;
         let count = 0;
         rawArr.forEach(raw => {
-          if (!raw || raw === '$__META_EXTENSIBLE__$') return;
+          if (!raw) return;
           let item;
           try { item = typeof raw === 'string' ? JSON.parse(raw) : raw; } catch { item = null; }
           if (!item || typeof item !== 'object') return;
@@ -239,7 +238,7 @@
         html += `<details class="inventory-category" data-cat='${cat.title}' open>`;
         html += `<summary class="inventory-category-title">${cat.title}</summary>`;
 
-        if (Array.isArray(rawItems) && rawItems.length > 0 && rawItems[0] !== '$__META_EXTENSIBLE__$') {
+        if (Array.isArray(rawItems) && rawItems.length > 0) {
           html += '<div class="inventory-item-list">';
 
           // 解析并按品阶排序物品
