@@ -1219,7 +1219,22 @@ let gameState = getNewGameState();
 
 async function refreshLocalStorage() {
   try {
-    ['guixu_equipped_items', 'guixu_pending_actions'].forEach(key => localStorage.removeItem(key));
+    ['guixu_equipped_items', 'guixu_pending_actions'].forEach(key => { localStorage.removeItem(key); });
+    // 清除门禁缓存
+    for (let i = localStorage.length - 1; i >= 0; i--) {
+        const k = localStorage.key(i);
+        if (!k) continue;
+        if (k.startsWith('guixu_gate_gametxt_seen_') || k.startsWith('guixu_gate_unblocked_')) {
+            localStorage.removeItem(k);
+        }
+    }
+    for (let i = sessionStorage.length - 1; i >= 0; i--) {
+        const k = sessionStorage.key(i);
+        if (!k) continue;
+        if (k.startsWith('guixu_gate_auto_refreshed_')) {
+            sessionStorage.removeItem(k);
+        }
+    }
     await guiXuAlert('缓存已清除！如果是新开聊天，这将有助于解决变量更新问题。');
   } catch (e) {
     console.error('清除缓存失败:', e);
@@ -2849,6 +2864,24 @@ function showModal(type, uid = null) {
             for (const idx of indicesToDelete) {
                 await deleteWorldLoreForIndex(idx);
             }
+
+            // 同步刷新门禁相关缓存
+            try {
+                for (let i = localStorage.length - 1; i >= 0; i--) {
+                    const k = localStorage.key(i);
+                    if (!k) continue;
+                    if (k.startsWith('guixu_gate_gametxt_seen_') || k.startsWith('guixu_gate_unblocked_')) {
+                        localStorage.removeItem(k);
+                    }
+                }
+                for (let i = sessionStorage.length - 1; i >= 0; i--) {
+                    const k = sessionStorage.key(i);
+                    if (!k) continue;
+                    if (k.startsWith('guixu_gate_auto_refreshed_')) {
+                        sessionStorage.removeItem(k);
+                    }
+                }
+            } catch (_) {}
 
             await guiXuAlert(`所有存档及关联的世界书条目已清除。`);
             showSaveLoadManager();

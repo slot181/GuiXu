@@ -2014,9 +2014,17 @@ body { margin: 0; }
   padding: 8px;
 }
 
-.mobile-view .quick-send-container {
-  width: 100%;
+.guixu-root-container.mobile-view .quick-send-container {
+  display: flex;
   flex-direction: column;
+  width: 100%;
+  gap: 8px;
+}
+
+.guixu-root-container.mobile-view .quick-send-container .qs-left,
+.guixu-root-container.mobile-view .quick-send-container .qs-center,
+.guixu-root-container.mobile-view .quick-send-container .qs-right {
+  width: 100%;
 }
 
 .mobile-view .quick-send-input {

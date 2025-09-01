@@ -2092,6 +2092,13 @@ if (!document.getElementById('guixu-gate-style')) {
       } catch (error) {
         console.error('[归墟] 处理动作时出错:', error);
         window.GuixuHelpers.showTemporaryMessage(`和伟大梦星沟通失败: ${error.message}`);
+        // 失败时恢复输入框内容
+        try {
+          const input = document.getElementById('quick-send-input');
+          if (input && userMessage) {
+            input.value = userMessage;
+          }
+        } catch (_) {}
       } finally {
         this.hideWaitingMessage();
         // 再次同步最新数据（兜底）
