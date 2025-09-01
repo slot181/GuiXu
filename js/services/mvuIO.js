@@ -81,10 +81,9 @@
           try { j.mutator && j.mutator(dataObj.stat_data); } catch (_) {}
         }
 
-        // 一次性写回当前楼层 + 第0楼
+        // 一次性写回当前楼层
         const currentId = window.GuixuAPI.getCurrentMessageId();
         const updates = [{ message_id: currentId, data: dataObj }];
-        if (currentId !== 0) updates.push({ message_id: 0, data: dataObj });
 
         // 尽量在空闲时执行（如果可用）
         const doWrite = async () => {

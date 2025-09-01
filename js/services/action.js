@@ -51,8 +51,8 @@
             // 确保将前端计算得到的四维上限实时回写到 mvu 变量，再进行保存
             try { window.GuixuAttributeService?.calculateFinalAttributes?.(); } catch (_) {}
             
-            // 5. 静默保存到第0层
-            await this.saveToMessageZero(aiResponse);
+            // 5. 静默保存到当前楼层
+            await this.saveToCurrentMessage(aiResponse);
 
             // 新轮对话已发送：清空本轮的装备回退缓冲，避免跨轮误还原
             try { window.GuixuState.update('equipSwapBuffer', {}); } catch (_) {}
@@ -185,21 +185,21 @@
         
 
         /**
-         * 将结果静默保存到第0层消息。
+         * 将结果静默保存到当前楼层消息。
          * @private
          */
-        async saveToMessageZero(aiResponse) {
+        async saveToCurrentMessage(aiResponse) {
             const state = window.GuixuState.getState();
-            const messages = await GuixuAPI.getChatMessages('0');
+            const currentId = GuixuAPI.getCurrentMessageId();
+            const messages = await GuixuAPI.getChatMessages(currentId);
             if (messages && messages.length > 0) {
-                const messageZero = messages[0];
-                messageZero.message = aiResponse;
+                const currentMsg = messages[0];
                 const safeState = JSON.parse(JSON.stringify(state.currentMvuState || {}));
-                messageZero.data = safeState;
-                await GuixuAPI.setChatMessages([messageZero], { refresh: 'none' });
-                console.log('[归墟] 已静默更新第0层。');
+                currentMsg.data = safeState;
+                await GuixuAPI.setChatMessages([currentMsg], { refresh: 'none' });
+                console.log('[归墟] 已静默更新当前楼层。');
             } else {
-                console.error('[归墟] 未找到第0层消息，无法更新。');
+                console.error('[归墟] 未找到当前楼层消息，无法更新。');
             }
         },
 
@@ -459,11 +459,10 @@
                         GuixuState.update('unifiedIndex', saveData.unified_index);
                     }
 
-                    // 双写：当前楼层与第 0 楼（保持与装备事务一致）
+                    // 写入当前楼层（移除 0 楼语义）
                     const currentId = GuixuAPI.getCurrentMessageId();
                     const updates = [
-                        { message_id: currentId, data: saveData.mvu_data },
-                        { message_id: 0, message: saveData.message_content || '', data: saveData.mvu_data }
+                        { message_id: currentId, message: saveData.message_content || '', data: saveData.mvu_data }
                     ];
                     await GuixuAPI.setChatMessages(updates, { refresh: 'none' });
 

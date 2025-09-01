@@ -1643,18 +1643,6 @@ if (!document.getElementById('guixu-gate-style')) {
         let messages = await window.GuixuAPI.getChatMessages(currentId);
         let rawState = messages?.[0]?.data || null;
 
-        // 若当前楼层缺少 mvu/stat_data，则回退到 0 楼只读渲染（对齐 guimi.html 策略）
-        if (!rawState || !rawState.stat_data || Object.keys(rawState.stat_data || {}).length === 0) {
-          try {
-            const msgs0 = await window.GuixuAPI.getChatMessages(0);
-            const alt = msgs0?.[0]?.data || null;
-            if (alt && alt.stat_data && Object.keys(alt.stat_data || {}).length > 0) {
-              rawState = alt;
-              messages = msgs0;
-              console.info('[归墟] 使用 0 楼 mvu 数据进行只读渲染。');
-            }
-          } catch (_) {}
-        }
 
         if (rawState) {
           const normalizedState = rawState;
