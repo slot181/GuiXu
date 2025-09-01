@@ -595,12 +595,20 @@ Array.isArray(linggenList) && linggenList.forEach(lg => {
 
       // 绑定点击浮窗
       const tip = ensureTooltip();
-      const hideTip = () => { tip.style.display = 'none'; };
-      document.addEventListener('click', (ev) => {
-        const inside = tip.contains(ev.target);
-        const row = ev.target.closest?.('.attr-row');
-        if (!inside && !row) hideTip();
-      });
+      // 全局只绑定一次文档级点击监听，避免重复绑定造成内存泄漏（移动端/桌面端、全屏/非全屏通用）
+      if (!this._docClickBound) {
+        this._docClickBound = true;
+        this._docClickHandler = (ev) => {
+          try {
+            const t = document.getElementById('attr-breakdown-tooltip');
+            if (!t) return;
+            const inside = t.contains(ev.target);
+            const row = ev.target.closest?.('.attr-row');
+            if (!inside && !row) { t.style.display = 'none'; }
+          } catch (_) {}
+        };
+        document.addEventListener('click', this._docClickHandler, { passive: true });
+      }
 
       host.querySelectorAll('.attr-row').forEach(row => {
         const key = row.getAttribute('data-attr');

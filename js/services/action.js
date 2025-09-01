@@ -51,8 +51,8 @@
             // 确保将前端计算得到的四维上限实时回写到 mvu 变量，再进行保存
             try { window.GuixuAttributeService?.calculateFinalAttributes?.(); } catch (_) {}
             
-            // 5. 静默保存到第0层
-            await this.saveToMessageZero(aiResponse);
+            // 5. 静默保存到当前楼层
+            await this.saveToCurrentMessage(aiResponse);
 
             // 新轮对话已发送：清空本轮的装备回退缓冲，避免跨轮误还原
             try { window.GuixuState.update('equipSwapBuffer', {}); } catch (_) {}
@@ -139,7 +139,15 @@
                 .replace(/<\s*action[^>]*>[\s\S]*?<\/\s*action\s*>/gi, '');
             const H = window.GuixuHelpers || GuixuHelpers;
 
-            state.update('lastExtractedNovelText', H.extractLastTagContent('gametxt', base));
+            const __gt = H.extractLastTagContent('gametxt', base);
+            state.update('lastExtractedNovelText', __gt);
+            // 若成功捕捉到一次 <gametxt> 正文，为当前“世界书读写序号”打上已捕捉标记（供门禁判定使用）
+            try {
+                const idxSeen = window.GuixuState?.getState?.().unifiedIndex || 1;
+                if (__gt && String(__gt).trim() !== '') {
+                    localStorage.setItem(`guixu_gate_gametxt_seen_${idxSeen}`, '1');
+                }
+            } catch (_) {}
             // 兼容繁体/日体别名：<本世历程>/<本世歴程>、<往世涟漪>/<往世漣漪>
             state.update('lastExtractedJourney',
                 (H.extractLastTagContentByAliases?.('本世历程', base, true)) ?? H.extractLastTagContent('本世历程', base)
@@ -185,21 +193,74 @@
         
 
         /**
-         * 将结果静默保存到第0层消息。
+         * 将结果静默保存到当前楼层消息。
+         * 优化：
+         * - 若待保存数据与当前楼层一致则跳过（避免无效写入/分配）
+         * - 与 MvuIO 写回互斥降噪：若存在合并队列/正在刷新，短暂等待一拍，减少“连环两次写”
+         * - 移除深拷贝(JSON stringify/parse)以降低瞬时内存压力
          * @private
          */
-        async saveToMessageZero(aiResponse) {
+        async saveToCurrentMessage(aiResponse) {
             const state = window.GuixuState.getState();
-            const messages = await GuixuAPI.getChatMessages('0');
+            const currentId = GuixuAPI.getCurrentMessageId();
+
+            // 若 MvuIO 尚有待写队列或正在刷新，短暂等待几拍，避免紧跟其后再次全量写入
+            try {
+                if (window.GuixuMvuIO) {
+                    let tries = 0;
+                    while ((window.GuixuMvuIO._flushing === true
+                        || (Array.isArray(window.GuixuMvuIO._queue) && window.GuixuMvuIO._queue.length > 0))
+                        && tries < 5) {
+                        await new Promise(r => setTimeout(r, 80));
+                        tries++;
+                    }
+                }
+            } catch (_) {}
+
+            const messages = await GuixuAPI.getChatMessages(currentId);
             if (messages && messages.length > 0) {
-                const messageZero = messages[0];
-                messageZero.message = aiResponse;
-                const safeState = JSON.parse(JSON.stringify(state.currentMvuState || {}));
-                messageZero.data = safeState;
-                await GuixuAPI.setChatMessages([messageZero], { refresh: 'none' });
-                console.log('[归墟] 已静默更新第0层。');
+                const currentMsg = messages[0];
+                const nextData = state.currentMvuState || {};
+                const nextMessage = String(aiResponse || '');
+                const currentData = currentMsg.data || null;
+                const currentMessage = String(currentMsg.message || '');
+
+                // 同时比较 stat_data 和 message 正文，避免遗漏仅正文变更的情况
+                const hashStat = (o) => {
+                    try {
+                        const v = (o && typeof o === 'object') ? (o.stat_data ?? o) : o;
+                        return JSON.stringify(v);
+                    } catch (_) { return ''; }
+                };
+                const nextDataHash = hashStat(nextData);
+                const currDataHash = hashStat(currentData);
+
+                const combined = (dataHash, msg) => `${dataHash}#${msg.length}:${msg}`;
+                const nextCombined = combined(nextDataHash, nextMessage);
+                const currCombined = combined(currDataHash, currentMessage);
+
+                if (!this._lastSaveCache) this._lastSaveCache = {};
+                const lastCombined = this._lastSaveCache[currentId];
+
+                // 缓存命中或与当前楼层一致则跳过
+                if (lastCombined && lastCombined === nextCombined) {
+                    console.log('[归墟] 跳过静默保存：内容未变化（命中缓存）。');
+                    return;
+                }
+                if (currCombined === nextCombined) {
+                    this._lastSaveCache[currentId] = nextCombined;
+                    console.log('[归墟] 跳过静默保存：内容未变化（与当前楼层一致）。');
+                    return;
+                }
+
+                // 差异写入：同时更新 data 与 message
+                currentMsg.data = nextData;
+                currentMsg.message = nextMessage;
+                await GuixuAPI.setChatMessages([currentMsg], { refresh: 'none' });
+                this._lastSaveCache[currentId] = nextCombined;
+                console.log('[归墟] 已静默更新当前楼层（差异写入：data+message）。');
             } else {
-                console.error('[归墟] 未找到第0层消息，无法更新。');
+                console.error('[归墟] 未找到当前楼层消息，无法更新。');
             }
         },
 
@@ -459,11 +520,10 @@
                         GuixuState.update('unifiedIndex', saveData.unified_index);
                     }
 
-                    // 双写：当前楼层与第 0 楼（保持与装备事务一致）
+                    // 写入当前楼层（移除 0 楼语义）
                     const currentId = GuixuAPI.getCurrentMessageId();
                     const updates = [
-                        { message_id: currentId, data: saveData.mvu_data },
-                        { message_id: 0, message: saveData.message_content || '', data: saveData.mvu_data }
+                        { message_id: currentId, message: saveData.message_content || '', data: saveData.mvu_data }
                     ];
                     await GuixuAPI.setChatMessages(updates, { refresh: 'none' });
 
@@ -541,6 +601,23 @@
                                 }
                                 GuixuHelpers.showTemporaryMessage("已清理检测到的激活条目。");
                                 await this.showSaveLoadManager();
+                                // 同步刷新门禁相关缓存：视为用户准备新开一个存档
+                                try {
+                                    for (let i = localStorage.length - 1; i >= 0; i--) {
+                                        const k = localStorage.key(i);
+                                        if (!k) continue;
+                                        if (k.startsWith('guixu_gate_gametxt_seen_') || k.startsWith('guixu_gate_unblocked_')) {
+                                            localStorage.removeItem(k);
+                                        }
+                                    }
+                                    for (let i = sessionStorage.length - 1; i >= 0; i--) {
+                                        const k = sessionStorage.key(i);
+                                        if (!k) continue;
+                                        if (k.startsWith('guixu_gate_auto_refreshed_')) {
+                                            sessionStorage.removeItem(k);
+                                        }
+                                    }
+                                } catch (_) {}
                             } catch (e) {
                                 console.error("清理激活条目失败:", e);
                                 GuixuHelpers.showTemporaryMessage(`清理失败: ${e.message}`);
