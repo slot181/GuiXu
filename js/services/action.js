@@ -186,18 +186,65 @@
 
         /**
          * 将结果静默保存到当前楼层消息。
+         * 优化：
+         * - 若待保存数据与当前楼层一致则跳过（避免无效写入/分配）
+         * - 与 MvuIO 写回互斥降噪：若存在合并队列/正在刷新，短暂等待一拍，减少“连环两次写”
+         * - 移除深拷贝(JSON stringify/parse)以降低瞬时内存压力
          * @private
          */
         async saveToCurrentMessage(aiResponse) {
             const state = window.GuixuState.getState();
             const currentId = GuixuAPI.getCurrentMessageId();
+
+            // 若 MvuIO 尚有待写队列或正在刷新，短暂等待几拍，避免紧跟其后再次全量写入
+            try {
+                if (window.GuixuMvuIO) {
+                    let tries = 0;
+                    while ((window.GuixuMvuIO._flushing === true
+                        || (Array.isArray(window.GuixuMvuIO._queue) && window.GuixuMvuIO._queue.length > 0))
+                        && tries < 5) {
+                        await new Promise(r => setTimeout(r, 80));
+                        tries++;
+                    }
+                }
+            } catch (_) {}
+
             const messages = await GuixuAPI.getChatMessages(currentId);
             if (messages && messages.length > 0) {
                 const currentMsg = messages[0];
-                const safeState = JSON.parse(JSON.stringify(state.currentMvuState || {}));
-                currentMsg.data = safeState;
+                const nextData = state.currentMvuState || {};
+                const currentData = currentMsg.data || null;
+
+                // 仅对 stat_data 进行内容对比并结合最近一次保存缓存，避免重复写
+                const hashStat = (o) => {
+                    try {
+                        const v = (o && typeof o === 'object') ? (o.stat_data ?? o) : o;
+                        return JSON.stringify(v);
+                    } catch (_) { return ''; }
+                };
+                const nextHash = hashStat(nextData);
+                const currHash = hashStat(currentData);
+
+                // 命中“本轮已保存”的缓存则直接跳过
+                if (!this._lastSaveCache) this._lastSaveCache = {};
+                const lastHash = this._lastSaveCache[currentId];
+                if (lastHash && lastHash === nextHash) {
+                    console.log('[归墟] 跳过静默保存：数据未变化（命中缓存）。');
+                    return;
+                }
+
+                // 与当前楼层一致则跳过写入
+                if (currHash === nextHash) {
+                    this._lastSaveCache[currentId] = nextHash;
+                    console.log('[归墟] 跳过静默保存：数据未变化（与当前楼层一致）。');
+                    return;
+                }
+
+                // 直接引用对象，避免深拷贝带来的大对象瞬时分配
+                currentMsg.data = nextData;
                 await GuixuAPI.setChatMessages([currentMsg], { refresh: 'none' });
-                console.log('[归墟] 已静默更新当前楼层。');
+                this._lastSaveCache[currentId] = nextHash;
+                console.log('[归墟] 已静默更新当前楼层（差异写入）。');
             } else {
                 console.error('[归墟] 未找到当前楼层消息，无法更新。');
             }
