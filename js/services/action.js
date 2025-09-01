@@ -139,7 +139,15 @@
                 .replace(/<\s*action[^>]*>[\s\S]*?<\/\s*action\s*>/gi, '');
             const H = window.GuixuHelpers || GuixuHelpers;
 
-            state.update('lastExtractedNovelText', H.extractLastTagContent('gametxt', base));
+            const __gt = H.extractLastTagContent('gametxt', base);
+            state.update('lastExtractedNovelText', __gt);
+            // 若成功捕捉到一次 <gametxt> 正文，为当前“世界书读写序号”打上已捕捉标记（供门禁判定使用）
+            try {
+                const idxSeen = window.GuixuState?.getState?.().unifiedIndex || 1;
+                if (__gt && String(__gt).trim() !== '') {
+                    localStorage.setItem(`guixu_gate_gametxt_seen_${idxSeen}`, '1');
+                }
+            } catch (_) {}
             // 兼容繁体/日体别名：<本世历程>/<本世歴程>、<往世涟漪>/<往世漣漪>
             state.update('lastExtractedJourney',
                 (H.extractLastTagContentByAliases?.('本世历程', base, true)) ?? H.extractLastTagContent('本世历程', base)
@@ -593,6 +601,23 @@
                                 }
                                 GuixuHelpers.showTemporaryMessage("已清理检测到的激活条目。");
                                 await this.showSaveLoadManager();
+                                // 同步刷新门禁相关缓存：视为用户准备新开一个存档
+                                try {
+                                    for (let i = localStorage.length - 1; i >= 0; i--) {
+                                        const k = localStorage.key(i);
+                                        if (!k) continue;
+                                        if (k.startsWith('guixu_gate_gametxt_seen_') || k.startsWith('guixu_gate_unblocked_')) {
+                                            localStorage.removeItem(k);
+                                        }
+                                    }
+                                    for (let i = sessionStorage.length - 1; i >= 0; i--) {
+                                        const k = sessionStorage.key(i);
+                                        if (!k) continue;
+                                        if (k.startsWith('guixu_gate_auto_refreshed_')) {
+                                            sessionStorage.removeItem(k);
+                                        }
+                                    }
+                                } catch (_) {}
                             } catch (e) {
                                 console.error("清理激活条目失败:", e);
                                 GuixuHelpers.showTemporaryMessage(`清理失败: ${e.message}`);
@@ -668,6 +693,23 @@
                     }
                     
                     await this.showSaveLoadManager();
+                    // 同步刷新门禁相关缓存：视为用户准备新开一个存档
+                    try {
+                        for (let i = localStorage.length - 1; i >= 0; i--) {
+                            const k = localStorage.key(i);
+                            if (!k) continue;
+                            if (k.startsWith('guixu_gate_gametxt_seen_') || k.startsWith('guixu_gate_unblocked_')) {
+                                localStorage.removeItem(k);
+                            }
+                        }
+                        for (let i = sessionStorage.length - 1; i >= 0; i--) {
+                            const k = sessionStorage.key(i);
+                            if (!k) continue;
+                            if (k.startsWith('guixu_gate_auto_refreshed_')) {
+                                sessionStorage.removeItem(k);
+                            }
+                        }
+                    } catch (_) {}
 
                 } catch (error) {
                     console.error('清除所有存档时出错:', error);

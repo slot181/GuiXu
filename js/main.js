@@ -79,19 +79,16 @@
             return false;
           }
         } catch (_) {}
-        const LB = window.GuixuConstants?.LOREBOOK;
-        if (!LB?.NAME || !LB?.ENTRIES?.JOURNEY || !window.GuixuAPI?.getLorebookEntries) return false; // 配置缺失：默认不阻止
-        const journeyKey = idx > 1 ? `${LB.ENTRIES.JOURNEY}(${idx})` : LB.ENTRIES.JOURNEY;
-        let entries = [];
+        // 新逻辑：根据是否已经成功进行过一次 <gametxt> 正文捕捉来判定“首轮”
         try {
-          entries = await window.GuixuAPI.getLorebookEntries(LB.NAME) || [];
-        } catch (e) {
-          console.warn('[归墟] 首轮门禁：getLorebookEntries 失败，默认放行', e);
+          const seenKey = `guixu_gate_gametxt_seen_${idx}`;
+          const seen = localStorage.getItem(seenKey) === '1';
+          // 未见过 gametxt -> 视为首轮：阻止；见过 -> 非首轮：放行
+          return !seen;
+        } catch (_) {
+          // 本地存储不可用等异常：为避免误阻塞，放行
           return false;
         }
-        const exists = entries.some(e => String(e?.comment || '').trim() === String(journeyKey).trim());
-        // 不存在“本世历程(当前索引)”即视为首轮：阻止
-        return !exists;
       } catch (e) {
         console.warn('[归墟] 首轮门禁检查异常，默认放行', e);
         return false;
@@ -662,6 +659,12 @@ if (!document.getElementById('guixu-gate-style')) {
         if (!isNaN(val) && val > 0) {
           window.GuixuState.update('unifiedIndex', val);
           window.GuixuHelpers.showTemporaryMessage(`世界书读写序号已更新为 ${val}`);
+          // 重置“首轮门禁”相关判定缓存：当用户修改序号时，默认视为新开存档
+          try {
+            localStorage.removeItem(`guixu_gate_gametxt_seen_${val}`);
+            localStorage.removeItem(`guixu_gate_unblocked_${val}`);
+            sessionStorage.removeItem(`guixu_gate_auto_refreshed_${val}`);
+          } catch (_) {}
           // 若已开启“自动开关世界书”，立即切换到新序号对应的激活条目
           try {
             const autoOn = !!(window.GuixuState?.getState?.().isAutoToggleLorebookEnabled);
@@ -2186,7 +2189,8 @@ if (!document.getElementById('guixu-gate-style')) {
           const __parseBase = String(contentToParse || '')
             .replace(/<thinking[^>]*>[\s\S]*?<\/thinking>/gi, '')
             .replace(/<\s*action[^>]*>[\s\S]*?<\/\s*action\s*>/gi, '');
-          window.GuixuState.update('lastExtractedNovelText', this._extractLastTagContent('gametxt', __parseBase));
+          const __capturedGametxt = this._extractLastTagContent('gametxt', __parseBase);
+          window.GuixuState.update('lastExtractedNovelText', __capturedGametxt);
           window.GuixuState.update('lastExtractedJourney',
             (window.GuixuHelpers?.extractLastTagContentByAliases?.('本世历程', __parseBase, true)
               ?? this._extractLastTagContent('本世历程', __parseBase))
@@ -2197,6 +2201,13 @@ if (!document.getElementById('guixu-gate-style')) {
           );
           window.GuixuState.update('lastExtractedVariables', this._extractLastTagContent('UpdateVariable', __parseBase, true));
           window.GuixuState.update('lastExtractedThinking', thinkingText || '');
+          // 新增：若本次成功捕捉到 <gametxt>，为当前序号打上“已捕捉”标记（用于门禁判定）
+          try {
+            const idxSeen = window.GuixuState?.getState?.().unifiedIndex || 1;
+            if (__capturedGametxt && String(__capturedGametxt).trim() !== '') {
+              localStorage.setItem(`guixu_gate_gametxt_seen_${idxSeen}`, '1');
+            }
+          } catch (_) {}
 
           // 渲染后将滚动条置顶（移动端与桌面端）
           try {
