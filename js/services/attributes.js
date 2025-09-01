@@ -714,6 +714,12 @@ Array.isArray(linggenList) && linggenList.forEach(lg => {
       try {
         if (!maxAttrs) return;
         const st = window.GuixuState?.getState?.();
+        // 首轮(仅一次 <gametxt> 捕捉)时：禁止将任何值写入 MVU 变量面板，仅渲染前端
+        try {
+          const idx = st?.unifiedIndex || 1;
+          const cnt = parseInt(localStorage.getItem(`guixu_gate_gametxt_count_${idx}`) || '0', 10) || 0;
+          if (cnt < 2) return;
+        } catch (_) {}
         const sd = st?.currentMvuState?.stat_data;
         if (!sd || typeof sd !== 'object') return;
 

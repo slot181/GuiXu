@@ -662,6 +662,7 @@ if (!document.getElementById('guixu-gate-style')) {
           // 重置“首轮门禁”相关判定缓存：当用户修改序号时，默认视为新开存档
           try {
             localStorage.removeItem(`guixu_gate_gametxt_seen_${val}`);
+            localStorage.removeItem(`guixu_gate_gametxt_count_${val}`);
             localStorage.removeItem(`guixu_gate_unblocked_${val}`);
             sessionStorage.removeItem(`guixu_gate_auto_refreshed_${val}`);
           } catch (_) {}
@@ -2201,11 +2202,16 @@ if (!document.getElementById('guixu-gate-style')) {
           );
           window.GuixuState.update('lastExtractedVariables', this._extractLastTagContent('UpdateVariable', __parseBase, true));
           window.GuixuState.update('lastExtractedThinking', thinkingText || '');
-          // 新增：若本次成功捕捉到 <gametxt>，为当前序号打上“已捕捉”标记（用于门禁判定）
+          // 新增：若本次成功捕捉到 <gametxt>，为当前序号打上“已捕捉”标记，并累计捕捉计数（用于门禁与写入抑制判定）
           try {
             const idxSeen = window.GuixuState?.getState?.().unifiedIndex || 1;
             if (__capturedGametxt && String(__capturedGametxt).trim() !== '') {
               localStorage.setItem(`guixu_gate_gametxt_seen_${idxSeen}`, '1');
+              try {
+                const cKey = `guixu_gate_gametxt_count_${idxSeen}`;
+                const cur = parseInt(localStorage.getItem(cKey) || '0', 10) || 0;
+                localStorage.setItem(cKey, String(cur + 1));
+              } catch (_) {}
             }
           } catch (_) {}
 

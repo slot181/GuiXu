@@ -225,6 +225,30 @@
                 const currentData = currentMsg.data || null;
                 const currentMessage = String(currentMsg.message || '');
 
+                // 首轮(以当前序号的 <gametxt> 捕捉计数计)时：仅保存 message，禁止写入 data 到 MVU 变量面板
+                try {
+                    const idx = GuixuState.getState().unifiedIndex || 1;
+                    const cnt = parseInt(localStorage.getItem(`guixu_gate_gametxt_count_${idx}`) || '0', 10) || 0;
+                    if (cnt < 2) {
+                        // 仅在 message 变更时更新，跳过 data
+                        if (!this._lastSaveMsgCache) this._lastSaveMsgCache = {};
+                        const lastMsg = this._lastSaveMsgCache[currentId] || '';
+                        if (lastMsg === nextMessage) {
+                            console.log('[归墟] 跳过静默保存(message-only)：未变化（命中缓存）。');
+                            return;
+                        }
+                        if (String(currentMessage) === nextMessage) {
+                            this._lastSaveMsgCache[currentId] = nextMessage;
+                            console.log('[归墟] 跳过静默保存(message-only)：与当前楼层一致。');
+                            return;
+                        }
+                        await GuixuAPI.setChatMessages([{ message_id: currentId, message: nextMessage }], { refresh: 'none' });
+                        this._lastSaveMsgCache[currentId] = nextMessage;
+                        console.log('[归墟] 首轮(按序号)仅保存 message，已跳过 data 写入。');
+                        return;
+                    }
+                } catch (_) {}
+
                 // 同时比较 stat_data 和 message 正文，避免遗漏仅正文变更的情况
                 const hashStat = (o) => {
                     try {
