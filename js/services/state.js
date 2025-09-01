@@ -217,6 +217,30 @@
             if (key === 'pendingActions') {
                 value = this.normalizePendingActions(Array.isArray(value) ? value : []);
             }
+            // 新增：当修改世界书读写序号时，将门禁相关缓存从旧序号迁移到新序号，避免被误判为“首轮”从而触发门禁重置
+            if (key === 'unifiedIndex') {
+                try {
+                    const oldIdx = Number(this.unifiedIndex) || 1;   // 变更前的序号
+                    const newIdx = Number(value) || 1;               // 即将设置的新序号
+                    if (newIdx !== oldIdx) {
+                        // 1) “已解锁”标记：若旧序号已解锁，则新序号也视为已解锁
+                        try {
+                            const v = localStorage.getItem(`guixu_gate_unblocked_${oldIdx}`);
+                            if (v === '1') localStorage.setItem(`guixu_gate_unblocked_${newIdx}`, '1');
+                        } catch (_) {}
+                        // 2) “gametxt 已捕捉”标记：若旧序号已捕捉正文，则新序号继承，避免再次被判定为首轮
+                        try {
+                            const v2 = localStorage.getItem(`guixu_gate_gametxt_seen_${oldIdx}`);
+                            if (v2 === '1') localStorage.setItem(`guixu_gate_gametxt_seen_${newIdx}`, '1');
+                        } catch (_) {}
+                        // 3) “首轮自动一次刷新”标记：若旧序号已执行过一次自动刷新，避免新序号再次触发
+                        try {
+                            const v3 = sessionStorage.getItem(`guixu_gate_auto_refreshed_${oldIdx}`);
+                            if (v3 === '1') sessionStorage.setItem(`guixu_gate_auto_refreshed_${newIdx}`, '1');
+                        } catch (_) {}
+                    }
+                } catch (_) {}
+            }
             this[key] = value;
             // 根据key决定对应的localStorage键名并保存
             const storageMap = {
