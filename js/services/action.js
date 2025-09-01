@@ -213,38 +213,44 @@
             if (messages && messages.length > 0) {
                 const currentMsg = messages[0];
                 const nextData = state.currentMvuState || {};
+                const nextMessage = String(aiResponse || '');
                 const currentData = currentMsg.data || null;
+                const currentMessage = String(currentMsg.message || '');
 
-                // 仅对 stat_data 进行内容对比并结合最近一次保存缓存，避免重复写
+                // 同时比较 stat_data 和 message 正文，避免遗漏仅正文变更的情况
                 const hashStat = (o) => {
                     try {
                         const v = (o && typeof o === 'object') ? (o.stat_data ?? o) : o;
                         return JSON.stringify(v);
                     } catch (_) { return ''; }
                 };
-                const nextHash = hashStat(nextData);
-                const currHash = hashStat(currentData);
+                const nextDataHash = hashStat(nextData);
+                const currDataHash = hashStat(currentData);
 
-                // 命中“本轮已保存”的缓存则直接跳过
+                const combined = (dataHash, msg) => `${dataHash}#${msg.length}:${msg}`;
+                const nextCombined = combined(nextDataHash, nextMessage);
+                const currCombined = combined(currDataHash, currentMessage);
+
                 if (!this._lastSaveCache) this._lastSaveCache = {};
-                const lastHash = this._lastSaveCache[currentId];
-                if (lastHash && lastHash === nextHash) {
-                    console.log('[归墟] 跳过静默保存：数据未变化（命中缓存）。');
+                const lastCombined = this._lastSaveCache[currentId];
+
+                // 缓存命中或与当前楼层一致则跳过
+                if (lastCombined && lastCombined === nextCombined) {
+                    console.log('[归墟] 跳过静默保存：内容未变化（命中缓存）。');
+                    return;
+                }
+                if (currCombined === nextCombined) {
+                    this._lastSaveCache[currentId] = nextCombined;
+                    console.log('[归墟] 跳过静默保存：内容未变化（与当前楼层一致）。');
                     return;
                 }
 
-                // 与当前楼层一致则跳过写入
-                if (currHash === nextHash) {
-                    this._lastSaveCache[currentId] = nextHash;
-                    console.log('[归墟] 跳过静默保存：数据未变化（与当前楼层一致）。');
-                    return;
-                }
-
-                // 直接引用对象，避免深拷贝带来的大对象瞬时分配
+                // 差异写入：同时更新 data 与 message
                 currentMsg.data = nextData;
+                currentMsg.message = nextMessage;
                 await GuixuAPI.setChatMessages([currentMsg], { refresh: 'none' });
-                this._lastSaveCache[currentId] = nextHash;
-                console.log('[归墟] 已静默更新当前楼层（差异写入）。');
+                this._lastSaveCache[currentId] = nextCombined;
+                console.log('[归墟] 已静默更新当前楼层（差异写入：data+message）。');
             } else {
                 console.error('[归墟] 未找到当前楼层消息，无法更新。');
             }
