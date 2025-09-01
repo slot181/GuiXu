@@ -229,7 +229,11 @@
                 try {
                     const idx = GuixuState.getState().unifiedIndex || 1;
                     const cnt = parseInt(localStorage.getItem(`guixu_gate_gametxt_count_${idx}`) || '0', 10) || 0;
-                    if (cnt < 2) {
+                    const msgId = currentId;
+                    const mKey = msgId ? `guixu_gate_gametxt_count_msg_${msgId}` : '';
+                    const msgSeen = mKey ? (localStorage.getItem(mKey) === '1') : false;
+                    // 首轮门禁更严格：同一世界序号累计捕捉≥2 且 当前消息ID已完成一次 gametxt 捕捉 才允许写 data
+                    if (cnt < 2 || !msgSeen) {
                         // 仅在 message 变更时更新，跳过 data
                         if (!this._lastSaveMsgCache) this._lastSaveMsgCache = {};
                         const lastMsg = this._lastSaveMsgCache[currentId] || '';
@@ -244,7 +248,7 @@
                         }
                         await GuixuAPI.setChatMessages([{ message_id: currentId, message: nextMessage }], { refresh: 'none' });
                         this._lastSaveMsgCache[currentId] = nextMessage;
-                        console.log('[归墟] 首轮(按序号)仅保存 message，已跳过 data 写入。');
+                        console.log('[归墟] 首轮(按序号/消息ID)仅保存 message，已跳过 data 写入。');
                         return;
                     }
                 } catch (_) {}

@@ -718,7 +718,11 @@ Array.isArray(linggenList) && linggenList.forEach(lg => {
         try {
           const idx = st?.unifiedIndex || 1;
           const cnt = parseInt(localStorage.getItem(`guixu_gate_gametxt_count_${idx}`) || '0', 10) || 0;
-          if (cnt < 2) return;
+          const msgId = window.GuixuAPI?.getCurrentMessageId?.();
+          const mKey = msgId ? `guixu_gate_gametxt_count_msg_${msgId}` : '';
+          const msgSeen = mKey ? (localStorage.getItem(mKey) === '1') : false;
+          // 只有当：同一世界序号累计捕捉≥2 且 当前消息ID已完成一次 gametxt 捕捉，才允许写回
+          if (cnt < 2 || !msgSeen) return;
         } catch (_) {}
         const sd = st?.currentMvuState?.stat_data;
         if (!sd || typeof sd !== 'object') return;

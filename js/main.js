@@ -2209,8 +2209,25 @@ if (!document.getElementById('guixu-gate-style')) {
               localStorage.setItem(`guixu_gate_gametxt_seen_${idxSeen}`, '1');
               try {
                 const cKey = `guixu_gate_gametxt_count_${idxSeen}`;
-                const cur = parseInt(localStorage.getItem(cKey) || '0', 10) || 0;
-                localStorage.setItem(cKey, String(cur + 1));
+                const msgId = window.GuixuAPI?.getCurrentMessageId?.();
+                // 每个消息ID最多累计一次，避免同一轮 render/刷新导致重复+1
+                if (msgId) {
+                  const mKey = `guixu_gate_gametxt_count_msg_${msgId}`;
+                  const already = localStorage.getItem(mKey) === '1';
+                  if (!already) {
+                    const cur = parseInt(localStorage.getItem(cKey) || '0', 10) || 0;
+                    localStorage.setItem(cKey, String(cur + 1));
+                    localStorage.setItem(mKey, '1');
+                  }
+                } else {
+                  // 无法获取消息ID时退化为“若本帧未记忆则+1”
+                  const onceKey = `guixu_gate_gametxt_count_once_${idxSeen}`;
+                  if (sessionStorage.getItem(onceKey) !== '1') {
+                    const cur = parseInt(localStorage.getItem(cKey) || '0', 10) || 0;
+                    localStorage.setItem(cKey, String(cur + 1));
+                    sessionStorage.setItem(onceKey, '1');
+                  }
+                }
               } catch (_) {}
             }
           } catch (_) {}
