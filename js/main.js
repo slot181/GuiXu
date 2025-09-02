@@ -2191,7 +2191,7 @@ if (!document.getElementById('guixu-gate-style')) {
         if (contentToParse) {
           // 新增：检测主要标签的缺失或未闭合并提示（移动端/桌面端、全屏/非全屏通用）
           try {
-            const requiredTags = ['thinking', 'gametxt', 'action', '本世历程', '往世涟漪', 'UpdateVariable', 'Analysis'];
+            const requiredTags = ['thinking', 'gametxt', 'action', '本世历程', 'UpdateVariable', 'Analysis'];
             const res = window.GuixuHelpers?.validateTagClosures?.(contentToParse, requiredTags) || null;
             if (res && (Array.isArray(res.missing) && res.missing.length || Array.isArray(res.unclosed) && res.unclosed.length)) {
               const parts = [];
