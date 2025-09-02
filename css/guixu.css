@@ -121,6 +121,53 @@ body { margin: 0; }
   justify-content: space-around;
   padding: 0 10px;
   box-shadow: 0 1px 8px rgba(201, 170, 113, 0.15);
+  position: relative;
+}
+
+/* 版本小标签：置于顶部状态栏左侧（桌面与移动端均显示） */
+.version-badge {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  background: rgba(15, 15, 35, 0.8);
+  border: 1px solid #c9aa71;
+  border-radius: 999px;
+  color: #c9aa71;
+  font-size: 11px;
+  text-decoration: none;
+  z-index: 100;
+  line-height: 1;
+  white-space: nowrap;
+}
+.version-badge .vb-text { color: #c9aa71; }
+.version-badge .vb-pill {
+  margin-left: 4px;
+  padding: 2px 6px;
+  border: 1px solid #daa520;
+  border-radius: 999px;
+  background: linear-gradient(45deg, #8b4513, #cd853f);
+  color: #fff;
+  font-size: 10px;
+  line-height: 1;
+}
+.version-badge.is-update {
+  border-color: #daa520;
+  box-shadow: 0 0 8px rgba(218, 165, 32, 0.3);
+}
+/* 移动端收紧尺寸，避免遮挡 */
+.guixu-root-container.mobile-view .version-badge {
+  left: 8px;
+  padding: 3px 6px;
+  font-size: 10px;
+}
+.guixu-root-container.mobile-view .version-badge .vb-pill {
+  padding: 1px 5px;
+  font-size: 9px;
 }
 
 .status-item {
