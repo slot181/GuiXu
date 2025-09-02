@@ -573,6 +573,15 @@ if (!document.getElementById('guixu-gate-style')) {
             left.insertBefore(btn, left.firstChild || null);
           }
         };
+        const applyMobileTwoBtnLayout = () => {
+          try {
+            const root = document.querySelector('.guixu-root-container');
+            const isMobile = !!root && root.classList.contains('mobile-view');
+            const hasRefresh = !!document.getElementById('btn-first-run-refresh');
+            const hasReroll = !!document.getElementById('btn-reroll-last');
+            left.classList.toggle('qs-left--two-btn', isMobile && hasRefresh && hasReroll);
+          } catch (_) {}
+        };
 
         if (!btn) {
           btn = document.createElement('button');
@@ -582,6 +591,7 @@ if (!document.getElementById('guixu-gate-style')) {
           btn.textContent = '🎲 重掷';
           btn.title = '使用上一轮的输入重新生成上一轮的回应（重roll）';
           insertAfterRefresh();
+          applyMobileTwoBtnLayout();
 
           btn.addEventListener('click', () => {
             try {
@@ -609,6 +619,7 @@ if (!document.getElementById('guixu-gate-style')) {
             left.appendChild(btn);
           }
           insertAfterRefresh();
+          applyMobileTwoBtnLayout();
         }
       } catch (e) {
         console.warn('[归墟] ensureRerollButton 失败:', e);
@@ -1102,6 +1113,8 @@ if (!document.getElementById('guixu-gate-style')) {
           btn.title = enable ? '切换到桌面视图' : '切换到移动视图';
         }
         this.applyUserPreferences();
+        // 视图切换后，重新校正“刷新 + 重掷”在移动端的双键布局
+        try { this.ensureRerollButton(); } catch (_) {}
         this._applyEmbeddedVisibilityFix();
         this._pulseFastReflow(200);
         this._reflowMobileLayout();
