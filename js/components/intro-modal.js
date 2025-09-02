@@ -53,14 +53,21 @@
           </div>
 
           <div class="panel-section">
-            <div class="section-title">注意事项与常见问题排查</div>
+            <div class="section-title">重要注意事项</div>
             <ol class="intro-ol">
-              <li>网络要求：此卡通过 <strong>JsDelivr</strong> 加载脚本，必须确保网络连接良好。</li>
-              <li>UI渲染错乱：若UI渲染错乱，请尝试点击右上角小铅笔重新加载一下。</li>
-              <li>正文错乱：如正文中出现变量代码等无关内容，请使用<strong>编辑功能（小铅笔）</strong>检查，查看正文是否被<strong>gametxt</strong>标签完整包裹，同时确保<strong>UpdateVariable</strong>标签存在，若还是无效，优先手动删除思维链里的所有内容。</li>
-              <li>行动选项：若正文没有行动选项按钮，请同样检查并确保该选项被<strong>action</strong>标签正确包裹，若还是无效，同上。</li>
-              <li>开启新档：要开启干净存档，请修改读写序号，或在存档管理中<strong>一键清除所有存档</strong>。</li>
-              <li>读档异常：若读档后发现装备栏或者有什么东西遗漏，请尝试<strong>重新读取存档</strong>。</li>
+              <li><strong>首次导入（必做）</strong>：第一次导入本卡，请务必先<strong>清理酒馆的浏览器缓存</strong>，以确保所有内容正常加载。</li>
+              <li><strong>加载与刷新（必读）</strong>：开新档界面空白，请先点击<strong>“一键刷新”</strong>。</li>
+              <li><strong>网络要求</strong>：系统脚本通过<strong>JsDelivr</strong>加载，请务必保持良好的网络连接，否则可能导致功能异常。</li>
+              <li><strong>存档管理</strong>：开启新档可通过修改“读写序号”或使用“<strong>一键清除所有存档</strong>”功能。若读档后发现数据遗漏，请尝试<strong>重新读取一遍该存档</strong>。</li>
+            </ol>
+          </div>
+
+          <div class="panel-section">
+            <div class="section-title">常见问题排查</div>
+            <ol class="intro-ol">
+              <li><strong>UI渲染错乱</strong>：若UI渲染错乱，请尝试点击右上角小铅笔，检查<strong>UpdateVariable</strong>标签是否存在。</li>
+              <li><strong>正文错乱</strong>：如正文出现变量代码，请使用<strong>编辑功能（小铅笔）</strong>检查，确保正文被<strong>gametxt</strong>标签完整包裹。若问题依旧，请优先手动删除思维链里的所有内容。</li>
+              <li><strong>行动选项</strong>：若正文没有行动选项按钮，请同样检查并确保该选项被<strong>action</strong>标签正确包裹。若无效，处理方法同上。</li>
             </ol>
           </div>
 
@@ -144,6 +151,12 @@
       try {
         const shown = localStorage.getItem(STORAGE_KEY) === '1';
         if (shown) return;
+        // 新增门槛：未成功捕捉过一次 <gametxt> 前不弹出游玩指南
+        try {
+          const idx = window.GuixuState?.getState?.().unifiedIndex || 1;
+          const seen = localStorage.getItem(`guixu_gate_gametxt_seen_${idx}`) === '1';
+          if (!seen) return;
+        } catch (_) { return; }
         // 延时展示，等待布局稳定与宿主样式应用
         setTimeout(() => {
           this.show();

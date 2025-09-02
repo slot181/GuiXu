@@ -672,6 +672,8 @@
 
       window.GuixuHelpers.showTemporaryMessage(`已装备 ${window.GuixuHelpers.SafeGetValue(item, 'name')}`);
 
+      // 在刷新 UI 前，确保合并写回已完成，避免读到旧的 stat_data
+      if (window.GuixuMvuIO?.flushNow) { try { await window.GuixuMvuIO.flushNow(); } catch (_) {} }
       // 重新渲染
       await this.show();
       // 刷新属性展示（若需要）
@@ -751,7 +753,10 @@
 
         window.GuixuHelpers.showTemporaryMessage(`已取消卸下，恢复 ${h.SafeGetValue(swapPrev, 'name', '原物品')}`);
 
-        if (refresh) await this.show();
+        if (refresh) {
+          if (window.GuixuMvuIO?.flushNow) { try { await window.GuixuMvuIO.flushNow(); } catch (_) {} }
+          await this.show();
+        }
         if (window.GuixuAttributeService?.updateDisplay) window.GuixuAttributeService.updateDisplay();
         return;
       }
@@ -775,7 +780,10 @@
 
       window.GuixuHelpers.showTemporaryMessage(`已卸下 ${itemName}`);
 
-      if (refresh) await this.show();
+      if (refresh) {
+        if (window.GuixuMvuIO?.flushNow) { try { await window.GuixuMvuIO.flushNow(); } catch (_) {} }
+        await this.show();
+      }
       if (window.GuixuAttributeService?.updateDisplay) window.GuixuAttributeService.updateDisplay();
     },
 

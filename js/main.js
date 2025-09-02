@@ -184,16 +184,11 @@
             try {
               const isFirstRound = await this._shouldBlockFirstRoundMvuCapture();
               if (isFirstRound) {
-                // 首轮：先弹出确认与倒计时，提醒刷新外层酒馆页面
-                this.showRefreshFirstRoundConfirm(10, () => {
-                  try {
-                    const idx = window.GuixuState?.getState?.().unifiedIndex || 1;
-                    localStorage.setItem(`guixu_gate_unblocked_${idx}`, '1');
-                  } catch (_) {}
-                  window.location.reload();
-                }, () => {
-                  // 取消：不做任何操作，等待用户处理外层页面
-                });
+                try {
+                  const idx = window.GuixuState?.getState?.().unifiedIndex || 1;
+                  localStorage.setItem(`guixu_gate_unblocked_${idx}`, '1');
+                } catch (_) {}
+                window.location.reload();
                 return;
               }
             } catch (_) {}
@@ -311,6 +306,8 @@
         if (blocked) return;
         this.ensureServices();
         this.updateDynamicData().catch(err => console.error('[归墟] 初次加载失败:', err));
+        // 检查远程 Releases 是否有更新（仅在非首轮放行后提示）
+        try { setTimeout(() => window.UpdateNotifier?.checkAndMaybeNotify?.(), 500); } catch (_) {}
       });
 
       // 首次加载引导弹窗（移动端/桌面端，非全屏优先；嵌入式 iframe 亦适用）
@@ -2862,70 +2859,6 @@ container.style.fontFamily = `"Microsoft YaHei", "Noto Sans SC", "PingFang SC", 
       }
       },
 
-      // 首轮“一键刷新”专用确认（5秒倒计时，期间禁止确认，防误触）
-      showRefreshFirstRoundConfirm(countdownSec = 5, onOk = () => {}, onCancel = () => {}) {
-        try {
-          const overlay = document.getElementById('custom-confirm-modal');
-          const msgEl = document.getElementById('custom-confirm-message');
-          const okBtn = document.getElementById('custom-confirm-btn-ok');
-          const cancelBtn = document.getElementById('custom-confirm-btn-cancel');
-          if (!overlay || !okBtn || !cancelBtn) {
-            const msg = '检测到当前为首轮对话。请先刷新酒馆页面，再回到本页面点击“一键刷新”。是否继续？';
-            if (confirm(msg)) onOk(); else onCancel();
-            return;
-          }
-
-          const message = '检测到当前为首轮对话。\n为避免缓存导致酒馆页面卡死，请先对酒馆页面执行一次刷新。\n刷新完成并重新读卡后，再点击下方“确认”以进行“一键刷新”。';
-          if (msgEl) msgEl.textContent = message;
-
-          // 倒计时期间禁止点击确认，也禁止点遮罩关闭
-          overlay.dataset.allowClose = '0';
-          let sec = Math.max(0, Number(countdownSec) | 0);
-          let timer = null;
-
-          const update = () => {
-            if (sec > 0) {
-              okBtn.disabled = true;
-              okBtn.textContent = `确认(${sec})`;
-              cancelBtn.disabled = false;
-            } else {
-              okBtn.disabled = false;
-              okBtn.textContent = '确认';
-              // 允许点击遮罩关闭
-              overlay.dataset.allowClose = '1';
-            }
-          };
-
-          update();
-          overlay.style.zIndex = '9000';
-          overlay.style.display = 'flex';
-
-          timer = setInterval(() => {
-            sec -= 1;
-            if (sec <= 0) {
-              clearInterval(timer);
-              sec = 0;
-            }
-            update();
-          }, 1000);
-
-          const cleanup = () => {
-            try { if (timer) clearInterval(timer); } catch (_) {}
-            overlay.style.display = 'none';
-            okBtn.removeEventListener('click', okHandler);
-            cancelBtn.removeEventListener('click', cancelHandler);
-          };
-          const okHandler = () => { cleanup(); try { onOk(); } catch (_) {} };
-          const cancelHandler = () => { cleanup(); try { onCancel(); } catch (_) {} };
-
-          okBtn.addEventListener('click', okHandler, { once: true });
-          cancelBtn.addEventListener('click', cancelHandler, { once: true });
-        } catch (e) {
-          console.warn('[归墟] showRefreshFirstRoundConfirm 失败，回退 confirm:', e);
-          const msg = '检测到当前为首轮对话。请先刷新酒馆页面，再回到本页面点击“一键刷新”。是否继续？';
-          if (confirm(msg)) { try { onOk(); } catch (_) {} } else { try { onCancel(); } catch (_) {} }
-        }
-      },
 
       // 自定义数字输入弹窗（与UI一致），返回 Promise<number|null>
       async showNumberPrompt({ title = '请输入数量', message = '', min = 1, max = 99, defaultValue = 1 } = {}) {

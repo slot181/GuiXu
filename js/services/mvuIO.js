@@ -21,6 +21,7 @@
       delayMs: 200,     // 短延时合并窗口
       maxDelayMs: 800,  // 最长等待时间，防止持续抖动
     },
+    _pendingResolvers: [],
 
     /**
      * 调度一次“stat_data 变更写回”（合并/节流）
@@ -52,6 +53,26 @@
       }
     },
 
+    /**
+     * 立即尝试刷新队列，返回一个在本次刷新完成后 resolve 的 Promise
+     */
+    async flushNow() {
+      try {
+        // 终止等待中的定时器，立即触发一次刷新
+        clearTimeout(this._timer); this._timer = null;
+        clearTimeout(this._maxTimer); this._maxTimer = null;
+        if (this._flushing) {
+          return await new Promise(resolve => this._pendingResolvers.push(resolve));
+        }
+        const p = new Promise(resolve => this._pendingResolvers.push(resolve));
+        await this._flushSafe();
+        return p;
+      } catch (_) {
+        // 异常兜底：短延时等待
+        return new Promise(res => setTimeout(res, this._defaults.delayMs));
+      }
+    },
+ 
     async _flushSafe() {
       if (this._flushing) {
         // 避免并发，稍后再尝试
@@ -101,6 +122,15 @@
         console.warn('[归墟] MvuIO.flush 失败:', e);
       } finally {
         this._flushing = false;
+        // 广播一次“已刷新”事件，供 UI 监听
+        try {
+          window.dispatchEvent(new CustomEvent('guixu:mvu-flushed', { detail: { remaining: this._queue.length } }));
+        } catch (_) {}
+        // 唤醒等待 flush 的调用方
+        try {
+          const resolvers = this._pendingResolvers.splice(0, this._pendingResolvers.length);
+          resolvers.forEach(fn => { try { fn(); } catch (_) {} });
+        } catch (_) {}
         if (this._queue.length > 0) {
           this._timer = setTimeout(() => this._flushSafe(), this._defaults.delayMs);
         }

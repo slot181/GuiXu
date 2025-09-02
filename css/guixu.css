@@ -3180,6 +3180,46 @@ body { margin: 0; }
   padding: 0 10px;
 }
 
+/* 历史面板：动作区与时间线动作区（收敛内联样式） */
+#history-modal .history-action-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+#history-modal #auto-trim-checkbox { cursor: pointer; }
+
+/* 桌面端：紧凑按钮尺寸（覆盖全局32px统一规则） */
+.guixu-root-container:not(.mobile-view) #history-modal .interaction-btn.btn-compact,
+.guixu-root-container:not(.mobile-view) #history-modal .danger-btn.btn-compact,
+.guixu-root-container:not(.mobile-view) #history-modal .primary-btn.btn-compact {
+  height: 28px !important;
+  padding: 0 10px !important;
+  font-size: 12px !important;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+/* 时间线条目动作区与批量选择开关 */
+.timeline-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+.timeline-actions .batch-select {
+  display: none;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+}
+/* 当容器进入批量模式时显示复选框 */
+.timeline-container.batch-mode .batch-select {
+  display: inline-flex;
+}
+
+/* 将事件卡片设为可点击（去除行内 cursor 需求） */
+.timeline-event { cursor: pointer; }
+
 /* --- 历程/涟漪 时间线卡片美化（覆盖默认白底） --- */
 .timeline-line {
   background: linear-gradient(180deg, rgba(201,170,113,0.65), rgba(201,170,113,0.2));
