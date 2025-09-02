@@ -56,7 +56,7 @@
             <div class="section-title">重要注意事项</div>
             <ol class="intro-ol">
               <li><strong>首次导入（必做）</strong>：第一次导入本卡，请务必先<strong>清理酒馆的浏览器缓存</strong>，以确保所有内容正常加载。</li>
-              <li><strong>加载与刷新（必读）</strong>：开新档界面空白，请先点击<strong>“一键刷新”</strong>。当系统提示刷新时，<strong>请务必刷新整个浏览器页面</strong>，直接点“确定”极易卡死。</li>
+              <li><strong>加载与刷新（必读）</strong>：开新档界面空白，请先点击<strong>“一键刷新”</strong>。当系统提示刷新时，<strong>请务必刷新整个浏览器页面(Ctrl+R)</strong>，直接点“确定”极易卡死。</li>
               <li><strong>网络要求</strong>：系统脚本通过<strong>JsDelivr</strong>加载，请务必保持良好的网络连接，否则可能导致功能异常。</li>
               <li><strong>存档管理</strong>：开启新档可通过修改“读写序号”或使用“<strong>一键清除所有存档</strong>”功能。若读档后发现数据遗漏，请尝试<strong>重新读取一遍该存档</strong>。</li>
             </ol>
