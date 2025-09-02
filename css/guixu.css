@@ -3198,11 +3198,16 @@ body { margin: 0; }
 }
 /* 搜索区域自适应占位：不足时换行，充足时在同一行靠右展开 */
 .guixu-root-container:not(.mobile-view) #history-modal .history-search {
-  flex: 1 1 340px !important;     /* 优先给到约 340px，空间不足可收缩到 260px */
-  min-width: 260px !important;
+  flex: 1 1 100% !important;      /* 桌面端采用与移动端一致的全宽单行搜索区 */
+  width: 100% !important;
+  min-width: 0 !important;
+  margin-left: 0 !important;      /* 覆盖基础的 margin-left:10px，防止被挤出 */
+  margin-top: 6px;
 }
 .guixu-root-container:not(.mobile-view) #history-modal .history-search input#history-search-input {
-  width: 100% !important;         /* 输入框随容器伸缩 */
+  flex: 1 1 auto !important;      /* 输入框随容器伸缩，跟随移动端布局 */
+  width: auto !important;
+  min-width: 0 !important;        /* 取消基础最小宽度限制，避免与清除按钮一起溢出 */
 }
 .guixu-root-container:not(.mobile-view) #history-modal .history-search #history-search-clear {
   flex: 0 0 auto !important;
