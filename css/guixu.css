@@ -3163,7 +3163,8 @@ body { margin: 0; }
   justify-content: flex-start !important;
   overflow-y: auto !important;
 }
-.guixu-root-container.force-desktop .interaction-btn {
+/* 仅限制“右侧功能面板”内的按钮拉满宽度，避免影响各模态框按钮（例如历史面板） */
+.guixu-root-container.force-desktop .interaction-panel .interaction-btn {
   width: 100% !important;
   flex: 0 0 40px !important;
   height: 40px !important;          /* 固定按钮高度 */
@@ -3233,12 +3234,20 @@ body { margin: 0; }
   gap: 8px !important;            /* 与移动端保持一致的间距 */
   align-items: center !important;
 }
-/* 新增：桌面端历史面板动作工具栏横排（不换行），按钮一行展示 */
+/* 新增：桌面端历史面板动作工具栏横排（支持自动换行，避免溢出到面板外） */
 .guixu-root-container:not(.mobile-view) #history-modal .history-toolbar {
-  display: inline-flex;
+  display: flex;
   align-items: center;
   gap: 8px;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;              /* 窄宽度下允许换行，防止溢出到面板外 */
+  width: 100%;
+  max-width: 100%;
+}
+/* 历史面板内的按钮不拉满宽度；清除按钮不占据搜索栏可用空间 */
+.guixu-root-container:not(.mobile-view) #history-modal .history-toolbar .interaction-btn,
+.guixu-root-container:not(.mobile-view) #history-modal .history-search .interaction-btn {
+  width: auto !important;
+  flex: 0 0 auto !important;
 }
 /* 将动作区置于第二行并允许换行；覆盖 inline 的 margin-left:auto */
 .guixu-root-container:not(.mobile-view) #history-modal #history-modal-actions {
