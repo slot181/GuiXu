@@ -19,16 +19,16 @@
       if (actionsContainer) {
         const isAutoTrimEnabled = window.GuixuState.getState().isAutoTrimEnabled;
         actionsContainer.innerHTML = `
-          <div style="display: flex; align-items: center; gap: 8px;" title="启用后，每次自动写入“本世历程”时，会自动修剪旧的自动化系统内容。">
-            <input type="checkbox" id="auto-trim-checkbox" style="cursor: pointer;" ${isAutoTrimEnabled ? 'checked' : ''}>
-            <label for="auto-trim-checkbox" class="auto-write-label" style="font-size: 12px;">自动修剪</label>
+          <div class="history-action-group" title="启用后，每次自动写入“本世历程”时，会自动修剪旧的自动化系统内容。">
+            <input type="checkbox" id="auto-trim-checkbox" ${isAutoTrimEnabled ? 'checked' : ''}>
+            <label for="auto-trim-checkbox" class="auto-write-label">自动修剪</label>
           </div>
-          <button id="btn-show-trim-modal" class="interaction-btn" style="padding: 4px 8px; font-size: 12px;">手动修剪</button>
-          <button id="history-toggle-batch" class="interaction-btn" style="padding: 4px 8px; font-size: 12px;">批量选择</button>
-          <button id="history-delete-selected" class="interaction-btn danger-btn" disabled style="padding: 4px 8px; font-size: 12px;">删除选中</button>
+          <button id="btn-show-trim-modal" class="interaction-btn btn-compact">手动修剪</button>
+          <button id="history-toggle-batch" class="interaction-btn btn-compact">批量选择</button>
+          <button id="history-delete-selected" class="interaction-btn danger-btn btn-compact" disabled>删除选中</button>
           <div class="history-search">
             <input type="text" id="history-search-input" placeholder="搜索事件..." />
-            <button id="history-search-clear" class="interaction-btn" style="padding: 4px 8px; font-size: 12px;">清除</button>
+            <button id="history-search-clear" class="interaction-btn btn-compact">清除</button>
           </div>
         `;
 
@@ -218,12 +218,12 @@
         `;
 
         const actionsHtml = `
-          <div class="timeline-actions" style="display:flex; align-items:center; gap:8px; margin-top:8px;">
-            <label class="batch-select" style="display:none; align-items:center; gap:4px; font-size:12px;">
+          <div class="timeline-actions">
+            <label class="batch-select">
               <input type="checkbox" class="timeline-select" data-seq="${seq}" />
               <span>选择</span>
             </label>
-            <button class="interaction-btn danger-btn btn-delete-event" data-seq="${seq}" style="padding:2px 6px; font-size:12px;">删除</button>
+            <button class="interaction-btn danger-btn btn-delete-event btn-compact" data-seq="${seq}">删除</button>
           </div>
         `;
         const detailedInfo = `
@@ -316,7 +316,13 @@
           return;
         }
 
-        const newContent = this._serializeEvents(filtered);
+        // 按原“序号”排序，并重新按 1..n 自动重排
+        const sorted = filtered
+          .slice()
+          .sort((a, b) => (parseInt(a['序号'], 10) || 0) - (parseInt(b['序号'], 10) || 0));
+        sorted.forEach((ev, idx) => { ev['序号'] = String(idx + 1); });
+
+        const newContent = this._serializeEvents(sorted);
         await window.GuixuAPI.setLorebookEntries(bookName, [{ uid: journeyEntry.uid, content: newContent }]);
 
         // 刷新当前视图
