@@ -151,6 +151,12 @@
       try {
         const shown = localStorage.getItem(STORAGE_KEY) === '1';
         if (shown) return;
+        // 新增门槛：未成功捕捉过一次 <gametxt> 前不弹出游玩指南
+        try {
+          const idx = window.GuixuState?.getState?.().unifiedIndex || 1;
+          const seen = localStorage.getItem(`guixu_gate_gametxt_seen_${idx}`) === '1';
+          if (!seen) return;
+        } catch (_) { return; }
         // 延时展示，等待布局稳定与宿主样式应用
         setTimeout(() => {
           this.show();

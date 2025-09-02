@@ -311,6 +311,8 @@
         if (blocked) return;
         this.ensureServices();
         this.updateDynamicData().catch(err => console.error('[归墟] 初次加载失败:', err));
+        // 检查远程 Releases 是否有更新（仅在非首轮放行后提示）
+        try { setTimeout(() => window.UpdateNotifier?.checkAndMaybeNotify?.(), 500); } catch (_) {}
       });
 
       // 首次加载引导弹窗（移动端/桌面端，非全屏优先；嵌入式 iframe 亦适用）

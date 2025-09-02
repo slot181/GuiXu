@@ -24,6 +24,8 @@
             <label for="auto-trim-checkbox" class="auto-write-label" style="font-size: 12px;">自动修剪</label>
           </div>
           <button id="btn-show-trim-modal" class="interaction-btn" style="padding: 4px 8px; font-size: 12px;">手动修剪</button>
+          <button id="history-toggle-batch" class="interaction-btn" style="padding: 4px 8px; font-size: 12px;">批量选择</button>
+          <button id="history-delete-selected" class="interaction-btn danger-btn" disabled style="padding: 4px 8px; font-size: 12px;">删除选中</button>
           <div class="history-search">
             <input type="text" id="history-search-input" placeholder="搜索事件..." />
             <button id="history-search-clear" class="interaction-btn" style="padding: 4px 8px; font-size: 12px;">清除</button>
@@ -60,6 +62,42 @@
         searchInput?.addEventListener('input', doFilter);
         searchInput?.addEventListener('keydown', e => { if (e.key === 'Enter') doFilter(); });
         searchClear?.addEventListener('click', () => { if (searchInput) searchInput.value = ''; doFilter(); });
+
+        // 批量选择/删除绑定
+        const batchBtn = document.getElementById('history-toggle-batch');
+        const delSelBtn = document.getElementById('history-delete-selected');
+        const updateDeleteBtnState = () => {
+          try {
+            const container = $('.timeline-container');
+            if (!container || !delSelBtn) return;
+            const anyChecked = container.querySelectorAll('.timeline-select:checked').length > 0;
+            delSelBtn.disabled = !anyChecked;
+          } catch (_) {}
+        };
+        batchBtn?.addEventListener('click', () => {
+          const container = $('.timeline-container');
+          if (!container) return;
+          const isOn = container.classList.toggle('batch-mode');
+          // 显示/隐藏批量选择复选框
+          container.querySelectorAll('.timeline-event .batch-select').forEach(el => {
+            el.style.display = isOn ? 'inline-flex' : 'none';
+          });
+          updateDeleteBtnState();
+        });
+        delSelBtn?.addEventListener('click', async () => {
+          try {
+            const container = $('.timeline-container');
+            if (!container) return;
+            const checks = Array.from(container.querySelectorAll('.timeline-select:checked'));
+            if (checks.length === 0) return;
+            const seqs = checks.map(ch => String(ch.dataset.seq || '').trim()).filter(Boolean);
+            if (seqs.length === 0) return;
+            const msg = `将删除 ${seqs.length} 条历程事件。此操作不可恢复，是否继续？`;
+            const doDelete = async () => { try { await JourneyComponent._deleteEventsBySeq(seqs); } catch (_) {} };
+            if (window.GuixuMain?.showCustomConfirm) window.GuixuMain.showCustomConfirm(msg, doDelete, () => {});
+            else if (confirm(msg)) await doDelete();
+          } catch (e) { console.warn('[归墟] 批量删除失败:', e); }
+        });
       }
 
       const body = $('#history-modal-body');
@@ -94,7 +132,34 @@
         // 绑定时间轴点击展开
         const container = $('.timeline-container');
         if (container) {
+          // 展开/收起详细
           container.addEventListener('click', e => {
+            // 单条删除
+            const delBtn = e.target.closest('.btn-delete-event');
+            if (delBtn) {
+              e.preventDefault();
+              e.stopPropagation();
+              const seq = String(delBtn.dataset.seq || '').trim();
+              if (!seq) return;
+              const msg = '将删除该条历程事件，是否继续？此操作不可恢复。';
+              const doDelete = async () => { try { await JourneyComponent._deleteEventsBySeq([seq]); } catch (_) {} };
+              if (window.GuixuMain?.showCustomConfirm) window.GuixuMain.showCustomConfirm(msg, doDelete, () => {});
+              else if (confirm(msg)) { doDelete(); }
+              return;
+            }
+            // 勾选变化 -> 更新批量删除按钮状态
+            if (e.target && e.target.classList && e.target.classList.contains('timeline-select')) {
+              try {
+                const delSelBtn = document.getElementById('history-delete-selected');
+                if (delSelBtn) {
+                  const anyChecked = container.querySelectorAll('.timeline-select:checked').length > 0;
+                  delSelBtn.disabled = !anyChecked;
+                }
+              } catch (_) {}
+              e.stopPropagation();
+              return;
+            }
+            // 默认行为：切换详细信息
             const timelineEvent = e.target.closest('.timeline-event');
             if (!timelineEvent) return;
             const detailed = timelineEvent.querySelector('.timeline-detailed-info');
@@ -124,6 +189,7 @@
       let html = '<div class="timeline-container"><div class="timeline-line"></div>';
       events.forEach((eventData, index) => {
         const eventId = `event-${entry.uid}-${index}`;
+        const seq = eventData['序号'] || String(index + 1);
         const date = eventData['日期'] || '未知时间';
         const title = eventData['标题'] || '无标题';
         const location = eventData['地点'] || '未知地点';
@@ -151,6 +217,15 @@
           <div class="timeline-description">${description}</div>
         `;
 
+        const actionsHtml = `
+          <div class="timeline-actions" style="display:flex; align-items:center; gap:8px; margin-top:8px;">
+            <label class="batch-select" style="display:none; align-items:center; gap:4px; font-size:12px;">
+              <input type="checkbox" class="timeline-select" data-seq="${seq}" />
+              <span>选择</span>
+            </label>
+            <button class="interaction-btn danger-btn btn-delete-event" data-seq="${seq}" style="padding:2px 6px; font-size:12px;">删除</button>
+          </div>
+        `;
         const detailedInfo = `
           <div class="timeline-detailed-info" id="detailed-${eventId}" style="display: none; margin-top: 15px; padding-top: 15px; border-top: 1px solid rgba(201, 170, 113, 0.3);">
             ${characters ? `<div class="detail-section"><strong>人物：</strong>${characters}</div>` : ''}
@@ -165,12 +240,101 @@
           <div class="timeline-event" data-event-id="${eventId}" style="cursor: pointer;">
             <div class="timeline-content">
               ${basicInfo}
+              ${actionsHtml}
               ${detailedInfo}
             </div>
           </div>`;
       });
       html += '</div>';
       return html;
+    },
+
+    // 读取当前世界序号对应的“本世历程”条目
+    async _getActiveJourneyEntry() {
+      const bookName = window.GuixuConstants.LOREBOOK.NAME;
+      const index = window.GuixuState.getState().unifiedIndex || 1;
+      const journeyKey = index > 1
+        ? `${window.GuixuConstants.LOREBOOK.ENTRIES.JOURNEY}(${index})`
+        : window.GuixuConstants.LOREBOOK.ENTRIES.JOURNEY;
+
+      const allEntries = await window.GuixuAPI.getLorebookEntries(bookName);
+      const journeyEntry = allEntries.find(entry => (entry.comment || '').trim() === journeyKey.trim());
+      return { bookName, journeyKey, journeyEntry };
+    },
+
+    // 将 parseJourneyEntry 得到的事件数组序列化回“键|值”空行分隔格式
+    _serializeEvents(events) {
+      if (!Array.isArray(events)) return '';
+      const KEY_ORDER = ['序号','日期','标题','地点','描述','人物','人物关系','重要信息','暗线与伏笔','自动化系统','标签'];
+      const blocks = events.map(ev => {
+        // 按优先顺序输出已知键
+        const lines = [];
+        const emitted = new Set();
+        KEY_ORDER.forEach(k => {
+          if (ev[k] != null && ev[k] !== '') {
+            const val = String(ev[k] ?? '');
+            // 保留多行：后续行直接换行拼接
+            lines.push(`${k}| ${val}`);
+            emitted.add(k);
+          }
+        });
+        // 额外附加未识别但存在的键，避免信息丢失
+        Object.keys(ev).forEach(k => {
+          if (emitted.has(k)) return;
+          const v = ev[k];
+          if (v == null || v === '') return;
+          lines.push(`${k}| ${String(v)}`);
+        });
+        return lines.join('\n');
+      });
+      return blocks.join('\n\n');
+    },
+
+    // 按“序号”删除单条或多条事件，并写回世界书
+    async _deleteEventsBySeq(seqList) {
+      try {
+        const seqs = Array.from(new Set((seqList || []).map(s => String(s).trim()).filter(Boolean)));
+        if (seqs.length === 0) return;
+
+        const { bookName, journeyEntry } = await this._getActiveJourneyEntry();
+        if (!journeyEntry) {
+          window.GuixuHelpers.showTemporaryMessage('未找到本世历程条目，无法删除');
+          return;
+        }
+
+        const events = window.GuixuHelpers.parseJourneyEntry(journeyEntry.content || '');
+        if (!Array.isArray(events) || events.length === 0) {
+          window.GuixuHelpers.showTemporaryMessage('没有可删除的事件');
+          return;
+        }
+
+        const before = events.length;
+        const filtered = events.filter(ev => !seqs.includes(String(ev['序号'] || '').trim()));
+        const removed = before - filtered.length;
+        if (removed <= 0) {
+          window.GuixuHelpers.showTemporaryMessage('未匹配到要删除的事件');
+          return;
+        }
+
+        const newContent = this._serializeEvents(filtered);
+        await window.GuixuAPI.setLorebookEntries(bookName, [{ uid: journeyEntry.uid, content: newContent }]);
+
+        // 刷新当前视图
+        try {
+          const { $ } = window.GuixuDOM;
+          const body = $('#history-modal-body');
+          if (body) {
+            // 直接使用刚更新的内容重渲染
+            const updatedEntry = { ...journeyEntry, content: newContent };
+            body.innerHTML = this.renderJourneyFromEntry(updatedEntry);
+          }
+        } catch (_) {}
+
+        window.GuixuHelpers.showTemporaryMessage(`已删除 ${removed} 条历程事件`);
+      } catch (e) {
+        console.error('[归墟] 删除历程事件失败:', e);
+        window.GuixuHelpers.showTemporaryMessage('删除失败');
+      }
     }
   };
 
