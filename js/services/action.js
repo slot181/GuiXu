@@ -65,6 +65,56 @@
         },
 
         /**
+         * 使用上一轮输入一键重roll，重新生成上一轮回复。
+         */
+        async rerollLast() {
+            try {
+                const st = window.GuixuState.getState();
+                const last = st.lastSentPrompt;
+                if (!last || !String(last).trim()) {
+                    window.GuixuHelpers?.showTemporaryMessage?.('未找到上一轮输入，无法重掷');
+                    return;
+                }
+                const generateConfig = {
+                    injects: [{
+                        role: 'user',
+                        content: last,
+                        position: 'in_chat',
+                        depth: 0,
+                        should_scan: true,
+                    }],
+                    should_stream: !!st.isStreamingEnabled,
+                };
+                try { window.GuixuMain?.showWaitingMessage?.(); } catch (_) {}
+                const aiResponse = await GuixuAPI.generate(generateConfig).finally(() => {
+                    try { window.GuixuMain?.hideWaitingMessage?.(); } catch (_) {}
+                });
+                if (typeof aiResponse !== 'string') {
+                    throw new Error('AI未返回有效文本。');
+                }
+
+                // 提取/更新MVU/保存
+                this.extractAndCacheResponse(aiResponse);
+                await this.updateMvuState(aiResponse);
+                try { window.GuixuAttributeService?.calculateFinalAttributes?.(); } catch (_) {}
+                await this.saveToCurrentMessage(aiResponse);
+
+                // 刷新UI
+                try {
+                    const s2 = window.GuixuState.getState();
+                    const stat = s2?.currentMvuState?.stat_data || null;
+                    if (stat) window.GuixuMain?.renderUI?.(stat);
+                    await window.GuixuMain?.loadAndDisplayCurrentScene?.(aiResponse);
+                } catch (_) {}
+
+                window.GuixuHelpers?.showTemporaryMessage?.('已使用上一轮输入重掷本轮回复');
+            } catch (error) {
+                console.error('[归墟] 重掷失败:', error);
+                window.GuixuHelpers?.showTemporaryMessage?.(`重掷失败: ${error.message}`);
+            }
+        },
+
+        /**
          * 从待处理动作数组构建指令文本。
          * @private
          */

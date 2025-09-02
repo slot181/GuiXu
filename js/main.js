@@ -246,6 +246,7 @@
       // 底部输入栏三段式布局与常驻刷新按钮
       this.ensureQuickSendLayout();
       this.ensureRefreshButton();
+      this.ensureRerollButton();
 
       // 启动服务轮询改为在门禁评估后再启动
 
@@ -548,7 +549,69 @@ if (!document.getElementById('guixu-gate-style')) {
           } catch (_) {}
         }
       } catch (e) {
-        console.warn('[归墟] GuixuMain.ensureServices 警告:', e);
+        console.warn('[归墟] ensureRefreshButton 失败:', e);
+      }
+    },
+
+    // 新增：一键重roll 按钮（输入栏左侧；桌面位于“一键刷新”右侧；移动端两键同列）
+    ensureRerollButton() {
+      try {
+        const qs = document.querySelector('#bottom-status-container .quick-send-container');
+        if (!qs) return;
+        this.ensureQuickSendLayout();
+        const left = qs.querySelector('.qs-left') || qs;
+
+        let btn = document.getElementById('btn-reroll-last');
+        const insertAfterRefresh = () => {
+          const refreshBtn = document.getElementById('btn-first-run-refresh');
+          if (refreshBtn && refreshBtn.parentElement === left) {
+            if (btn.nextSibling !== refreshBtn.nextSibling) {
+              left.insertBefore(btn, refreshBtn.nextSibling);
+            }
+          } else {
+            // 若未找到刷新按钮，退化为插入在左侧容器首位
+            left.insertBefore(btn, left.firstChild || null);
+          }
+        };
+
+        if (!btn) {
+          btn = document.createElement('button');
+          btn.id = 'btn-reroll-last';
+          btn.className = 'interaction-btn';
+          btn.type = 'button';
+          btn.textContent = '🎲 重掷';
+          btn.title = '使用上一轮的输入重新生成上一轮的回应（重roll）';
+          insertAfterRefresh();
+
+          btn.addEventListener('click', () => {
+            try {
+              const last = window.GuixuState?.getState?.().lastSentPrompt;
+              if (!last || !String(last).trim()) {
+                window.GuixuHelpers?.showTemporaryMessage?.('没有找到上一轮输入，无法重掷');
+                return;
+              }
+              const msg = '确定要根据“上一轮的输入指令”重新生成上一轮的回复吗？';
+              if (window.GuixuMain && typeof window.GuixuMain.showCustomConfirm === 'function') {
+                window.GuixuMain.showCustomConfirm(msg, () => {
+                  try { window.GuixuActionService?.rerollLast?.(); } catch (_) {}
+                });
+              } else {
+                if (confirm(msg)) { try { window.GuixuActionService?.rerollLast?.(); } catch (_) {} }
+              }
+            } catch (e) {
+              console.warn('[归墟] 重掷触发失败:', e);
+              window.GuixuHelpers?.showTemporaryMessage?.('重掷失败');
+            }
+          });
+        } else {
+          // 确保位置：紧随“一键刷新”之后
+          if (btn.parentElement !== left) {
+            left.appendChild(btn);
+          }
+          insertAfterRefresh();
+        }
+      } catch (e) {
+        console.warn('[归墟] ensureRerollButton 失败:', e);
       }
     },
 
