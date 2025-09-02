@@ -2067,6 +2067,45 @@ body { margin: 0; }
   width: 100%;
   gap: 8px;
 }
+/* 移动端：刷新 + 重掷 两键等宽、左右分布（仅当 .qs-left 打上 .qs-left--two-btn 时生效） */
+.guixu-root-container.mobile-view .quick-send-container .qs-left.qs-left--two-btn {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+.guixu-root-container.mobile-view #btn-first-run-refresh,
+.guixu-root-container.mobile-view #btn-reroll-last {
+  flex: 0 0 calc(50% - 4px);
+  width: calc(50% - 4px);
+  height: 34px;
+  min-width: 0;
+  box-sizing: border-box;
+}
+/* 覆盖（移动端 非全屏）：统一“一键刷新/重掷”高度与内边距；移除动态注入 gate-refresh 的右外距，防止顶到边框 */
+.guixu-root-container.mobile-view:not(:fullscreen) .quick-send-container .qs-left.qs-left--two-btn #btn-first-run-refresh.gate-refresh-btn {
+  height: 34px !important;
+  padding: 0 10px !important;
+  margin-right: 0 !important;
+  white-space: nowrap;
+  line-height: normal;
+}
+/* 全屏（含 -webkit- 前缀）：两键与输入框统一为 40px，高度一致、文本不换行，不再被压缩变形 */
+.guixu-root-container:fullscreen.mobile-view .quick-send-container .qs-left.qs-left--two-btn #btn-first-run-refresh,
+.guixu-root-container:fullscreen.mobile-view .quick-send-container .qs-left.qs-left--two-btn #btn-reroll-last,
+.guixu-root-container:-webkit-full-screen.mobile-view .quick-send-container .qs-left.qs-left--two-btn #btn-first-run-refresh,
+.guixu-root-container:-webkit-full-screen.mobile-view .quick-send-container .qs-left.qs-left--two-btn #btn-reroll-last {
+  height: 40px !important;
+  padding: 0 12px !important;
+  width: auto !important;         /* 与输入框并排时按内容自适应，不再被压成小方块 */
+  flex: 0 0 auto !important;
+  min-width: 96px !important;     /* 中文四字不拥挤 */
+  white-space: nowrap !important; /* 禁止换行导致“挤字变形” */
+  line-height: normal !important;
+}
+/* 横屏全屏下，按钮间距略放大以匹配 40px 高度的视觉平衡 */
+.guixu-root-container.mobile-view.mobile-landscape-fullscreen .quick-send-container .qs-left.qs-left--two-btn {
+  gap: 10px;
+}
 
 .guixu-root-container.mobile-view .quick-send-container .qs-left,
 .guixu-root-container.mobile-view .quick-send-container .qs-center,

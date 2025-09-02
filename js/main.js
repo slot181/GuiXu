@@ -246,6 +246,7 @@
       // 底部输入栏三段式布局与常驻刷新按钮
       this.ensureQuickSendLayout();
       this.ensureRefreshButton();
+      this.ensureRerollButton();
 
       // 启动服务轮询改为在门禁评估后再启动
 
@@ -548,7 +549,80 @@ if (!document.getElementById('guixu-gate-style')) {
           } catch (_) {}
         }
       } catch (e) {
-        console.warn('[归墟] GuixuMain.ensureServices 警告:', e);
+        console.warn('[归墟] ensureRefreshButton 失败:', e);
+      }
+    },
+
+    // 新增：一键重roll 按钮（输入栏左侧；桌面位于“一键刷新”右侧；移动端两键同列）
+    ensureRerollButton() {
+      try {
+        const qs = document.querySelector('#bottom-status-container .quick-send-container');
+        if (!qs) return;
+        this.ensureQuickSendLayout();
+        const left = qs.querySelector('.qs-left') || qs;
+
+        let btn = document.getElementById('btn-reroll-last');
+        const insertAfterRefresh = () => {
+          const refreshBtn = document.getElementById('btn-first-run-refresh');
+          if (refreshBtn && refreshBtn.parentElement === left) {
+            if (btn.nextSibling !== refreshBtn.nextSibling) {
+              left.insertBefore(btn, refreshBtn.nextSibling);
+            }
+          } else {
+            // 若未找到刷新按钮，退化为插入在左侧容器首位
+            left.insertBefore(btn, left.firstChild || null);
+          }
+        };
+        const applyMobileTwoBtnLayout = () => {
+          try {
+            const root = document.querySelector('.guixu-root-container');
+            const isMobile = !!root && root.classList.contains('mobile-view');
+            const hasRefresh = !!document.getElementById('btn-first-run-refresh');
+            const hasReroll = !!document.getElementById('btn-reroll-last');
+            left.classList.toggle('qs-left--two-btn', isMobile && hasRefresh && hasReroll);
+          } catch (_) {}
+        };
+
+        if (!btn) {
+          btn = document.createElement('button');
+          btn.id = 'btn-reroll-last';
+          btn.className = 'interaction-btn';
+          btn.type = 'button';
+          btn.textContent = '🎲 重掷';
+          btn.title = '使用上一轮的输入重新生成上一轮的回应（重roll）';
+          insertAfterRefresh();
+          applyMobileTwoBtnLayout();
+
+          btn.addEventListener('click', () => {
+            try {
+              const last = window.GuixuState?.getState?.().lastSentPrompt;
+              if (!last || !String(last).trim()) {
+                window.GuixuHelpers?.showTemporaryMessage?.('没有找到上一轮输入，无法重掷');
+                return;
+              }
+              const msg = '确定要根据“上一轮的输入指令”重新生成上一轮的回复吗？';
+              if (window.GuixuMain && typeof window.GuixuMain.showCustomConfirm === 'function') {
+                window.GuixuMain.showCustomConfirm(msg, () => {
+                  try { window.GuixuActionService?.rerollLast?.(); } catch (_) {}
+                });
+              } else {
+                if (confirm(msg)) { try { window.GuixuActionService?.rerollLast?.(); } catch (_) {} }
+              }
+            } catch (e) {
+              console.warn('[归墟] 重掷触发失败:', e);
+              window.GuixuHelpers?.showTemporaryMessage?.('重掷失败');
+            }
+          });
+        } else {
+          // 确保位置：紧随“一键刷新”之后
+          if (btn.parentElement !== left) {
+            left.appendChild(btn);
+          }
+          insertAfterRefresh();
+          applyMobileTwoBtnLayout();
+        }
+      } catch (e) {
+        console.warn('[归墟] ensureRerollButton 失败:', e);
       }
     },
 
@@ -1039,6 +1113,8 @@ if (!document.getElementById('guixu-gate-style')) {
           btn.title = enable ? '切换到桌面视图' : '切换到移动视图';
         }
         this.applyUserPreferences();
+        // 视图切换后，重新校正“刷新 + 重掷”在移动端的双键布局
+        try { this.ensureRerollButton(); } catch (_) {}
         this._applyEmbeddedVisibilityFix();
         this._pulseFastReflow(200);
         this._reflowMobileLayout();
@@ -2113,6 +2189,18 @@ if (!document.getElementById('guixu-gate-style')) {
         }
 
         if (contentToParse) {
+          // 新增：检测主要标签的缺失或未闭合并提示（移动端/桌面端、全屏/非全屏通用）
+          try {
+            const requiredTags = ['thinking', 'gametxt', 'action', '本世历程', 'UpdateVariable', 'Analysis'];
+            const res = window.GuixuHelpers?.validateTagClosures?.(contentToParse, requiredTags) || null;
+            if (res && (Array.isArray(res.missing) && res.missing.length || Array.isArray(res.unclosed) && res.unclosed.length)) {
+              const parts = [];
+              if (Array.isArray(res.missing) && res.missing.length) parts.push(`未生成: ${res.missing.join(', ')}`);
+              if (Array.isArray(res.unclosed) && res.unclosed.length) parts.push(`未闭合: ${res.unclosed.join(', ')}`);
+              const msg = `检测到标签问题：${parts.join('；')}。请打开编辑功能（小铅笔）补齐这些标签，避免产生 bug。`;
+              try { window.GuixuHelpers?.showTemporaryMessage?.(msg, 6000); } catch (_) {}
+            }
+          } catch (_) {}
           const { strippedText: contentWithoutGuidelines, items: guidelineItems } = this._parseActionGuidelines(contentToParse);
           const displayText = this._getDisplayText(contentWithoutGuidelines);
           const thinkingText = this._extractLastTagContent('thinking', contentToParse, true);

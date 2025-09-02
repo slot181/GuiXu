@@ -336,7 +336,7 @@
     getTagAliases(tagName) {
       try {
         const map = {
-          '本世历程': ['本世历程', '本世歴程'],
+          '本世历程': ['本世历程', '本世歴程', '本世歷程'],
           '往世涟漪': ['往世涟漪', '往世漣漪'],
         };
         const list = map[tagName] || [tagName];
@@ -382,6 +382,88 @@
       } catch (e) {
         console.error('[归墟] extractLastTagContentByAliases 解析失败:', e);
         return null;
+      }
+    },
+
+    /**
+     * 新增：验证一组标签是否存在且正确闭合。
+     * 返回 { missing: string[], unclosed: string[] }
+     */
+    validateTagClosures(text, requiredTags = []) {
+      try {
+        const res = { missing: [], unclosed: [] };
+        const normalize = (s) => String(s || '')
+          .replace(/[\u200B-\u200D\uFEFF]/g, '')    // 去除零宽字符
+          .replace(/\u3000/g, ' ')                  // 全角空格 -> 半角
+          .replace(/\uFF1C/g, '<')                  // 全角左尖括号 -> <
+          .replace(/\uFF1E/g, '>');                 // 全角右尖括号 -> >
+        const txt = normalize(text);
+        if (!txt || !Array.isArray(requiredTags) || requiredTags.length === 0) return res;
+
+        const esc = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const hasOpening = (aliases) => {
+          // 允许严格/宽松两种形式；避免 \b 在中文标签场景下误判为“未生成”
+          const strictGroup = aliases.map(a => esc(a)).join('|');
+          const strictRe = new RegExp(`<\\s*(?:${strictGroup})(?=[\\s>])[^>]*>`, 'i');
+          if (strictRe.test(txt)) return true;
+          // 宽松：字符间允许连字符/空白等（兼容 <本-世-历-程>）
+          const makeLoose = (name) => name.split('').map(ch => esc(ch)).join('[\\s\\-—_·•－]*');
+          const looseGroup = aliases.map(makeLoose).join('|');
+          const looseRe = new RegExp(`<\\s*(?:${looseGroup})(?=[\\s>])[^>]*>`, 'i');
+          return looseRe.test(txt);
+        };
+        // 仅用于诊断：检测是否出现了 HTML 实体转义的“伪标签”（<本世历程>）
+        const hasEscapedOpening = (aliases) => {
+          // 检测 HTML 实体形式：<本世历程> 或 <本-世-历-程 />
+          const strictGroup = aliases.map(a => esc(a)).join('|');
+          const strictRe = new RegExp(`<\\s*(?:${strictGroup})(?=[\\s;>])[^&]*(>|\\/>)`, 'i');
+          if (strictRe.test(txt)) return true;
+          const makeLoose = (name) => name.split('').map(ch => esc(ch)).join('[\\s\\-—_·•－]*');
+          const looseGroup = aliases.map(makeLoose).join('|');
+          const looseRe = new RegExp(`<\\s*(?:${looseGroup})(?=[\\s;>])[^&]*(>|\\/>)`, 'i');
+          return looseRe.test(txt);
+        };
+        const hasEscapedClosing = (aliases) => {
+          // 检测 HTML 实体形式：</本世历程> 或 </本-世-历-程>
+          const strictGroup = aliases.map(a => esc(a)).join('|');
+          const strictRe = new RegExp(`<\\/\\s*(?:${strictGroup})\\s*>`, 'i');
+          if (strictRe.test(txt)) return true;
+          const makeLoose = (name) => name.split('').map(ch => esc(ch)).join('[\\s\\-—_·•－]*');
+          const looseGroup = aliases.map(makeLoose).join('|');
+          const looseRe = new RegExp(`<\\/\\s*(?:${looseGroup})\\s*>`, 'i');
+          return looseRe.test(txt);
+        };
+
+        for (const name of requiredTags) {
+          const aliases = Array.isArray(name)
+            ? Array.from(new Set(name.filter(Boolean).map(String)))
+            : (this.getTagAliases ? this.getTagAliases(String(name)) : [String(name)]);
+          const closed = !!this.extractLastTagContentByAliases(aliases, txt, true);
+          const open = hasOpening(aliases);
+          // 诊断：是否仅存在 HTML 转义的“伪标签”
+          const escapedOpen = hasEscapedOpening(aliases);
+          const escapedClose = hasEscapedClosing(aliases);
+
+          if (!open) {
+            if (escapedOpen) {
+              try {
+                console.warn('[归墟][validateTagClosures] 检测到 HTML 转义的伪标签：<%s>，实际未生成可解析的真实标签。请在外部编辑功能中修正为 <%s>…</%s>。', String(name), String(name), String(name));
+              } catch (_) {}
+            }
+            res.missing.push(String(name));
+          } else if (!closed) {
+            // 若仅有转义闭合而无真实闭合，同样提示未闭合（并输出诊断日志）
+            if (escapedClose) {
+              try {
+                console.warn('[归墟][validateTagClosures] 发现 </%s>（转义闭合），但缺少真实闭合 </%s>。', String(name), String(name));
+              } catch (_) {}
+            }
+            res.unclosed.push(String(name));
+          }
+        }
+        return res;
+      } catch (_) {
+        return { missing: [], unclosed: [] };
       }
     },
 

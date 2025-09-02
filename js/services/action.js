@@ -65,6 +65,112 @@
         },
 
         /**
+         * 使用上一轮输入一键重roll，重新生成上一轮回复。
+         */
+        async rerollLast() {
+            try {
+                const st = window.GuixuState.getState();
+                const last = st.lastSentPrompt;
+                if (!last || !String(last).trim()) {
+                    window.GuixuHelpers?.showTemporaryMessage?.('未找到上一轮输入，无法重掷');
+                    return;
+                }
+                const generateConfig = {
+                    injects: [{
+                        role: 'user',
+                        content: last,
+                        position: 'in_chat',
+                        depth: 0,
+                        should_scan: true,
+                    }],
+                    should_stream: !!st.isStreamingEnabled,
+                };
+                // 在重掷前，先删除上一轮写入的“本世历程”最后一条事件，避免影响重掷结果
+                try { await this._deleteLastJourneyEventIfExists(); } catch (_) {}
+                try { window.GuixuMain?.showWaitingMessage?.(); } catch (_) {}
+                const aiResponse = await GuixuAPI.generate(generateConfig).finally(() => {
+                    try { window.GuixuMain?.hideWaitingMessage?.(); } catch (_) {}
+                });
+                if (typeof aiResponse !== 'string') {
+                    throw new Error('AI未返回有效文本。');
+                }
+
+                // 提取/更新MVU/保存
+                this.extractAndCacheResponse(aiResponse);
+                await this.updateMvuState(aiResponse);
+                try { window.GuixuAttributeService?.calculateFinalAttributes?.(); } catch (_) {}
+                await this.saveToCurrentMessage(aiResponse);
+
+                // 刷新UI
+                try {
+                    const s2 = window.GuixuState.getState();
+                    const stat = s2?.currentMvuState?.stat_data || null;
+                    if (stat) window.GuixuMain?.renderUI?.(stat);
+                    await window.GuixuMain?.loadAndDisplayCurrentScene?.(aiResponse);
+                } catch (_) {}
+
+                window.GuixuHelpers?.showTemporaryMessage?.('已使用上一轮输入重掷本轮回复');
+            } catch (error) {
+                console.error('[归墟] 重掷失败:', error);
+                window.GuixuHelpers?.showTemporaryMessage?.(`重掷失败: ${error.message}`);
+            }
+        },
+
+        // 新增：删除“本世历程”最后一条事件（基于当前 unifiedIndex）
+        async _deleteLastJourneyEventIfExists() {
+            try {
+                const bookName = GuixuConstants.LOREBOOK.NAME;
+                const index = window.GuixuState.getState().unifiedIndex || 1;
+                const journeyKey = index > 1
+                    ? `${GuixuConstants.LOREBOOK.ENTRIES.JOURNEY}(${index})`
+                    : GuixuConstants.LOREBOOK.ENTRIES.JOURNEY;
+
+                const allEntries = await GuixuAPI.getLorebookEntries(bookName);
+                const entry = (allEntries || []).find(e => (e.comment || '').trim() === journeyKey.trim());
+                if (!entry) return;
+
+                const events = window.GuixuHelpers.parseJourneyEntry(entry.content || '');
+                if (!Array.isArray(events) || events.length === 0) return;
+
+                // 删除最后一条事件
+                events.pop();
+
+                const newContent = this._serializeJourneyEvents(events);
+                await GuixuAPI.setLorebookEntries(bookName, [{ uid: entry.uid, content: newContent }]);
+                // 不弹 toast，静默处理，避免打扰
+            } catch (e) {
+                console.warn('[归墟] 重掷前删除上一轮历程失败（忽略继续）:', e);
+            }
+        },
+
+        // 将事件数组序列化为“键|值”块并以空行分隔（与 JourneyComponent 保持一致的键顺序）
+        _serializeJourneyEvents(events) {
+            if (!Array.isArray(events)) return '';
+            const KEY_ORDER = ['序号','日期','标题','地点','描述','人物','人物关系','重要信息','暗线与伏笔','自动化系统','标签'];
+            const blocks = events.map(ev => {
+                const lines = [];
+                const emitted = new Set();
+                // 按固定顺序输出已知键
+                KEY_ORDER.forEach(k => {
+                    if (ev[k] != null && ev[k] !== '') {
+                        const val = String(ev[k] ?? '');
+                        lines.push(`${k}| ${val}`);
+                        emitted.add(k);
+                    }
+                });
+                // 追加未识别但存在的键，避免信息丢失
+                Object.keys(ev).forEach(k => {
+                    if (emitted.has(k)) return;
+                    const v = ev[k];
+                    if (v == null || v === '') return;
+                    lines.push(`${k}| ${String(v)}`);
+                });
+                return lines.join('\n');
+            });
+            return blocks.join('\n\n');
+        },
+
+        /**
          * 从待处理动作数组构建指令文本。
          * @private
          */
