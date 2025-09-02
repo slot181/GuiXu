@@ -304,8 +304,9 @@
       .choice-item-desc { font-size: 0.9rem; color: #ccc; margin-top: 5px; }
       #preset-back-to-list-btn { display: none; margin-bottom: 20px; background: transparent; border: 1px solid #c9aa71; color: #c9aa71; padding: 10px 15px; border-radius: 5px; cursor: pointer; font-size: 1rem; width: 100%; box-sizing: border-box; }
       .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.85); justify-content: center; align-items: center; z-index: 1000; }
-      #save-load-modal .modal-content, #default-import-modal .modal-content, #settings-modal .modal-content { background: rgba(15, 15, 35, 0.95); border: 1px solid var(--color-primary); border-radius: 8px; padding: 20px; width: 90%; max-width: 800px; display: flex; flex-direction: column; box-shadow: 0 0 20px rgba(201, 170, 113, 0.3); max-height: 80vh; }
-      #settings-modal .modal-content { max-height: none; height: auto; max-width: 500px; }
+      #save-load-modal .modal-content, #default-import-modal .modal-content, #settings-modal .modal-content, #snapshot-manager-modal .modal-content { background: rgba(15, 15, 35, 0.95); border: 1px solid var(--color-primary); border-radius: 8px; padding: 20px; width: 90%; max-width: 800px; display: flex; flex-direction: column; box-shadow: 0 0 20px rgba(201, 170, 113, 0.3); max-height: 80vh; }
+      #settings-modal .modal-content, #snapshot-manager-modal .modal-content { max-height: none; height: auto; max-width: 500px; }
+      #snapshot-manager-modal .modal-content { max-width: 700px; }
       .modal-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--color-border); padding-bottom: 10px; margin-bottom: 15px; gap: 15px; }
       .modal-header-actions { margin-left: auto; display: flex; gap: 10px; align-items: center; }
       .modal-title { font-size: 1.2rem; color: var(--color-primary); flex-shrink: 0; }
@@ -367,6 +368,21 @@
       #redemption-code-btn { padding: 8px 15px; font-size: 0.9rem; margin-left: 0; flex-shrink: 0; }
       #about-countdown-timer { color: var(--color-text-medium); font-style: italic; }
       #about-read-btn:disabled { background: #5a5a5a; cursor: not-allowed; border-color: #777; color: #aaa; }
+      #default-import-modal { z-index: 10001; }
+      
+      /* New Snapshot Manager Styles */
+      .snapshot-section { margin-bottom: 20px; }
+      .snapshot-section-header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 10px; border-bottom: 1px solid var(--color-border); margin-bottom: 10px;}
+      .snapshot-section-title { font-size: 1.1rem; color: var(--color-primary); }
+      .select-all-label { display: flex; align-items: center; gap: 8px; font-size: 0.9rem; color: var(--color-text-medium); cursor: pointer; }
+      #snapshot-item-list { max-height: 40vh; overflow-y: auto; padding-right: 10px; }
+      .snapshot-item { display: flex; align-items: center; gap: 15px; padding: 10px; border-radius: 4px; transition: background-color 0.2s ease; }
+      .snapshot-item:hover { background-color: rgba(201, 170, 113, 0.1); }
+      .snapshot-item input[type="checkbox"] { width: 18px; height: 18px; flex-shrink: 0; cursor: pointer;}
+      .snapshot-item-name { flex-grow: 1; color: var(--color-text-light); }
+      .snapshot-item-uid { font-size: 0.8rem; color: var(--color-text-dark); font-family: monospace; }
+      #snapshot-manager-modal .modal-footer { justify-content: space-between; }
+      
       @media (max-width: 768px) {
         .content-wrapper { padding: 10px; max-height: 95vh; }
         .title { font-size: clamp(2rem, 8vw, 2.5rem); }
@@ -384,7 +400,7 @@
         .action-btn { padding: 12px; }
         .editor-item .item-header { flex-direction: column; align-items: flex-start; gap: 5px; margin-bottom: 12px; }
         .editor-item .item-header span { font-size: 0.8rem; }
-        .modal-content, #save-load-modal .modal-content, #default-import-modal .modal-content { width: 95%; padding: 20px; max-height: 80vh; }
+        .modal-content, #save-load-modal .modal-content, #default-import-modal .modal-content, #snapshot-manager-modal .modal-content { width: 95%; padding: 20px; max-height: 80vh; }
         #worldbook-editor-modal .modal-form-grid { grid-template-columns: 1fr; }
         .startup-choice-layout { flex-direction: column; }
         .attributes-grid { grid-template-columns: 1fr; }
@@ -420,12 +436,12 @@
               </div>
             </div>
           </div>
-          <!-- ★★★ HTML 修正处 ★★★ -->
+         
           <div id="main-menu-container">
             <button id="start-game-btn" class="main-menu-btn">开启游玩！！</button>
             <button id="show-save-manager-btn" class="main-menu-btn">存档管理</button>
             <button id="show-editor-btn" class="main-menu-btn">天赋/背景编辑器</button>
-            <button id="clear-cache-btn" class="main-menu-btn">清除缓存</button>
+            <button id="show-snapshot-manager-btn" class="main-menu-btn">快照清理</button>
           </div>
         </div>
         <div id="startup-choice-container" style="display: none"></div>
@@ -522,16 +538,50 @@
     </div>
     <div id="save-load-modal" class="modal-overlay"><div class="modal-content"><div class="modal-header"><h2 class="modal-title">读档 / 管理</h2><div class="modal-header-actions"><button data-action="import-save" class="theme-btn theme-btn-gold btn-small">导入存档</button><button data-action="clear-all-saves" class="theme-btn theme-btn-red btn-small">清除所有存档</button><button data-action="close-modal" class="modal-close-btn" aria-label="关闭">×</button></div></div><div class="modal-body"></div></div></div>
     <input type="file" id="import-save-file-input" style="display: none;" accept=".json" />
-    <div id="default-import-modal" class="modal-overlay"><div class="modal-content" style="max-width: 500px;"><div class="modal-header"><h2 class="modal-title">初始化向导</h2></div><div class="modal-body"><p>检测到您的【归墟（拼好卡）】世界书为空或不存在。</p><p>是否要导入一套默认的天赋和背景作为开局模板？您也可以选择稍后手动创建或从文件导入。</p></div><div class="modal-footer"><button id="import-defaults-later-btn" class="theme-btn">以后再说</button><button id="import-defaults-confirm-btn" class="theme-btn theme-btn-gold">确认导入</button></div></div></div>
+    <div id="default-import-modal" class="modal-overlay"><div class="modal-content" style="max-width: 500px;"><div class="modal-header"><h2 class="modal-title">初始化向导</h2></div><div class="modal-body"><p>检测到您的世界书为空或缺少核心天赋/背景。</p><p>是否要导入一套默认的天赋和背景作为开局模板？您也可以选择稍后手动创建或从文件导入。</p></div><div class="modal-footer"><button id="import-defaults-later-btn" class="theme-btn">以后再说</button><button id="import-defaults-confirm-btn" class="theme-btn theme-btn-gold">确认导入</button></div></div></div>
     <button id="about-guixu-btn" aria-label="关于归墟">关于</button>
-    <div id="about-guixu-modal" class="modal-overlay"><div class="modal-content"><div class="modal-header"><h2 class="modal-title">关于归墟</h2></div><div class="modal-body about-modal-body"><div class="about-tabs"><button class="about-tab-btn active" data-tab="credits">感谢名单</button><button class="about-tab-btn" data-tab="editor-guide">编辑器说明</button><button class="about-tab-btn" data-tab="version-info">版本介绍</button></div><div class="about-tab-content active" data-tab-content="credits"></div><div class="about-tab-content" data-tab-content="editor-guide"></div><div class="about-tab-content" data-tab-content="version-info"></div></div><div class="modal-footer about-modal-footer"><div id="redemption-container" class="redemption-container"><input type="text" id="redemption-code-input" class="modal-input" placeholder="输入跳过码..."><button id="redemption-code-btn" class="editor-btn">兑换</button></div><span id="about-countdown-timer"></span><button id="about-read-btn" class="editor-btn btn-primary" disabled>已阅读</button></div></div></div>
+    <div id="about-guixu-modal" class="modal-overlay"><div class="modal-content"><div class="modal-header"><h2 class="modal-title">关于归墟</h2></div><div class="modal-body about-modal-body"><div class="about-tabs"><button class="about-tab-btn active" data-tab="credits">感谢名单</button><button class="about-tab-btn" data-tab="editor-guide">编辑器说明</button><button class="about-tab-btn" data-tab="version-info">版本介绍</button></div><div class="about-tab-content active" data-tab-content="credits"></div><div class="about-tab-content" data-tab-content="editor-guide"></div><div class="about-tab-content" data-tab-content="version-info"></div></div><div class="modal-footer about-modal-footer"><div id="redemption-container" class="redemption-container"><input type="text" id="redemption-code-input" class="modal-input" placeholder="输入特殊兑换码..."><button id="redemption-code-btn" class="editor-btn">兑换</button></div><span id="about-countdown-timer"></span><button id="about-read-btn" class="editor-btn btn-primary" disabled>已阅读</button></div></div></div>
     <button id="floating-settings-btn" data-action="show-settings" aria-label="打开设置">⚙️</button>
     <div id="settings-modal" class="modal-overlay"><div class="modal-content"><div class="modal-header"><h2 class="modal-title">背景设置</h2><button id="modal-close-settings-btn" class="modal-close-btn" aria-label="关闭">×</button></div><div class="modal-body" id="settings-modal-body"></div></div></div>
     <input type="file" id="local-bg-input" style="display: none;" accept="image/*" />
+    
+    <div id="snapshot-manager-modal" class="modal-overlay">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2 class="modal-title">快照清理</h2>
+          <button data-action="close-modal" class="modal-close-btn" aria-label="关闭">×</button>
+        </div>
+        <div class="modal-body">
+          <p style="margin-bottom: 20px;">此工具用于清理游戏过程中产生的临时世界书条目。请谨慎操作。</p>
+          <div class="snapshot-section">
+             <div class="snapshot-section-header">
+                <h3 class="snapshot-section-title">【本世历程/往世涟漪】</h3>
+                <label class="select-all-label"><input type="checkbox" data-group="game-process"> 全选</label>
+             </div>
+             <div id="game-process-snapshot-list" class="editor-list-container" style="max-height: 25vh;"></div>
+          </div>
+          <div class="snapshot-section">
+             <div class="snapshot-section-header">
+                <h3 class="snapshot-section-title">【小说模式】</h3>
+                <label class="select-all-label"><input type="checkbox" data-group="non-game-process"> 全选</label>
+             </div>
+             <div id="non-game-process-snapshot-list" class="editor-list-container" style="max-height: 25vh;"></div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <span id="snapshot-selection-info" style="color: var(--color-text-dark);">已选择 0 项</span>
+          <button id="delete-selected-snapshots-btn" class="theme-btn theme-btn-red" disabled>删除选中项</button>
+        </div>
+      </div>
+    </div>
+
 
     <script>
       // 类脑/旅程梦星作品，禁止二传，禁止商业化，均无偿免费开源分享
       (function () {
+        // --- 全局配置 ---
+        const LOREBOOK_NAME = '归墟（拼好卡）';
+        
         // --- API 可用性检查 ---
         /* global TavernHelper, eventEmit, getChatMessages, getCurrentMessageId */
         if (
@@ -655,7 +705,7 @@
 
         // --- 世界书数据管理器 (已使用新版API重写) ---
         const WorldBookManager = {
-          LOREBOOK_NAME: '归墟（拼好卡）',
+          LOREBOOK_NAME: LOREBOOK_NAME,
 
           parseCommentTitle(comment) {
             const result = {
@@ -1145,13 +1195,13 @@ const GAME_DATA = {
 // --- 新用户的默认数据 ---
 const DEFAULT_EDITOR_DATA = {
   talents: [
-    { id: '天生剑体', name: '天生剑体', author: '系统', series: '剑道', cost: 20, description: '对剑术的感悟远超常人。', },
-    { id: '丹道宗师', name: '丹道宗师', author: '系统', series: '丹道', cost: 20, description: '在炼丹方面有无与伦比的天赋。', },
-    { id: '阵法大家', name: '阵法大家', author: '系统', series: '阵法', cost: 20, description: '能轻易看破并布置强大的阵法。', },
-    { id: '御兽奇才', name: '御兽奇才', author: '系统', series: '御兽', cost: 15, description: '与灵兽有天然的亲和力。', },
+    { id: '天生剑体', name: '天生剑体', author: '系统', series: '', cost: 20, description: '对剑术的感悟远超常人。', },
+    { id: '丹道宗师', name: '丹道宗师', author: '系统', series: '', cost: 20, description: '在炼丹方面有无与伦比的天赋。', },
+    { id: '阵法大家', name: '阵法大家', author: '系统', series: '', cost: 20, description: '能轻易看破并布置强大的阵法。', },
+    { id: '御兽奇才', name: '御兽奇才', author: '系统', series: '', cost: 15, description: '与灵兽有天然的亲和力。', },
     { id: '天生神力', name: '天生神力', author: '系统', series: '', cost: 10, description: '你的力量远超常人。' },
     { id: '过目不忘', name: '过目不忘', author: '系统', series: '', cost: 10, description: '你看过的东西都能记住。' },
-    { id: '炼器大师', name: '炼器大师', author: '系统', series: '炼器', cost: 20, description: '在炼器方面有无与伦比的天赋。', },
+    { id: '炼器大师', name: '炼器大师', author: '系统', series: '', cost: 20, description: '在炼器方面有无与伦比的天赋。', },
     { id: '天生灵体', name: '天生灵体', author: '系统', series: '', cost: 25, description: '修炼速度是常人的两倍。', },
     { id: '鸿运当头', name: '鸿运当头', author: '系统', series: '', cost: 50, description: '你的运气总是很好。气运+100', },
     { id: '百毒不侵', name: '百毒不侵', author: '系统', series: '', cost: 15, description: '你对所有毒素都有很强的抵抗力。', },
@@ -1219,23 +1269,8 @@ let gameState = getNewGameState();
 
 async function refreshLocalStorage() {
   try {
-    ['guixu_equipped_items', 'guixu_pending_actions'].forEach(key => { localStorage.removeItem(key); });
-    // 清除门禁缓存
-    for (let i = localStorage.length - 1; i >= 0; i--) {
-        const k = localStorage.key(i);
-        if (!k) continue;
-        if (k.startsWith('guixu_gate_gametxt_seen_') || k.startsWith('guixu_gate_unblocked_')) {
-            localStorage.removeItem(k);
-        }
-    }
-    for (let i = sessionStorage.length - 1; i >= 0; i--) {
-        const k = sessionStorage.key(i);
-        if (!k) continue;
-        if (k.startsWith('guixu_gate_auto_refreshed_')) {
-            sessionStorage.removeItem(k);
-        }
-    }
-    await guiXuAlert('缓存已清除！如果是新开聊天，这将有助于解决变量更新问题。');
+    ['guixu_equipped_items', 'guixu_pending_actions'].forEach(key => localStorage.removeItem(key));
+    await guiXuAlert('核心游戏缓存已清除！如果是新开聊天，这将有助于解决变量更新问题。');
   } catch (e) {
     console.error('清除缓存失败:', e);
     await guiXuAlert('清除缓存失败：' + e.message, '错误');
@@ -1320,10 +1355,17 @@ async function loadEditorData() {
 
     console.log('开始从世界书加载编辑器数据...');
     const worldBookData = await WorldBookManager.loadAllData();
+    
+    // **逻辑优化**: 只有在天赋和背景都为空时才提示导入
+    const needsDefaultImport = worldBookData.talents.length === 0 && worldBookData.backgrounds.length === 0;
 
-    if (worldBookData.isEmpty) {
+    if (needsDefaultImport) {
+      // 隐藏加载动画，防止遮挡弹窗
+      document.getElementById('loading-overlay').style.display = 'none';
       const imported = await promptForDefaultImport();
       if (imported) {
+        // 重新显示加载动画并加载新数据
+        document.getElementById('loading-overlay').style.display = 'flex';
         const reloadedData = await WorldBookManager.loadAllData();
         Object.assign(editorData, {
             talents: reloadedData.talents || [],
@@ -2538,7 +2580,7 @@ function showModal(type, uid = null) {
             if (window.ensureBackgroundImage) window.ensureBackgroundImage();
         }
         
-    // --- START OF SAVE/LOAD MANAGER LOGIC ---
+    // --- START OF SAVE/LOAD MANAGER LOGIC (World Book based) ---
     function _getDisplayText(aiResponse) {
         try {
             if (!aiResponse || typeof aiResponse !== 'string') return '';
@@ -2555,27 +2597,91 @@ function showModal(type, uid = null) {
 
     async function getSavesFromStorage() {
         try {
-            const bookName = WorldBookManager.LOREBOOK_NAME;
+            const bookName = LOREBOOK_NAME;
             const entries = await TavernHelper.getWorldbook(bookName);
             const map = {};
-            if (!entries) return map;
-
-            entries.forEach(e => {
-                const name = String(e.name || '');
-                if (name.startsWith('存档:')) {
-                    const slotId = name.slice(3); // Remove '存档:' prefix
+            (entries || []).forEach(e => {
+                const c = String(e.name || '');
+                if (c.startsWith('存档:')) {
+                    const slotId = c.slice(3);
                     try {
                         map[slotId] = JSON.parse(e.content || '{}');
-                    } catch (err) {
-                        console.warn(`Failed to parse save data for slot ${slotId}:`, err);
+                    } catch (_) {
+                        console.warn(`Failed to parse save data for slot: ${slotId}`);
                     }
                 }
             });
             return map;
         } catch (e) {
-            console.error("获取存档失败 (世界书):", e);
-            await guiXuAlert('错误：无法从世界书读取存档。', '错误');
+            console.error('获取存档失败(世界书):', e);
+            await guiXuAlert('获取存档失败，请确保世界书存在且可访问。', '错误');
             return {};
+        }
+    }
+
+    function _slotEntryName(slotId) {
+        return `存档:${slotId}`;
+    }
+
+    async function _upsertSaveEntry(slotId, saveData) {
+        const bookName = LOREBOOK_NAME;
+        const comment = _slotEntryName(slotId);
+        const content = JSON.stringify(saveData || {}, null, 0);
+        await TavernHelper.updateWorldbookWith(bookName, (worldbook) => {
+            const existingIndex = worldbook.findIndex(e => e.name === comment);
+            if (existingIndex > -1) {
+                worldbook[existingIndex].content = content;
+            } else {
+                worldbook.push({
+                    name: comment,
+                    content: content,
+                    keys: [comment],
+                    enabled: false,
+                    position: { type: 'before_character_definition', order: 999 },
+                    strategy: { type: 'selective', keys: [comment] }
+                });
+            }
+            return worldbook;
+        });
+    }
+
+    async function _deleteSaveEntry(slotId) {
+        const bookName = LOREBOOK_NAME;
+        const comment = _slotEntryName(slotId);
+        await TavernHelper.updateWorldbookWith(bookName, (worldbook) => {
+            return worldbook.filter(e => e.name !== comment);
+        });
+    }
+
+    async function deleteAssociatedLoreEntries(index) {
+        const bookName = LOREBOOK_NAME;
+        const baseJourney = '本世历程';
+        const basePast = '往世涟漪';
+
+        try {
+            await WorldBookManager._saveOrUpdateWith(worldbook => {
+                const uidsToDelete = new Set();
+                const matchName = (name, base, idx) => {
+                    if (idx > 1) return name === `${base}(${idx})`;
+                    return name === base;
+                };
+
+                for (const entry of worldbook) {
+                    const name = String(entry.name || '');
+                    if (matchName(name, baseJourney, Number(index) || 1) || matchName(name, basePast, Number(index) || 1)) {
+                        uidsToDelete.add(String(entry.uid));
+                    }
+                }
+
+                if (uidsToDelete.size > 0) {
+                    console.log(`[归墟] 准备删除 ${uidsToDelete.size} 个关联的本世历程/往世涟漪条目 (序号: ${index})。`);
+                    return worldbook.filter(entry => !uidsToDelete.has(String(entry.uid)));
+                }
+                return worldbook; // No changes
+            });
+        } catch (error) {
+            console.error(`删除世界序号 ${index} 的关联条目时出错:`, error);
+            await guiXuAlert(`删除关联的世界书条目失败: ${error.message}`, '错误');
         }
     }
 
@@ -2583,10 +2689,8 @@ function showModal(type, uid = null) {
         const modal = document.getElementById('save-load-modal');
         const container = modal.querySelector('.modal-body');
         if (!modal || !container) return;
-
         modal.style.display = 'flex';
         const saves = await getSavesFromStorage();
-
         let autoHtml = `<h3 style="font-size: 14px; color: #8b7355; margin-bottom: 10px;">自动存档</h3>`;
         const autoSlotIds = ['auto_save_slot_0', 'auto_save_slot_1'];
         let hasAutoSaves = false;
@@ -2595,7 +2699,6 @@ function showModal(type, uid = null) {
             autoHtml += renderSlot(saves[slotId], slotId, true);
         });
         if (!hasAutoSaves) autoHtml += `<p style="text-align:center; color:#8b7355; font-size:12px; font-style: italic;">暂无自动存档。</p>`;
-
         let manualHtml = `<h3 style="font-size: 14px; color: #8b7355; margin-top: 20px; margin-bottom: 10px; border-top: 1px solid rgba(201, 170, 113, 0.3); padding-top: 15px;">手动存档</h3>`;
         let hasManualSaves = false;
         for (let i = 1; i <= 5; i++) {
@@ -2604,7 +2707,6 @@ function showModal(type, uid = null) {
             manualHtml += renderSlot(saves[slotId], slotId, false);
         }
         if (!hasManualSaves) manualHtml += `<p style="text-align:center; color:#8b7355; font-size:12px; font-style: italic;">暂无手动存档。</p>`;
-        
         container.innerHTML = autoHtml + manualHtml;
     }
 
@@ -2615,11 +2717,9 @@ function showModal(type, uid = null) {
                 <button class="theme-btn theme-btn-gold btn-small" data-action="export-slot" ${!saveData ? 'disabled' : ''}>导出</button>
                 <button class="theme-btn theme-btn-red btn-small" data-action="delete-slot" ${!saveData ? 'disabled' : ''}>删除</button>
             </div>`;
-
         let contentHtml;
         const statData = saveData?.mvu_data?.stat_data || saveData?.mvu_data;
         let defaultName = isAutoSave ? (slotId === 'auto_save_slot_0' ? '最新自动存档' : '上一次自动存档') : `存档 ${slotId.split('_')[1]}`;
-
         if (statData) {
             const saveName = saveData.save_name || defaultName;
             const date = new Date(saveData.timestamp).toLocaleString('zh-CN');
@@ -2644,92 +2744,26 @@ function showModal(type, uid = null) {
         const allSaves = await getSavesFromStorage();
         const saveData = allSaves[slotId];
         if (!saveData) return;
-
         const saveName = saveData.save_name || slotId;
-        if (!(await guiXuConfirm(`确定要读取存档“${saveName}”吗？当前所有未保存的进度将会被覆盖。`))) return;
-
+        if (!(await guiXuConfirm(`确定要读取存档“${saveName}”吗？这将覆盖当前聊天楼层并刷新页面。`))) return;
         const loadingOverlay = document.getElementById('loading-overlay');
         loadingOverlay.innerHTML = `<p>正在读取“${saveName}”的记忆...</p>`;
         loadingOverlay.style.display = 'flex';
-
         try {
-            const messages = await getChatMessages(0);
-            if (!messages || !messages.length === 0) throw new Error("无法获取第0层消息，无法读档。");
-
-            const messageZero = messages[0];
-            messageZero.data = saveData.mvu_data;
-            messageZero.message = saveData.message_content || '';
-
-            // --- 新增：从独立世界书恢复到当前序号 ---
-            if (saveData.lorebook_entries) {
-                const entries = saveData.lorebook_entries;
-                const bookName = WorldBookManager.LOREBOOK_NAME;
-                const unifiedIndexInput = document.getElementById('unified-index-input');
-                const currentIndex = unifiedIndexInput ? parseInt(unifiedIndexInput.value, 10) : 1;
-
-                const currentJourneyKey = currentIndex > 1 ? `本世历程(${currentIndex})` : '本世历程';
-                const currentPastLivesKey = currentIndex > 1 ? `往世涟漪(${currentIndex})` : '往世涟漪';
-                const currentNovelModeKey = currentIndex > 1 ? `小说模式(${currentIndex})` : '小说模式'; // 简化处理
-
-                await TavernHelper.updateWorldbookWith(bookName, async (allEntries) => {
-                    const findOrCreate = (targetKey, sourceKey, baseKey, order) => {
-                        const sourceEntry = allEntries.find(e => e.name === entries[sourceKey]);
-                        const targetEntry = allEntries.find(e => e.name === targetKey);
-                        if (sourceEntry) {
-                            if (targetEntry) {
-                                targetEntry.content = sourceEntry.content || '';
-                            } else {
-                                const base = allEntries.find(e => e.name === baseKey) || {};
-                                allEntries.push({ ...base, uid: undefined, name: targetKey, content: sourceEntry.content || '', strategy: { ...base.strategy, keys: [...(base.strategy?.keys || []), targetKey] }, enabled: true, position: { ...base.position, order } });
-                            }
-                        }
-                    };
-                    findOrCreate(currentJourneyKey, 'journey_entry_name', '本世历程', 20);
-                    findOrCreate(currentPastLivesKey, 'past_lives_entry_name', '往世涟漪', 19);
-                    findOrCreate(currentNovelModeKey, 'novel_mode_entry_name', '小说模式', 18);
-                    
-                    return allEntries;
-                });
-                console.log(`[归墟读档] 已将存档"${saveName}"的世界书数据覆写到当前序号 ${currentIndex}`);
+            if (typeof saveData.unified_index === 'number') {
+                localStorage.setItem('guixu_unified_index', saveData.unified_index);
             }
-
-            await TavernHelper.setChatMessages([messageZero], { refresh: 'all' });
-            await guiXuAlert('读档成功！页面将刷新以应用所有更改。');
-            window.location.reload();
-
+            const currentId = getCurrentMessageId();
+            const updates = [{
+                message_id: currentId,
+                message: saveData.message_content || '',
+                data: saveData.mvu_data
+            }];
+            await TavernHelper.setChatMessages(updates, { refresh: 'all' });
         } catch (error) {
             console.error('读档失败:', error);
             await guiXuAlert(`读档失败: ${error.message}`, '错误');
-        } finally {
             loadingOverlay.style.display = 'none';
-        }
-    }
-
-    async function deleteWorldLoreForIndex(index) {
-        try {
-            const bookName = WorldBookManager.LOREBOOK_NAME;
-            const allEntries = await TavernHelper.getWorldbook(bookName);
-            if (!allEntries) return;
-
-            const journeyBase = '本世历程';
-            const pastLivesBase = '往世涟漪';
-            
-            const targetJourney = index > 1 ? `${journeyBase}(${index})` : journeyBase;
-            const targetPastLives = index > 1 ? `${pastLivesBase}(${index})` : pastLivesBase;
-
-            const uidsToDelete = allEntries
-                .filter(e => e.name === targetJourney || e.name === targetPastLives)
-                .map(e => e.uid);
-
-            if (uidsToDelete.length > 0) {
-                await TavernHelper.updateWorldbookWith(bookName, worldbook => {
-                    return worldbook.filter(e => !uidsToDelete.includes(e.uid));
-                });
-                console.log(`[归墟删除] 已清除世界序号 ${index} 的激活条目，共 ${uidsToDelete.length} 条。`);
-            }
-        } catch (error) {
-            console.error(`删除世界序号 ${index} 的世界书条目时出错:`, error);
-            await guiXuAlert('警告：删除世界书激活条目失败。');
         }
     }
 
@@ -2740,32 +2774,42 @@ function showModal(type, uid = null) {
 
         const slotName = saveDataToDelete.save_name || `存档${slotId.replace(/slot_|auto_save_slot_/, '')}`;
         let confirmMsg = `确定要删除存档 "${slotName}" 吗？此操作不可恢复。`;
-        if (saveDataToDelete.lorebook_entries) {
+        if (saveDataToDelete.lorebook_entries || saveDataToDelete.unified_index) {
             confirmMsg += `\n相关的世界书快照和激活条目也会被一并删除。`;
         }
         
         if (await guiXuConfirm(confirmMsg)) {
             try {
                 const bookName = WorldBookManager.LOREBOOK_NAME;
-                // Delete lorebook backups
+                const entryNamesToDelete = new Set();
+
+                // 1. Add the save entry itself
+                entryNamesToDelete.add(`存档:${slotId}`);
+
+                // 2. Add lorebook backups from the save file
                 if (saveDataToDelete.lorebook_entries) {
-                    const entryNamesToDelete = Object.values(saveDataToDelete.lorebook_entries);
-                    await TavernHelper.updateWorldbookWith(bookName, (worldbook) => {
-                        return worldbook.filter(e => !entryNamesToDelete.includes(e.name));
+                    Object.values(saveDataToDelete.lorebook_entries).forEach(name => {
+                        if (name) entryNamesToDelete.add(name);
                     });
                 }
 
-                // NEW: Delete active lore entries for the corresponding world index
+                // 3. Identify active lore entries for the corresponding world index
                 const worldIndex = saveDataToDelete.unified_index || 1;
-                await deleteWorldLoreForIndex(worldIndex);
+                const journeyBase = '本世历程';
+                const pastLivesBase = '往世涟漪';
+                const targetJourney = worldIndex > 1 ? `${journeyBase}(${worldIndex})` : journeyBase;
+                const targetPastLives = worldIndex > 1 ? `${pastLivesBase}(${worldIndex})` : pastLivesBase;
+                
+                // This part is tricky because we don't have UIDs here. We'll add names to the delete set.
+                entryNamesToDelete.add(targetJourney);
+                entryNamesToDelete.add(targetPastLives);
 
-                // Delete the save entry itself
-                const saveEntryName = `存档:${slotId}`;
+                // Perform a single update operation
                 await TavernHelper.updateWorldbookWith(bookName, (worldbook) => {
-                    return worldbook.filter(e => e.name !== saveEntryName);
+                    return worldbook.filter(e => !entryNamesToDelete.has(e.name));
                 });
 
-                await guiXuAlert(`"${slotName}" 已删除。`);
+                await guiXuAlert(`"${slotName}" 及关联条目已删除。`);
                 showSaveLoadManager();
             } catch (error) {
                 console.error('删除存档失败:', error);
@@ -2773,12 +2817,13 @@ function showModal(type, uid = null) {
             }
         }
     }
-    
+
     async function clearAllSaves() {
         const allSaves = await getSavesFromStorage();
         const saveKeys = Object.keys(allSaves);
         const bookName = WorldBookManager.LOREBOOK_NAME;
 
+        // This block handles the case where there are no save files, but there might be orphaned lore entries.
         if (saveKeys.length === 0) {
             try {
                 const allLoreEntries = await TavernHelper.getWorldbook(bookName);
@@ -2810,9 +2855,10 @@ function showModal(type, uid = null) {
                     if (await guiXuConfirm(msg, "高危操作确认")) {
                         document.getElementById('loading-overlay').style.display = 'flex';
                         try {
-                            for (const idx of indices) {
-                                await deleteWorldLoreForIndex(idx);
-                            }
+                            await TavernHelper.updateWorldbookWith(bookName, worldbook => {
+                                const uidsToDelete = new Set(activeLoreEntries.map(ae => ae.uid));
+                                return worldbook.filter(e => !uidsToDelete.has(String(e.uid)));
+                            });
                             await guiXuAlert("已清理检测到的激活条目。");
                             showSaveLoadManager();
                         } catch (e) {
@@ -2838,50 +2884,35 @@ function showModal(type, uid = null) {
         document.getElementById('loading-overlay').style.display = 'flex';
         try {
             const entryNamesToDelete = new Set();
-            const indicesToDelete = new Set();
-
+            
+            // Collect all save entries and their backups
             saveKeys.forEach(slotId => {
                 entryNamesToDelete.add(`存档:${slotId}`);
                 const saveData = allSaves[slotId];
-                if (saveData) {
-                    indicesToDelete.add(saveData.unified_index || 1);
-                    if (saveData.lorebook_entries) {
-                        Object.values(saveData.lorebook_entries).forEach(name => {
-                            if (name) entryNamesToDelete.add(name);
-                        });
-                    }
+                if (saveData && saveData.lorebook_entries) {
+                    Object.values(saveData.lorebook_entries).forEach(name => {
+                        if (name) entryNamesToDelete.add(name);
+                    });
+                }
+            });
+            
+            // Collect all active lore entries
+            const allLoreEntries = await TavernHelper.getWorldbook(bookName);
+            const journeyBase = '本世历程';
+            const pastLivesBase = '往世涟漪';
+            allLoreEntries.forEach(e => {
+                const name = String(e.name || "");
+                if (name === journeyBase || name.startsWith(journeyBase + "(") || name === pastLivesBase || name.startsWith(pastLivesBase + "(")) {
+                    entryNamesToDelete.add(name);
                 }
             });
 
-            // Delete all save entries and their backups
+            // Perform a single delete operation
             if (entryNamesToDelete.size > 0) {
                 await TavernHelper.updateWorldbookWith(bookName, (worldbook) => {
                     return worldbook.filter(entry => !entryNamesToDelete.has(entry.name));
                 });
             }
-
-            // Delete all active lore entries associated with the deleted saves
-            for (const idx of indicesToDelete) {
-                await deleteWorldLoreForIndex(idx);
-            }
-
-            // 同步刷新门禁相关缓存
-            try {
-                for (let i = localStorage.length - 1; i >= 0; i--) {
-                    const k = localStorage.key(i);
-                    if (!k) continue;
-                    if (k.startsWith('guixu_gate_gametxt_seen_') || k.startsWith('guixu_gate_unblocked_')) {
-                        localStorage.removeItem(k);
-                    }
-                }
-                for (let i = sessionStorage.length - 1; i >= 0; i--) {
-                    const k = sessionStorage.key(i);
-                    if (!k) continue;
-                    if (k.startsWith('guixu_gate_auto_refreshed_')) {
-                        sessionStorage.removeItem(k);
-                    }
-                }
-            } catch (_) {}
 
             await guiXuAlert(`所有存档及关联的世界书条目已清除。`);
             showSaveLoadManager();
@@ -2898,52 +2929,8 @@ function showModal(type, uid = null) {
         const allSaves = await getSavesFromStorage();
         const saveData = allSaves[slotId];
         if (!saveData) return;
-
-        try {
-            const dataToExport = {
-                exportVersion: '1.0',
-                exportedAt: new Date().toISOString(),
-                saveData: saveData,
-                lorebookData: []
-            };
-
-            if (saveData.lorebook_entries) {
-                const bookName = WorldBookManager.LOREBOOK_NAME;
-                const entryNames = Object.values(saveData.lorebook_entries);
-                const allEntries = await TavernHelper.getWorldbook(bookName);
-                dataToExport.lorebookData = allEntries.filter(e => entryNames.includes(e.name));
-            }
-
-            const fileName = `${(saveData.save_name || `guixu_save_${slotId}`).replace(/[^a-z0-9]/gi, '_')}.json`;
-            exportData(JSON.stringify(dataToExport, null, 2), fileName);
-            await guiXuAlert('存档已成功导出！');
-        } catch (error) {
-            console.error('导出存档失败:', error);
-            await guiXuAlert(`导出失败: ${error.message}`, '错误');
-        }
-    }
-
-    async function _upsertSaveEntry(slotId, saveData) {
-        const bookName = WorldBookManager.LOREBOOK_NAME;
-        const entryName = `存档:${slotId}`;
-        const content = JSON.stringify(saveData || {}, null, 0);
-
-        await TavernHelper.updateWorldbookWith(bookName, (worldbook) => {
-            const existingIndex = worldbook.findIndex(e => e.name === entryName);
-            if (existingIndex > -1) {
-                worldbook[existingIndex].content = content;
-            } else {
-                worldbook.push({
-                    name: entryName,
-                    content: content,
-                    keys: [entryName],
-                    enabled: false,
-                    position: { type: 'before_character_definition', order: 10 },
-                    strategy: { type: 'constant' }
-                });
-            }
-            return worldbook;
-        });
+        const fileName = `${(saveData.save_name || `guixu_save_${slotId}`).replace(/[^a-z0-9]/gi, '_')}.json`;
+        exportData(JSON.stringify(saveData, null, 2), fileName);
     }
 
     async function handleFileImport(event) {
@@ -2952,44 +2939,15 @@ function showModal(type, uid = null) {
         const reader = new FileReader();
         reader.onload = async (e) => {
             try {
-                const importedData = JSON.parse(e.target.result);
-                let saveDataToImport;
-                let lorebookDataToImport = [];
-
-                if (importedData.exportVersion === '1.0') { // New format
-                    saveDataToImport = importedData.saveData;
-                    lorebookDataToImport = importedData.lorebookData || [];
-                } else { // Old format
-                    saveDataToImport = importedData;
-                }
-
-                if (!saveDataToImport || !saveDataToImport.timestamp || !saveDataToImport.mvu_data) {
+                const importedSave = JSON.parse(e.target.result);
+                if (!importedSave.timestamp || !importedSave.mvu_data) {
                     throw new Error('存档文件格式无效。');
                 }
-
-                const slotId = await promptForSlotSelection(saveDataToImport.save_name || '导入的存档');
+                const slotId = await promptForSlotSelection(importedSave.save_name || '导入的存档');
                 if (!slotId) return;
-                
-                const bookName = WorldBookManager.LOREBOOK_NAME;
-                
-                // Handle lorebook entries
-                if (lorebookDataToImport.length > 0) {
-                    await TavernHelper.updateWorldbookWith(bookName, (worldbook) => {
-                        const existingNames = new Set(worldbook.map(e => e.name));
-                        lorebookDataToImport.forEach(entry => {
-                            if (!existingNames.has(entry.name)) {
-                                const { uid, ...newEntry } = entry;
-                                worldbook.push(newEntry);
-                            }
-                        });
-                        return worldbook;
-                    });
-                }
-                
-                await _upsertSaveEntry(slotId, saveDataToImport);
+                await _upsertSaveEntry(slotId, importedSave);
                 await guiXuAlert(`存档已成功导入到 ${slotId.replace('slot_', '存档位 ')}。`);
                 showSaveLoadManager();
-
             } catch (error) {
                 await guiXuAlert(`导入失败: ${error.message}`, '错误');
             }
@@ -3029,7 +2987,7 @@ function showModal(type, uid = null) {
     }
     
     function setupSaveManagerEventListeners() {
-        document.getElementById('show-save-manager-btn').addEventListener('click', () => showSaveLoadManager());
+        document.getElementById('show-save-manager-btn').addEventListener('click', showSaveLoadManager);
         const modal = document.getElementById('save-load-modal');
         if (!modal) return;
         modal.addEventListener('click', (e) => {
@@ -3051,6 +3009,126 @@ function showModal(type, uid = null) {
     }
     // --- END OF SAVE/LOAD MANAGER LOGIC ---
     
+    // --- START OF SNAPSHOT CLEANUP MANAGER ---
+    async function showSnapshotManager() {
+        const modal = document.getElementById('snapshot-manager-modal');
+        const loadingOverlay = document.getElementById('loading-overlay');
+        loadingOverlay.style.display = 'flex';
+
+        try {
+            const allEntries = await TavernHelper.getWorldbook(WorldBookManager.LOREBOOK_NAME);
+            
+            // 定义快照的正则表达式
+            const gameProcessRegex = /^(本世历程|往世涟漪)(\(\d+\))?$/;
+            const nonGameProcessRegex = /^(.+[:-]\s*)?小说模式(\(\d+\))?$/;
+
+            const gameProcessSnapshots = [];
+            const nonGameProcessSnapshots = [];
+
+            allEntries.forEach(entry => {
+                const name = entry.name.trim();
+                if (gameProcessRegex.test(name)) {
+                    gameProcessSnapshots.push(entry);
+                } else if (nonGameProcessRegex.test(name)) {
+                    nonGameProcessSnapshots.push(entry);
+                }
+            });
+
+            const renderList = (snapshots) => {
+                if (snapshots.length === 0) return '<div class="loading-placeholder">无匹配项</div>';
+                return snapshots.map(s => `
+                    <label class="snapshot-item">
+                        <input type="checkbox" class="snapshot-checkbox" value="${s.uid}">
+                        <span class="snapshot-item-name">${s.name}</span>
+                        <span class="snapshot-item-uid">UID: ${s.uid}</span>
+                    </label>
+                `).join('');
+            };
+
+            document.getElementById('game-process-snapshot-list').innerHTML = renderList(gameProcessSnapshots);
+            document.getElementById('non-game-process-snapshot-list').innerHTML = renderList(nonGameProcessSnapshots);
+            
+            modal.style.display = 'flex';
+
+        } catch (error) {
+            console.error('打开快照清理器失败:', error);
+            await guiXuAlert('无法加载快照列表: ' + error.message, '错误');
+        } finally {
+            loadingOverlay.style.display = 'none';
+        }
+    }
+
+    function setupSnapshotManagerEventListeners() {
+        const modal = document.getElementById('snapshot-manager-modal');
+        if (!modal) return;
+
+        // "打开"按钮
+        document.getElementById('show-snapshot-manager-btn').addEventListener('click', showSnapshotManager);
+
+        const selectionInfo = document.getElementById('snapshot-selection-info');
+        const deleteBtn = document.getElementById('delete-selected-snapshots-btn');
+
+        // 更新选中计数和删除按钮状态
+        const updateSelectionState = () => {
+            const checkedBoxes = modal.querySelectorAll('.snapshot-checkbox:checked');
+            const count = checkedBoxes.length;
+            selectionInfo.textContent = `已选择 ${count} 项`;
+            deleteBtn.disabled = count === 0;
+        };
+
+        // 事件委托处理模态框内所有点击
+        modal.addEventListener('click', async (e) => {
+            const target = e.target;
+
+            // 关闭按钮
+            if (target.closest('.modal-close-btn') || target.matches('.modal-overlay')) {
+                modal.style.display = 'none';
+                return;
+            }
+
+            // "全选"复选框
+            if (target.matches('input[data-group]')) {
+                const group = target.dataset.group;
+                const listId = group === 'game-process' ? 'game-process-snapshot-list' : 'non-game-process-snapshot-list';
+                const checkboxes = document.getElementById(listId).querySelectorAll('.snapshot-checkbox');
+                checkboxes.forEach(box => box.checked = target.checked);
+                updateSelectionState();
+                return;
+            }
+
+            // 单个条目复选框
+            if (target.classList.contains('snapshot-checkbox')) {
+                updateSelectionState();
+                return;
+            }
+
+            // "删除"按钮
+            if (target.id === 'delete-selected-snapshots-btn') {
+                const checkedBoxes = modal.querySelectorAll('.snapshot-checkbox:checked');
+                const uidsToDelete = Array.from(checkedBoxes).map(box => box.value);
+
+                if (uidsToDelete.length > 0 && await guiXuConfirm(`确定要删除选中的 ${uidsToDelete.length} 个快照条目吗？此操作不可恢复。`, '删除确认')) {
+                    const loadingOverlay = document.getElementById('loading-overlay');
+                    loadingOverlay.style.display = 'flex';
+                    try {
+                        await WorldBookManager._saveOrUpdateWith(worldbook => {
+                            return worldbook.filter(entry => !uidsToDelete.includes(String(entry.uid)));
+                        });
+                        await guiXuAlert('选中的快照已成功删除。');
+                        modal.style.display = 'none';
+                    } catch (error) {
+                        console.error('删除快照失败:', error);
+                        await guiXuAlert('删除失败: ' + error.message, '错误');
+                    } finally {
+                        loadingOverlay.style.display = 'none';
+                    }
+                }
+            }
+        });
+    }
+
+    // --- END OF SNAPSHOT CLEANUP MANAGER ---
+
     // === [PORTED] Background Settings Logic ===
     const BG_SETTINGS_KEY = 'guixu_background_settings_v2';
     const defaultBgSettings = { network: true, opacity: 0.5, blur: 0, local: false, localImage: null };
@@ -3157,6 +3235,113 @@ function showModal(type, uid = null) {
         reader.readAsDataURL(file);
     }
 
+    // --- 归墟Plus 读写序号控制 ---
+    function setupUnifiedIndexControls() {
+        const unifiedIndexInput = document.getElementById('unified-index-input');
+        const autoToggleCheckbox = document.getElementById('auto-toggle-lorebook-checkbox');
+        const incrementBtn = document.getElementById('index-increment-btn');
+        const decrementBtn = document.getElementById('index-decrement-btn');
+
+        if (!unifiedIndexInput || !autoToggleCheckbox || !incrementBtn || !decrementBtn) return;
+
+        const state = { unifiedIndex: 1, isAutoToggleEnabled: false };
+
+        function updateStepperButtons() {
+            const currentValue = parseInt(unifiedIndexInput.value, 10);
+            decrementBtn.disabled = (currentValue <= 1);
+        }
+
+        async function updateAutoToggledEntries(andDisableAll = false) {
+            if (typeof TavernHelper === 'undefined' || typeof TavernHelper.updateWorldbookWith === 'undefined') return;
+            const bookName = LOREBOOK_NAME;
+            const index = state.unifiedIndex;
+            const journeyKey = index > 1 ? `本世历程(${index})` : '本世历程';
+            const pastLivesKey = index > 1 ? `往世涟漪(${index})` : '往世涟漪';
+
+            try {
+                await TavernHelper.updateWorldbookWith(bookName, (allEntries) => {
+                    const entriesToCreate = [];
+                    if (!allEntries.find(e => e.name === journeyKey)) {
+                        const base = allEntries.find(e => e.name === '本世历程');
+                        if (base) entriesToCreate.push({ ...base, uid: undefined, name: journeyKey, content: '', strategy: { ...base.strategy, keys: [...(base.strategy?.keys || []), journeyKey] }, enabled: true });
+                    }
+                    if (!allEntries.find(e => e.name === pastLivesKey)) {
+                        const base = allEntries.find(e => e.name === '往世涟漪');
+                        if (base) entriesToCreate.push({ ...base, uid: undefined, name: pastLivesKey, content: '', strategy: { ...base.strategy, keys: [...(base.strategy?.keys || []), pastLivesKey] }, enabled: true });
+                    }
+                    allEntries.push(...entriesToCreate);
+
+                    for (const entry of allEntries) {
+                        const isJourney = entry.name.startsWith('本世历程');
+                        const isPast = entry.name.startsWith('往世涟漪');
+                        if (!isJourney && !isPast) continue;
+                        const isTarget = entry.name === journeyKey || entry.name === pastLivesKey;
+                        const shouldBeEnabled = isTarget && !andDisableAll && state.isAutoToggleEnabled;
+                        if (entry.enabled !== shouldBeEnabled) {
+                            entry.enabled = shouldBeEnabled;
+                        }
+                    }
+                    return allEntries;
+                });
+            } catch (error) {
+            console.error('[归墟] 更新世界书条目状态时出错:', error);
+            }
+        }
+
+        function saveState() {
+            try {
+                localStorage.setItem('guixu_unified_index', state.unifiedIndex);
+                localStorage.setItem('guixu_auto_toggle_enabled', state.isAutoToggleEnabled);
+            } catch (e) {
+                console.error('保存状态失败:', e);
+            }
+        }
+
+        function loadState() {
+            try {
+                state.unifiedIndex = parseInt(localStorage.getItem('guixu_unified_index'), 10) || 1;
+                unifiedIndexInput.value = state.unifiedIndex;
+                state.isAutoToggleEnabled = localStorage.getItem('guixu_auto_toggle_enabled') === 'true';
+                autoToggleCheckbox.checked = state.isAutoToggleEnabled;
+                updateStepperButtons();
+            } catch (e) {
+                console.error('加载状态失败:', e);
+            }
+        }
+
+        loadState();
+        unifiedIndexInput.addEventListener('change', e => {
+            const newIndex = parseInt(e.target.value, 10);
+            if (!isNaN(newIndex) && newIndex > 0) {
+            state.unifiedIndex = newIndex;
+            saveState();
+            if (state.isAutoToggleEnabled) updateAutoToggledEntries();
+            } else {
+            e.target.value = state.unifiedIndex;
+            }
+            updateStepperButtons();
+        });
+        autoToggleCheckbox.addEventListener('change', e => {
+            state.isAutoToggleEnabled = e.target.checked;
+            saveState();
+            updateAutoToggledEntries(!state.isAutoToggleEnabled);
+        });
+        
+        incrementBtn.addEventListener('click', () => {
+            let currentValue = parseInt(unifiedIndexInput.value, 10);
+            unifiedIndexInput.value = isNaN(currentValue) ? 1 : currentValue + 1;
+            unifiedIndexInput.dispatchEvent(new Event('change'));
+        });
+
+        decrementBtn.addEventListener('click', () => {
+            let currentValue = parseInt(unifiedIndexInput.value, 10);
+            if (!isNaN(currentValue) && currentValue > 1) {
+                unifiedIndexInput.value = currentValue - 1;
+                unifiedIndexInput.dispatchEvent(new Event('change'));
+            }
+        });
+    }
+
     document.addEventListener('DOMContentLoaded', () => {
       // Main UI Listeners
       document.getElementById('show-editor-btn').addEventListener('click', async () => {
@@ -3172,8 +3357,10 @@ function showModal(type, uid = null) {
       setupGlobalControls();
       bindGameFlowEvents();
       setupSaveManagerEventListeners();
+      setupSnapshotManagerEventListeners();
+      setupUnifiedIndexControls();
       
-      // === [PORTED] Settings Modal Listeners ===
+      // === Settings Modal Listeners ===
       const settingsModal = document.getElementById('settings-modal');
       const floatingSettingsBtn = document.getElementById('floating-settings-btn');
       const closeModalSettingsBtn = document.getElementById('modal-close-settings-btn');
@@ -3192,10 +3379,22 @@ function showModal(type, uid = null) {
       renderSettingsModal();
       window.ensureBackgroundImage = applyBackgroundSettings;
       window.addEventListener('focus', applyBackgroundSettings);
-
-
-      document.getElementById('clear-cache-btn').addEventListener('click', refreshLocalStorage);
+      
       document.getElementById('start-game-btn').addEventListener('click', async () => {
+        try {
+            const unifiedIndexInput = document.getElementById('unified-index-input');
+            const idx = unifiedIndexInput ? parseInt(unifiedIndexInput.value, 10) : 1;
+            if (idx > 0) {
+                const unblockedKey = `guixu_gate_unblocked_${idx}`;
+                const seenKey = `guixu_gate_gametxt_seen_${idx}`;
+                localStorage.removeItem(unblockedKey);
+                localStorage.removeItem(seenKey);
+                console.log(`[归墟开局] 已清理序号 ${idx} 的门禁缓存: ${unblockedKey}, ${seenKey}`);
+            }
+        } catch (e) {
+            console.warn('[归墟开局] 清理门禁缓存失败:', e);
+        }
+        
         await refreshLocalStorage();
         await loadEditorData();
         renderStartupChoice();
@@ -3431,18 +3630,40 @@ ${genderText}`.trim();
             }],
             should_stream: false,
           };
-          const mvuScript = await TavernHelper.generate(generateConfig);
-          if (!mvuScript) throw new Error('AI未能生成开局脚本。');
+          const aiResponse = await TavernHelper.generate(generateConfig);
+if (!aiResponse) {
+  throw new Error('AI未能生成开局脚本。');
+}
 
-          const messages = await getChatMessages(0);
-          if (!messages || messages.length === 0) throw new Error('无法获取到第0层消息，无法写入开局设定。');
+const messages = await getChatMessages(0);
+if (!messages || messages.length === 0) {
+  throw new Error('无法获取到第0层消息，无法写入开局设定。');
+}
+const messageZero = messages[0];
 
-          const messageZero = messages[0];
-          messageZero.message = mvuScript;
-          messageZero.data = {};
-          await TavernHelper.setChatMessages([messageZero], { refresh: 'all' });
-        } catch (error) {
-          console.error('生成开局时出错:', error);
+// 提取UpdateVariable脚本
+const updateScriptMatch = aiResponse.match(/<UpdateVariable>([\s\S]+?)<\/UpdateVariable>/i);
+const updateScript = updateScriptMatch ? updateScriptMatch[1].trim() : null;
+
+let updatedData = {};
+
+if (updateScript) {
+  // 准备调用事件所需的数据
+  const eventPayload = { old_variables: messageZero.data || {} };
+  
+  // 触发事件，让SillyTavern的MVU引擎处理脚本
+  await eventEmit('mag_invoke_mvu', updateScript, eventPayload);
+  
+  // 从事件返回的数据中获取新变量
+  if (eventPayload.new_variables) {
+    updatedData = eventPayload.new_variables;
+  }
+}
+
+messageZero.message = aiResponse; // 存储完整的AI回复
+messageZero.data = updatedData; // 将脚本生成的新变量保存回消息数据
+
+await TavernHelper.setChatMessages([messageZero], { refresh: 'all' });
           await guiXuAlert(`生成开局失败: ${error.message}\n详情请查看控制台。`, '错误');
         } finally {
           document.getElementById('loading-overlay').style.display = 'none';
@@ -3545,171 +3766,54 @@ ${genderText}`.trim();
   })();
 </script>
 <script>
-  // 类脑/旅程梦星作品，禁止二传，禁止商业化，均无偿免费开源分享
-  // --- 归墟Plus 读写序号控制 ---
-  (function () {
-    'use strict';
-    document.addEventListener('DOMContentLoaded', () => {
-      const unifiedIndexInput = document.getElementById('unified-index-input');
-      const autoToggleCheckbox = document.getElementById('auto-toggle-lorebook-checkbox');
-      // === [PORTED] Get stepper buttons ===
-      const incrementBtn = document.getElementById('index-increment-btn');
-      const decrementBtn = document.getElementById('index-decrement-btn');
-
-      if (!unifiedIndexInput || !autoToggleCheckbox || !incrementBtn || !decrementBtn) return;
-
-      const state = { unifiedIndex: 1, isAutoToggleEnabled: false };
-
-      // === [PORTED] Function to update button state ===
-      function updateStepperButtons() {
-          const currentValue = parseInt(unifiedIndexInput.value, 10);
-          decrementBtn.disabled = (currentValue <= 1);
-      }
-
-      async function updateAutoToggledEntries(andDisableAll = false) {
-        if (typeof TavernHelper === 'undefined' || typeof TavernHelper.updateWorldbookWith === 'undefined') return;
-        const bookName = '归墟（拼好卡）';
-        const index = state.unifiedIndex;
-        const journeyKey = index > 1 ? `本世历程(${index})` : '本世历程';
-        const pastLivesKey = index > 1 ? `往世涟漪(${index})` : '往世涟漪';
-
-        try {
-            await TavernHelper.updateWorldbookWith(bookName, (allEntries) => {
-                const entriesToCreate = [];
-                if (!allEntries.find(e => e.name === journeyKey)) {
-                    const base = allEntries.find(e => e.name === '本世历程');
-                    if (base) entriesToCreate.push({ ...base, uid: undefined, name: journeyKey, content: '', strategy: { ...base.strategy, keys: [...(base.strategy?.keys || []), journeyKey] }, enabled: true });
-                }
-                if (!allEntries.find(e => e.name === pastLivesKey)) {
-                    const base = allEntries.find(e => e.name === '往世涟漪');
-                    if (base) entriesToCreate.push({ ...base, uid: undefined, name: pastLivesKey, content: '', strategy: { ...base.strategy, keys: [...(base.strategy?.keys || []), pastLivesKey] }, enabled: true });
-                }
-                allEntries.push(...entriesToCreate);
-
-                for (const entry of allEntries) {
-                    const isJourney = entry.name.startsWith('本世历程');
-                    const isPast = entry.name.startsWith('往世涟漪');
-                    if (!isJourney && !isPast) continue;
-                    const isTarget = entry.name === journeyKey || entry.name === pastLivesKey;
-                    const shouldBeEnabled = isTarget && !andDisableAll && state.isAutoToggleEnabled;
-                    if (entry.enabled !== shouldBeEnabled) {
-                        entry.enabled = shouldBeEnabled;
-                    }
-                }
-                return allEntries;
-            });
-        } catch (error) {
-          console.error('[归墟] 更新世界书条目状态时出错:', error);
-        }
-      }
-
-      function saveState() {
-        try {
-          localStorage.setItem('guixu_unified_index', state.unifiedIndex);
-          localStorage.setItem('guixu_auto_toggle_enabled', state.isAutoToggleEnabled);
-        } catch (e) {
-          console.error('保存状态失败:', e);
-        }
-      }
-
-      function loadState() {
-        try {
-          state.unifiedIndex = parseInt(localStorage.getItem('guixu_unified_index'), 10) || 1;
-          unifiedIndexInput.value = state.unifiedIndex;
-          state.isAutoToggleEnabled = localStorage.getItem('guixu_auto_toggle_enabled') === 'true';
-          autoToggleCheckbox.checked = state.isAutoToggleEnabled;
-          // === [PORTED] Update button state on load ===
-          updateStepperButtons();
-        } catch (e) {
-          console.error('加载状态失败:', e);
-        }
-      }
-
-      loadState();
-      unifiedIndexInput.addEventListener('change', e => {
-        const newIndex = parseInt(e.target.value, 10);
-        if (!isNaN(newIndex) && newIndex > 0) {
-          state.unifiedIndex = newIndex;
-          saveState();
-          if (state.isAutoToggleEnabled) updateAutoToggledEntries();
-        } else {
-          e.target.value = state.unifiedIndex;
-        }
-        // === [PORTED] Update button state on change ===
-        updateStepperButtons();
-      });
-      autoToggleCheckbox.addEventListener('change', e => {
-        state.isAutoToggleEnabled = e.target.checked;
-        saveState();
-        updateAutoToggledEntries(!state.isAutoToggleEnabled);
-      });
-      
-      // === [PORTED] Event listeners for stepper buttons ===
-      incrementBtn.addEventListener('click', () => {
-          let currentValue = parseInt(unifiedIndexInput.value, 10);
-          unifiedIndexInput.value = isNaN(currentValue) ? 1 : currentValue + 1;
-          unifiedIndexInput.dispatchEvent(new Event('change'));
-      });
-
-      decrementBtn.addEventListener('click', () => {
-          let currentValue = parseInt(unifiedIndexInput.value, 10);
-          if (!isNaN(currentValue) && currentValue > 1) {
-              unifiedIndexInput.value = currentValue - 1;
-              unifiedIndexInput.dispatchEvent(new Event('change'));
-          }
-      });
-    });
-  })();
-</script>
-<script>
   // --- "关于归墟" 模态窗口逻辑 (No Encryption) ---
   (function() {
     'use strict';
 
     const contentCredits = `
+**【大家好，这里是梦星，这是我的第15张卡，也是我目前花费精力最大的一张卡，感谢您的游玩，希望能多些反馈或者游玩截图，您的点赞和评论是我创造的最大动力】**
 
-**【大家好，这里是梦星，这是我的第15张卡，也是我目前花费精力最大的一张卡】**
-**【感谢您的游玩，希望能多些反馈或者游玩截图，您的点赞和评论是我创造的最大动力】**
+**【必备前置：酒馆助手 如果变量无法正确更新，请清除浏览器缓存】**
 
-**【归墟应该就是我的封笔作了，所以精益求精，打磨了很久，非常抱歉，但还是希望给大家留下一个好印象，或者说，一个很棒的梦星大人 】**
-**【祝大家玩的开心！】**
+1.  **【禁止二传，允许二创】**
+2.  **【禁止一切商业化用途，本卡只在discord社区类脑/旅程免费无偿发布，请不要成为它人的韭菜】**
+3.  **【本卡前端允许二改/借鉴/修改/学习，二改/直接使用需要询问，借鉴和摘抄结构需要发布时带上帖子链接以及@梦星标明来源 。之后有时间我也会写一篇mvu+同层游玩相关的教程，以及各种前端运用的思路和技巧，感谢大家支持和游玩，梦星再次拜谢】**
 
+### 感谢名单（排名不分先后）
+*   ✋😭🤚 感恩白星，帮助内测和提供Claude4支持写卡，这对我帮助极大，否则我大概率先被哈基米气死，为了郑重感谢白星，我决定在作者署名分给白星50%名额，现在这张卡的作者是梦/星了！！！
+*   ✋😭🤚 **赞美白星！！！**
+*   ✋😭🤚 感恩白虎MRoss，帮助内测，提供电脑端测试，写测试文档，详细世界观，提供api支持写卡，否则这张卡也大概率胎死哈基米腹中。
+*   ✋😭🤚 **赞美白虎MRoss！！！**
+*   ✋😭🤚 感恩wushuang，帮助内测，提供手机端测试，帮助写功法词条系统，招数系统，提出很多建设性想法。非常感谢wushuang的支持和帮助😭！
+*   ✋😭🤚 **赞美wushuang！！！**
+*   ✋😭🤚 感恩Elainades哥杀卡的判定系统，给予我判定系统的思路启迪，以及美化方面的指导帮助
+*   ✋😭🤚 感恩猫罐头的普赛克预设和自动化系统，给我大量参考资料和思路启迪
+*   ✋😭🤚 感谢孑孓对开局前端编辑器的功能修缮与更新
+*   ✋😭🤚 感谢SFinnae佬对我mvu同层的指点以及mvu框架
+*   ✋😭🤚 感谢波函数佬的mvu beta框架
+*   ✋😭🤚 感谢黑森森佬预设对我的灵感启发
+*   ✋😭🤚 感谢小曹房屋对开局前端大小设置的修改
+*   ✋😭🤚 非常感谢po佬的修仙之路2.0和教程，给了我很多帮助和灵感启迪，本卡也是我弥补自己在2.0时代的遗憾。同层思路启迪，大事件样式参考，教程思路参考：POARIES
 
-**【必备前置：酒馆助手 】**
-**【遇到问题怎么办？帖子标注——kk的游玩攻略及其问题排查 ——排查不行——看标注，查找相同问题/搜索关键词——还不行，带上详细截图（完整的正文和最后的变量更新，api端口，酒馆助手，正则列表截图）提问】**
+**【这张卡历时13天，日均15+小时，最多的一天达到了18小时。很多时候是凌晨起来，闭眼就到了新的凌晨。很多东西都是从0学起，一步步踩坑走过来的，同样，我把它开源是为了让社区涌现出更多优秀的作品，给后来者参考，而不是重复造轮子，踩过一个又一个我已经踩过的坑。】**
 
- **【1.禁止二传，允许二创】**
-**【2.禁止一切商业化用途，本卡只在discord社区类脑/旅程免费无偿发布，请不要成为它人的韭菜】**
-**【3.本卡前端允许二改/借鉴/修改/学习，二改/直接使用需要询问，借鉴和摘抄结构需要发布时带上帖子链接以及@梦星标明来源 。之后有时间我也会写一篇mvu+同层游玩相关的教程，以及各种前端运用的思路和技巧，感谢大家支持和游玩，梦星再次拜谢】**
+**【这是我的封笔作，所以我希望精益求精，给大家留下一个美好的印象和一张优秀和完善的卡，所以历经多次延期，在这里给那些等待的宝宝们说一声抱歉。】**
 
+> 真的很对不起，让你们久等了。
 
+**【不过，虽然历经磨难和艰辛，在白星，白虎MRoss，wushaung等人高强度内测下，我总算舒缓一口气，然后略带自豪地说：这张卡终于写完了！】**
 
+**【感谢一直以来支持我的宝宝们，非常感谢！！希望这张卡能不负你们的期望，在大家心目中留下一个很棒的梦星大人（并非），总之，非常感谢您的游玩啦！】**
 
-### 最新感谢名单（排名不分先后）
-### ✋ 😭 🤚   赞美孑孓！
-——梦星仅仅写了个开局前端的底模，之后都是孑孓进行相关开发，承担了90%以上的任务，非常感激孑孓！
-### ✋ 😭 🤚  孑孓大人，我们敬爱你口牙！
-### ✋ 😭 🤚  孑孓大人，我们敬爱你口牙！
-### ✋ 😭 🤚  孑孓大人，我们敬爱你口牙！
-——————
-### ✋ 😭 🤚   赞美夜幕！
-### ✋ 😭 🤚   赞美起物！
-### ✋ 😭 🤚   赞美gydg！
-超绝黑奴（不是
+**【我手上也有一份该前端代码的解析，如果有需求的宝宝们，可以私聊找我要，里面介绍了这份代码的很多实现方式，都可以在里面找到详解】**
 
-三位在审稿等方面帮助我良多，非常感激
+**【我乐于帮助解答问题和疑问，也不吝啬分享自己的劳动成果，希望能帮助社区卡区更加繁荣，给予其他人灵感和启迪，创作出更加优秀的作品】**
 
-以及夜幕帮忙整合世界书
-辛苦了！
+**【但私聊询问请注意语气，我不希望你是来炫耀的，无法接受“把你的卡拿来”这种语气，希望您尊重我的劳动成果。】**
 
+**【正常的批评和询问我欣于接受，也欢迎之后有bug来狠狠拷打梦星】**
 
-———————
-✋ 😭 🤚   赞美白星！
-虽然不知道赞美什么，算了留着吧
-———————
-
-最后欢迎大家加入来自梦星大人的归墟小团体，链接：[点击加入 Discord](https://discord.gg/epymFhrfHe)
-
+最后欢迎大家加入来自梦星大人的归墟小团体，链接：[点击加入 Discord](https://discord.gg/TEPsbUdb)
     `;
     const contentEditor = `
 ### 开局编辑器使用教程
@@ -3730,21 +3834,6 @@ ${genderText}`.trim();
 2.  可以通过编辑器勾选天赋为可选（开局自动勾选）或必选（开局强制勾选）。
 3.  导出预设时，会抓取并打包所有与预设同系列、同作者前缀的世界书条目。
 4.  所有设置了系列专属的天赋、背景，只有绑定了该系列的预设才能选择。没有设置系列归属的天赋、背景，不受此限制。
-
-### 归墟创意工坊（首创思路）
-
-### 目前归墟的世界书基础功能全开的情况下，已经压到10400token，且世界书结构清晰，划分明确，非常适合二创/使用编辑器换不同玩法
-
-### 本编辑器提供了丰富的接口和可扩展性，可以大规模支持二创
-
-### 您可以来归墟小团体，链接：[点击加入 Discord](https://discord.gg/epymFhrfHe)分享或者获取有趣的相关设定/或者超绝瑟瑟设定
-### 同时优秀者也可以获取他人优秀归墟二创/新版本归墟游玩
-
-### 希望大家能够积极参与分享！！
-## 感谢您的参与，梦星感激不尽！
-
-
-
     `;
     const contentVersion = `
 ## ✨ 主要更新 (拼好卡v3.5)
@@ -4000,8 +4089,7 @@ ${genderText}`.trim();
 |
 
 
-跳过码：梦星大人太会摸鱼了!!!!
-
+跳过码：梦星大人太会摸鱼了!!!
     `;
 
     document.addEventListener('DOMContentLoaded', () => {
@@ -4009,9 +4097,8 @@ ${genderText}`.trim();
       const COUNTDOWN_SECONDS = 60;
       
       const VALID_CODES = [
-        '孑孓大人太厉害了!!!!',
-        '梦星大人太会摸鱼了!!!!',
-        '看看注意事项吧！!!!!'
+        '孑孓大人太厉害了!!!',
+        '梦星大人太会摸鱼了!!!'
       ];
 
       const aboutBtn = document.getElementById('about-guixu-btn');
