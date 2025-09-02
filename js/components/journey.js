@@ -19,13 +19,15 @@
       if (actionsContainer) {
         const isAutoTrimEnabled = window.GuixuState.getState().isAutoTrimEnabled;
         actionsContainer.innerHTML = `
-          <div class="history-action-group" title="启用后，每次自动写入“本世历程”时，会自动修剪旧的自动化系统内容。">
-            <input type="checkbox" id="auto-trim-checkbox" ${isAutoTrimEnabled ? 'checked' : ''}>
-            <label for="auto-trim-checkbox" class="auto-write-label">自动修剪</label>
+          <div class="history-toolbar">
+            <div class="history-action-group" title="启用后，每次自动写入“本世历程”时，会自动修剪旧的自动化系统内容。">
+              <input type="checkbox" id="auto-trim-checkbox" ${isAutoTrimEnabled ? 'checked' : ''}>
+              <label for="auto-trim-checkbox" class="auto-write-label">自动修剪</label>
+            </div>
+            <button id="btn-show-trim-modal" class="interaction-btn btn-compact">手动修剪</button>
+            <button id="history-toggle-batch" class="interaction-btn btn-compact">批量选择</button>
+            <button id="history-delete-selected" class="interaction-btn danger-btn btn-compact" disabled>删除选中</button>
           </div>
-          <button id="btn-show-trim-modal" class="interaction-btn btn-compact">手动修剪</button>
-          <button id="history-toggle-batch" class="interaction-btn btn-compact">批量选择</button>
-          <button id="history-delete-selected" class="interaction-btn danger-btn btn-compact" disabled>删除选中</button>
           <div class="history-search">
             <input type="text" id="history-search-input" placeholder="搜索事件..." />
             <button id="history-search-clear" class="interaction-btn btn-compact">清除</button>

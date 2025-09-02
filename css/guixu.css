@@ -3233,6 +3233,13 @@ body { margin: 0; }
   gap: 8px !important;            /* 与移动端保持一致的间距 */
   align-items: center !important;
 }
+/* 新增：桌面端历史面板动作工具栏横排（不换行），按钮一行展示 */
+.guixu-root-container:not(.mobile-view) #history-modal .history-toolbar {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: nowrap;
+}
 /* 将动作区置于第二行并允许换行；覆盖 inline 的 margin-left:auto */
 .guixu-root-container:not(.mobile-view) #history-modal #history-modal-actions {
   order: 2 !important;
