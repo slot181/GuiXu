@@ -2113,6 +2113,18 @@ if (!document.getElementById('guixu-gate-style')) {
         }
 
         if (contentToParse) {
+          // 新增：检测主要标签的缺失或未闭合并提示（移动端/桌面端、全屏/非全屏通用）
+          try {
+            const requiredTags = ['thinking', 'gametxt', 'action', '本世历程', '往世涟漪', 'UpdateVariable', 'Analysis'];
+            const res = window.GuixuHelpers?.validateTagClosures?.(contentToParse, requiredTags) || null;
+            if (res && (Array.isArray(res.missing) && res.missing.length || Array.isArray(res.unclosed) && res.unclosed.length)) {
+              const parts = [];
+              if (Array.isArray(res.missing) && res.missing.length) parts.push(`未生成: ${res.missing.join(', ')}`);
+              if (Array.isArray(res.unclosed) && res.unclosed.length) parts.push(`未闭合: ${res.unclosed.join(', ')}`);
+              const msg = `检测到标签问题：${parts.join('；')}。请打开编辑功能（小铅笔）补齐这些标签，避免产生 bug。`;
+              try { window.GuixuHelpers?.showTemporaryMessage?.(msg, 6000); } catch (_) {}
+            }
+          } catch (_) {}
           const { strippedText: contentWithoutGuidelines, items: guidelineItems } = this._parseActionGuidelines(contentToParse);
           const displayText = this._getDisplayText(contentWithoutGuidelines);
           const thinkingText = this._extractLastTagContent('thinking', contentToParse, true);

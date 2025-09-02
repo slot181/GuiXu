@@ -386,6 +386,41 @@
     },
 
     /**
+     * 新增：验证一组标签是否存在且正确闭合。
+     * 返回 { missing: string[], unclosed: string[] }
+     */
+    validateTagClosures(text, requiredTags = []) {
+      try {
+        const res = { missing: [], unclosed: [] };
+        const txt = String(text || '');
+        if (!txt || !Array.isArray(requiredTags) || requiredTags.length === 0) return res;
+
+        const esc = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const hasOpening = (aliases) => {
+          const group = aliases.map(a => esc(a)).join('|');
+          const re = new RegExp(`<\\s*(?:${group})\\b[^>]*>`, 'i');
+          return re.test(txt);
+        };
+
+        for (const name of requiredTags) {
+          const aliases = Array.isArray(name)
+            ? Array.from(new Set(name.filter(Boolean).map(String)))
+            : (this.getTagAliases ? this.getTagAliases(String(name)) : [String(name)]);
+          const closed = !!this.extractLastTagContentByAliases(aliases, txt, true);
+          const open = hasOpening(aliases);
+          if (!open) {
+            res.missing.push(String(name));
+          } else if (!closed) {
+            res.unclosed.push(String(name));
+          }
+        }
+        return res;
+      } catch (_) {
+        return { missing: [], unclosed: [] };
+      }
+    },
+
+    /**
      * 本地兜底：从 AI 文本中解析 _.set('路径', 旧值, 新值); 并应用到旧的 MVU 状态，返回新的状态。
      * 注意：该函数仅作为 mag_invoke_mvu 失败时的降级方案，力求“不抛错、尽量更新”。
      */
