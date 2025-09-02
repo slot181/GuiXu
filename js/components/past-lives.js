@@ -38,9 +38,11 @@
       const actionsContainer = $('#history-modal-actions');
       if (actionsContainer) {
         actionsContainer.innerHTML = `
+          <div class="history-toolbar">
+          </div>
           <div class="history-search">
             <input type="text" id="history-search-input" placeholder="搜索往世..." />
-            <button id="history-search-clear" class="interaction-btn" style="padding: 4px 8px; font-size: 12px;">清除</button>
+            <button id="history-search-clear" class="interaction-btn btn-compact">清除</button>
           </div>
         `;
         // 搜索栏绑定（对时间线内文本进行模糊匹配）
