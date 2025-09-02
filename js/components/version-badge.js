@@ -20,8 +20,8 @@
 
     ensureContainer() {
       try {
-        const top = document.querySelector('.top-status');
-        if (!top) return null;
+        const bottom = document.getElementById('bottom-status-container');
+        if (!bottom) return null;
         let el = document.getElementById(this._elId);
         if (!el) {
           el = document.createElement('a');
@@ -31,7 +31,7 @@
           el.target = '_blank';
           el.rel = 'noopener noreferrer';
           el.setAttribute('aria-label', '版本信息');
-          top.appendChild(el);
+          bottom.appendChild(el);
         }
         return el;
       } catch (_) {

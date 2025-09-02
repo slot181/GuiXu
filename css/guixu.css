@@ -124,21 +124,20 @@ body { margin: 0; }
   position: relative;
 }
 
-/* 版本小标签：置于顶部状态栏左侧（桌面与移动端均显示） */
+/* 版本小标签：紧贴底部栏右下角（桌面与移动端一致） */
 .version-badge {
   position: absolute;
-  left: 10px;
-  top: 50%;
-  transform: translateY(-50%);
+  right: 8px;
+  bottom: 6px;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 4px 8px;
-  background: rgba(15, 15, 35, 0.8);
-  border: 1px solid #c9aa71;
+  gap: 4px;
+  padding: 2px 6px;                 /* 更小更精致 */
+  background: rgba(15, 15, 35, 0.4); /* 去掉外框，仅半透明底色 */
+  border: none;                      /* 不要外框 */
   border-radius: 999px;
   color: #c9aa71;
-  font-size: 11px;
+  font-size: 10px;                   /* 比原来更小 */
   text-decoration: none;
   z-index: 100;
   line-height: 1;
@@ -146,28 +145,28 @@ body { margin: 0; }
 }
 .version-badge .vb-text { color: #c9aa71; }
 .version-badge .vb-pill {
-  margin-left: 4px;
-  padding: 2px 6px;
-  border: 1px solid #daa520;
+  padding: 1px 5px;                  /* 小胶囊更小 */
+  border: 1px solid #daa520;         /* 仅“可更新”胶囊保留强调边框 */
   border-radius: 999px;
   background: linear-gradient(45deg, #8b4513, #cd853f);
   color: #fff;
-  font-size: 10px;
+  font-size: 9px;
   line-height: 1;
 }
 .version-badge.is-update {
-  border-color: #daa520;
-  box-shadow: 0 0 8px rgba(218, 165, 32, 0.3);
+  box-shadow: none;                  /* 去掉外发光，避免显得厚重 */
 }
-/* 移动端收紧尺寸，避免遮挡 */
+
+/* 移动端：同样固定在右下角，略微再收紧 */
 .guixu-root-container.mobile-view .version-badge {
-  left: 8px;
-  padding: 3px 6px;
-  font-size: 10px;
+  right: 8px;
+  bottom: 6px;
+  padding: 2px 5px;
+  font-size: 9px;
 }
 .guixu-root-container.mobile-view .version-badge .vb-pill {
-  padding: 1px 5px;
-  font-size: 9px;
+  padding: 1px 4px;
+  font-size: 8.5px;
 }
 
 .status-item {
@@ -431,6 +430,7 @@ body { margin: 0; }
   gap: 15px;
   padding: 0 15px;
   transition: height 0.2s ease-in-out;
+  position: relative; /* 作为版本徽标绝对定位的参照 */
 }
 
 .quick-send-container {
