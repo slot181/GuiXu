@@ -284,20 +284,45 @@
           let currentKey = null;
 
           lines.forEach(line => {
-              const separatorIndex = line.indexOf('|');
+              const raw = line;
+              const separatorIndex = raw.indexOf('|');
+
+              // 若当前处于“自动化系统”块中，则后续所有行（包括含“|”的行）均并入其值，保持折叠/多行展示
+              if (currentKey === '自动化系统' && event[currentKey] !== undefined) {
+                  if (separatorIndex !== -1) {
+                      const k = raw.substring(0, separatorIndex).trim();
+                      const v = raw.substring(separatorIndex + 1);
+                      if (k === '自动化系统') {
+                          // 连续的“自动化系统|内容”行：仅拼接内容部分，避免重复键名
+                          event['自动化系统'] += '\n' + String(v).trim();
+                      } else {
+                          // 其它“标签|内容”也并入到自动化系统的多行文本中，作为原样文本展示
+                          event['自动化系统'] += '\n' + raw;
+                      }
+                  } else {
+                      event['自动化系统'] += '\n' + raw;
+                  }
+                  return;
+              }
+
               if (separatorIndex !== -1) {
-                  const key = line.substring(0, separatorIndex).trim();
-                  const value = line.substring(separatorIndex + 1);
+                  const key = raw.substring(0, separatorIndex).trim();
+                  const value = raw.substring(separatorIndex + 1);
                   if (key) {
-                      event[key] = value.trim();
+                      // 若当前键为“自动化系统”，允许多次出现并累积为多行
+                      if (key === '自动化系统' && event[key] !== undefined) {
+                          event[key] += '\n' + String(value).trim();
+                      } else {
+                          event[key] = String(value).trim();
+                      }
                       currentKey = key;
                   }
               } else if (currentKey && event[currentKey] !== undefined) {
-                  event[currentKey] += '\n' + line;
+                  event[currentKey] += '\n' + raw;
               }
           });
           return event;
-      }).filter(event => event && Object.keys(event).length > 0 && (event['序号'] || event['第x世']));
+      }).filter(event => event && Object.keys(event).length > 0);
     },
     /**
      * 提取文本中指定标签的最后一次内容。

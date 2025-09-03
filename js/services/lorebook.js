@@ -108,21 +108,19 @@
         },
 
         /**
-         * 格式化要写入的内容。
+         * 格式化要写入的内容（放宽为透传“标签|内容”）。
+         * - 对于“本世历程/往世涟漪”：不再限制字段白名单，按原始“标签|内容”多块（空行分隔）透传
+         * - 仅做轻微规范化：去除首尾空白、CRLF->LF
          * @private
          */
         reformatContent(content, baseEntryKey) {
-            if (baseEntryKey === GuixuConstants.LOREBOOK.ENTRIES.JOURNEY || baseEntryKey === GuixuConstants.LOREBOOK.ENTRIES.PAST_LIVES) {
-                const fields = baseEntryKey === GuixuConstants.LOREBOOK.ENTRIES.JOURNEY 
-                    ? GuixuConstants.LOREBOOK_FIELDS.JOURNEY 
-                    : GuixuConstants.LOREBOOK_FIELDS.PAST_LIVES;
-                
-                const parsedData = window.GuixuHelpers.parseJourneyEntry(content)[0] || {};
-                if (Object.keys(parsedData).length === 0) return null;
-                
-                return fields.map(key => (parsedData[key] ? `${key}|${parsedData[key]}` : null)).filter(Boolean).join('\n');
+            const raw = String(content || '');
+            if (!raw.trim()) return '';
+            if (baseEntryKey === GuixuConstants.LOREBOOK.ENTRIES.JOURNEY 
+             || baseEntryKey === GuixuConstants.LOREBOOK.ENTRIES.PAST_LIVES) {
+                return raw.trim().replace(/\r\n/g, '\n');
             }
-            return content.trim();
+            return raw.trim();
         },
 
         /**
@@ -133,7 +131,8 @@
             if (baseEntryKey === GuixuConstants.LOREBOOK.ENTRIES.JOURNEY) {
                 const getSeq = (text) => {
                     if (!text) return null;
-                    const match = text.match(/^序号\|(\d+)/);
+                    // 放宽：允许“序号| 1”或“序号|1”（可含空格）
+                    const match = text.match(/^序号\|\s*(\d+)/);
                     return match ? match[1] : null;
                 };
                 const newEventSeq = getSeq(newContent);

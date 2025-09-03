@@ -104,29 +104,85 @@
       if (!entry || !entry.content)
         return '<p style="text-align:center; color:#8b7355; font-size:12px;">未发现任何往世的痕迹。</p>';
 
-      const blocks = entry.content.trim().split(/第x世\|/g).slice(1);
-      if (blocks.length === 0)
+      // 1) 首选使用通用解析：按“空行分隔的事件块 + 标签|内容”解析
+      let events = window.GuixuHelpers.parseJourneyEntry(entry.content) || [];
+      // 2) 兼容回退：若未能分块，但文本内包含多个“第x世|”，按该标记切分并逐块解析
+      if (!Array.isArray(events) || events.length === 0) {
+        const raw = String(entry.content || '').trim();
+        const parts = raw.split(/(?=^第x世\|)/m).map(s => s.trim()).filter(Boolean);
+        if (parts.length > 0) {
+          events = parts.map(p => {
+            // 优先通用解析单块
+            const parsedOnce = window.GuixuHelpers.parseJourneyEntry(p);
+            if (Array.isArray(parsedOnce) && parsedOnce.length > 0) return parsedOnce[0];
+            // 回落到原“逐行 标签|内容”解析
+            return parsePastLifeEntry(p);
+          }).filter(ev => ev && Object.keys(ev).length > 0);
+        }
+      }
+
+      if (!Array.isArray(events) || events.length === 0)
         return '<p style="text-align:center; color:#8b7355; font-size:12px;">内容格式有误，无法解析往世记录。</p>';
 
+      // 按“第x世”排序（若存在）
+      events.sort((a, b) => (parseInt(a['第x世'], 10) || 0) - (parseInt(b['第x世'], 10) || 0));
+
       let html = '<div class="timeline-container"><div class="timeline-line"></div>';
-      blocks.forEach(block => {
-        const fullContent = `第x世|${block}`;
-        const data = parsePastLifeEntry(fullContent);
-        const title = `第${data['第x世'] || '?'}世`;
+      events.forEach((data, idx) => {
+        const title = data['第x世']
+          ? `第${data['第x世']}世`
+          : (data['标题'] ? String(data['标题']) : `往世片段 ${idx + 1}`);
+
+        // 标签 pills（若有）
+        const tagsHtml = (data['标签'] || '')
+          .split('|')
+          .map(tag => tag.trim())
+          .filter(Boolean)
+          .map(tag => `<span class="tag-item">${tag}</span>`)
+          .join('');
+
+        // 已知字段的主展示
+        const knownSections = [
+          ['事件脉络', '事件脉络'],
+          ['本世概述', '本世概述'],
+          ['本世成就', '本世成就'],
+          ['本世获得物品', '获得物品'],
+          ['本世人物关系网', '人物关系'],
+          ['死亡原因', '死亡原因'],
+          ['本世总结', '本世总结'],
+          ['本世评价', '本世评价'],
+        ].map(([key, label]) => {
+          const v = data[key];
+          return v && String(v).trim() !== ''
+            ? `<div class="detail-item"><strong>${label}:</strong> ${String(v)}</div>`
+            : '';
+        }).join('');
+
+        // 额外未知字段自动渲染（排除已知字段与特殊字段）
+        const KNOWN_KEYS = new Set(['第x世','事件脉络','本世概述','本世成就','本世获得物品','本世人物关系网','死亡原因','本世总结','本世评价','标签','自动化系统','标题','日期','地点','描述','人物','人物关系','重要信息','暗线与伏笔']);
+        const extraDetails = Object.keys(data)
+          .filter(k => !KNOWN_KEYS.has(k) && data[k] != null && String(data[k]).trim() !== '')
+          .map(k => `<div class="detail-item"><strong>${k}:</strong> ${String(data[k])}</div>`)
+          .join('');
+
+        // 自动化系统：保持折叠/多行预格式化展示
+        const autoSystem = data['自动化系统'] ? `
+          <div class="detail-item">
+            <strong>自动化系统:</strong>
+            <pre style="white-space: pre-wrap; font-size: 11px; color: #a09c91;">${String(data['自动化系统'])}</pre>
+          </div>` : '';
 
         html += `
           <div class="timeline-event">
             <div class="timeline-content">
-              <div class="timeline-title">${title}</div>
+              <div class="timeline-header">
+                <div class="timeline-title">${title}</div>
+                <div class="timeline-tags">${tagsHtml}</div>
+              </div>
               <div class="past-life-details">
-                <div class="detail-item"><strong>事件脉络:</strong> ${data['事件脉络'] || '不详'}</div>
-                <div class="detail-item"><strong>本世概述:</strong> ${data['本世概述'] || '不详'}</div>
-                <div class="detail-item"><strong>本世成就:</strong> ${data['本世成就'] || '无'}</div>
-                <div class="detail-item"><strong>获得物品:</strong> ${data['本世获得物品'] || '无'}</div>
-                <div class="detail-item"><strong>人物关系:</strong> ${data['本世人物关系网'] || '无'}</div>
-                <div class="detail-item"><strong>死亡原因:</strong> ${data['死亡原因'] || '不详'}</div>
-                <div class="detail-item"><strong>本世总结:</strong> ${data['本世总结'] || '无'}</div>
-                <div class="detail-item"><strong>本世评价:</strong> ${data['本世评价'] || '无'}</div>
+                ${knownSections}
+                ${extraDetails}
+                ${autoSystem}
               </div>
             </div>
           </div>`;
