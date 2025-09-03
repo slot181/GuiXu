@@ -66,15 +66,21 @@
 
         /**
          * 使用上一轮输入一键重roll，重新生成上一轮回复。
+         * 支持可选的覆盖内容（允许先编辑上一轮输入）。
          */
-        async rerollLast() {
+        async rerollLast(overridePrompt = null) {
             try {
                 const st = window.GuixuState.getState();
-                const last = st.lastSentPrompt;
+                const base = st.lastSentPrompt;
+                const last = (overridePrompt != null && String(overridePrompt).trim() !== '')
+                  ? String(overridePrompt)
+                  : base;
+
                 if (!last || !String(last).trim()) {
                     window.GuixuHelpers?.showTemporaryMessage?.('未找到上一轮输入，无法重掷');
                     return;
                 }
+
                 const generateConfig = {
                     injects: [{
                         role: 'user',
@@ -85,8 +91,10 @@
                     }],
                     should_stream: !!st.isStreamingEnabled,
                 };
-                // 在重掷前，先删除上一轮写入的“本世历程”最后一条事件，避免影响重掷结果
-                try { await this._deleteLastJourneyEventIfExists(); } catch (_) {}
+
+                // 在重掷前，尽量精确移除“上一轮AI输出所追加的历程块”（仅影响上一轮，不清空整个序号）
+                try { await this._deleteLastJourneyFromLastResponseIfExists(); } catch (_) {}
+
                 try { window.GuixuMain?.showWaitingMessage?.(); } catch (_) {}
                 const aiResponse = await GuixuAPI.generate(generateConfig).finally(() => {
                     try { window.GuixuMain?.hideWaitingMessage?.(); } catch (_) {}
@@ -94,6 +102,9 @@
                 if (typeof aiResponse !== 'string') {
                     throw new Error('AI未返回有效文本。');
                 }
+
+                // 若用户编辑了指令，刷新 lastSentPrompt 以便后续再次重掷
+                try { if (last !== base) window.GuixuState.update('lastSentPrompt', last); } catch(_) {}
 
                 // 提取/更新MVU/保存
                 this.extractAndCacheResponse(aiResponse);
@@ -116,7 +127,45 @@
             }
         },
 
-        // 新增：删除“本世历程”最后一条事件（基于当前 unifiedIndex）
+        // 新增：删除“本世历程”中上一轮AI输出追加的事件块（尽量精确，不影响更早历史）
+        async _deleteLastJourneyFromLastResponseIfExists() {
+            try {
+                const bookName = GuixuConstants.LOREBOOK.NAME;
+                const index = window.GuixuState.getState().unifiedIndex || 1;
+                const journeyKey = index > 1
+                    ? `${GuixuConstants.LOREBOOK.ENTRIES.JOURNEY}(${index})`
+                    : GuixuConstants.LOREBOOK.ENTRIES.JOURNEY;
+
+                const allEntries = await GuixuAPI.getLorebookEntries(bookName);
+                const entry = (allEntries || []).find(e => (e.comment || '').trim() === journeyKey.trim());
+                if (!entry) return;
+
+                const fullEvents = window.GuixuHelpers.parseJourneyEntry(entry.content || '');
+                if (!Array.isArray(fullEvents) || fullEvents.length === 0) return;
+
+                const lastJourneyRaw = window.GuixuState.getState().lastExtractedJourney || '';
+                let toRemoveCount = 0;
+                try {
+                    const lastEvents = window.GuixuHelpers.parseJourneyEntry(lastJourneyRaw || '') || [];
+                    if (Array.isArray(lastEvents)) toRemoveCount = lastEvents.length | 0;
+                } catch (_) { toRemoveCount = 0; }
+
+                // 安全阈值：最多只删除末尾的 10 条。若上一轮未产出历程，则不删除。
+                if (toRemoveCount <= 0) return;
+                if (toRemoveCount > 10) toRemoveCount = 10;
+
+                const before = fullEvents.length;
+                const newEvents = fullEvents.slice(0, Math.max(0, before - toRemoveCount));
+                if (newEvents.length === before) return; // 无变化
+
+                const newContent = this._serializeJourneyEvents(newEvents);
+                await GuixuAPI.setLorebookEntries(bookName, [{ uid: entry.uid, content: newContent }]);
+            } catch (e) {
+                console.warn('[归墟] 精确删除上一轮历程块失败（忽略继续）:', e);
+            }
+        },
+
+        // 兼容：旧实现，仅删除最后一条事件（保留作为回退）
         async _deleteLastJourneyEventIfExists() {
             try {
                 const bookName = GuixuConstants.LOREBOOK.NAME;
@@ -132,12 +181,9 @@
                 const events = window.GuixuHelpers.parseJourneyEntry(entry.content || '');
                 if (!Array.isArray(events) || events.length === 0) return;
 
-                // 删除最后一条事件
                 events.pop();
-
                 const newContent = this._serializeJourneyEvents(events);
                 await GuixuAPI.setLorebookEntries(bookName, [{ uid: entry.uid, content: newContent }]);
-                // 不弹 toast，静默处理，避免打扰
             } catch (e) {
                 console.warn('[归墟] 重掷前删除上一轮历程失败（忽略继续）:', e);
             }

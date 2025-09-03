@@ -593,21 +593,25 @@ if (!document.getElementById('guixu-gate-style')) {
           insertAfterRefresh();
           applyMobileTwoBtnLayout();
 
-          btn.addEventListener('click', () => {
+          btn.addEventListener('click', async () => {
             try {
               const last = window.GuixuState?.getState?.().lastSentPrompt;
               if (!last || !String(last).trim()) {
                 window.GuixuHelpers?.showTemporaryMessage?.('没有找到上一轮输入，无法重掷');
                 return;
               }
-              const msg = '确定要根据“上一轮的输入指令”重新生成上一轮的回复吗？';
-              if (window.GuixuMain && typeof window.GuixuMain.showCustomConfirm === 'function') {
-                window.GuixuMain.showCustomConfirm(msg, () => {
-                  try { window.GuixuActionService?.rerollLast?.(); } catch (_) {}
-                });
-              } else {
-                if (confirm(msg)) { try { window.GuixuActionService?.rerollLast?.(); } catch (_) {} }
-              }
+              // 弹出文本编辑弹窗：允许用户修改上一轮输入（桌面/移动端、全屏/非全屏统一风格）
+              const edited = await window.GuixuMain?.showTextPrompt?.({
+                title: '编辑上一轮输入并重掷',
+                message: '可在下方修改上一轮输入后重掷；留空将使用上一轮输入。',
+                defaultValue: last,
+                placeholder: '在此编辑上一轮输入…',
+                okText: '重掷',
+                cancelText: '取消'
+              });
+              if (edited === null) return;
+              const content = String(edited).trim() || last;
+              try { window.GuixuActionService?.rerollLast?.(content); } catch (_) {}
             } catch (e) {
               console.warn('[归墟] 重掷触发失败:', e);
               window.GuixuHelpers?.showTemporaryMessage?.('重掷失败');
@@ -3062,6 +3066,117 @@ container.style.fontFamily = `"Microsoft YaHei", "Noto Sans SC", "PingFang SC", 
             const n = parseInt(String(fallback || ''), 10);
             if (!Number.isFinite(n)) resolve(null);
             else resolve(n);
+          }
+        });
+      },
+
+      // 新增：文本编辑弹窗（用于重掷前允许修改上一轮输入）
+      async showTextPrompt({ title = '编辑输入', message = '', defaultValue = '', placeholder = '在此输入...', okText = '确定', cancelText = '取消' } = {}) {
+        return new Promise((resolve) => {
+          try {
+            // 防重：若此前遗留了文本弹窗，先移除
+            try { const ex = document.getElementById('custom-text-prompt-modal'); if (ex) ex.remove(); } catch(_) {}
+            const root = document.querySelector('.guixu-root-container') || document.body;
+
+            // 外层遮罩
+            const overlay = document.createElement('div');
+            overlay.className = 'modal-overlay';
+            overlay.id = 'custom-text-prompt-modal';
+
+            // 内容容器（复用确认弹窗风格）
+            const content = document.createElement('div');
+            content.className = 'modal-content confirm-modal-content';
+            content.style.width = 'auto';
+            content.style.maxWidth = '600px';
+            content.style.height = 'auto';
+            content.style.maxHeight = '80vh';
+
+            // 头部
+            const header = document.createElement('div');
+            header.className = 'modal-header';
+
+            const titleEl = document.createElement('div');
+            titleEl.className = 'modal-title';
+            titleEl.textContent = String(title || '编辑输入');
+
+            const closeBtn = document.createElement('button');
+            closeBtn.className = 'modal-close-btn';
+            closeBtn.innerHTML = '&times;';
+
+            header.appendChild(titleEl);
+            header.appendChild(closeBtn);
+
+            // 主体
+            const body = document.createElement('div');
+            body.className = 'modal-body';
+
+            const msg = document.createElement('div');
+            msg.className = 'confirm-modal-message';
+            msg.textContent = String(message || '');
+
+            const textarea = document.createElement('textarea');
+            textarea.style.cssText = 'margin-top:10px;width:100%;height:220px;padding:8px 10px;background:rgba(0,0,0,0.4);border:1px solid #8b7355;border-radius:4px;color:#e0dcd1;box-sizing:border-box;font-size:13px;line-height:1.5;resize:vertical;';
+            textarea.placeholder = String(placeholder || '');
+            textarea.value = String(defaultValue || '');
+
+            body.appendChild(msg);
+            body.appendChild(textarea);
+
+            // 底部按钮
+            const footer = document.createElement('div');
+            footer.className = 'confirm-modal-buttons';
+
+            const okBtn = document.createElement('button');
+            okBtn.className = 'interaction-btn';
+            okBtn.style.cssText = 'min-width:120px;height:36px;padding:0 12px;box-sizing:border-box;';
+            okBtn.textContent = String(okText || '确定');
+
+            const cancelBtn = document.createElement('button');
+            cancelBtn.className = 'danger-btn';
+            cancelBtn.style.cssText = 'min-width:120px;height:36px;padding:0 12px;box-sizing:border-box;';
+            cancelBtn.textContent = String(cancelText || '取消');
+
+            footer.appendChild(okBtn);
+            footer.appendChild(cancelBtn);
+
+            // 组装
+            content.appendChild(header);
+            content.appendChild(body);
+            content.appendChild(footer);
+            overlay.appendChild(content);
+            root.appendChild(overlay);
+
+            const cleanup = (ret = null) => {
+              try { overlay.remove(); } catch (_) {}
+              resolve(ret);
+            };
+
+            closeBtn.addEventListener('click', () => cleanup(null));
+            cancelBtn.addEventListener('click', () => cleanup(null));
+            overlay.addEventListener('click', (e) => {
+              if (e.target === overlay) cleanup(null);
+            });
+            okBtn.addEventListener('click', () => cleanup(textarea.value));
+
+            // 显示与交互
+            overlay.style.display = 'flex';
+            overlay.style.zIndex = '9000';
+            setTimeout(() => textarea.focus(), 0);
+            textarea.addEventListener('keydown', (e) => {
+              // Ctrl/Cmd+Enter 或 Shift+Enter 快速确认
+              if ((e.key === 'Enter' && (e.ctrlKey || e.metaKey)) || (e.key === 'Enter' && e.shiftKey)) {
+                e.preventDefault();
+                okBtn.click();
+              } else if (e.key === 'Escape') {
+                e.preventDefault();
+                cancelBtn.click();
+              }
+            });
+          } catch (e) {
+            console.warn('[归墟] showTextPrompt 失败，回退到 prompt:', e);
+            const fallback = prompt(message || '请输入内容', String(defaultValue || ''));
+            if (fallback == null) return resolve(null);
+            resolve(String(fallback));
           }
         });
       },
