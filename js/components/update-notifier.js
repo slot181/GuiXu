@@ -163,6 +163,71 @@
       }
     },
 
+    _readCachedLatest() {
+      try {
+        const raw = localStorage.getItem(this._CACHE_KEY);
+        if (!raw) return null;
+        const cache = JSON.parse(raw);
+        return cache?.lastResult || null;
+      } catch (_) {
+        return null;
+      }
+    },
+
+    // 供“版本小标签”点击时显式打开更新浮窗（不自动弹出）
+    async openFromBadge() {
+      try {
+        const current = this._getCurrentVersion() || '';
+        let latest = await this._fetchLatestRelease();
+        let latestTag = String(latest?.tag_name || '').trim();
+
+        if (!latestTag) {
+          const cached = this._readCachedLatest();
+          if (cached && cached.tag_name) {
+            latest = Object.assign(
+              { html_url: this._RELEASES_PAGE, body: '', name: cached.name || cached.tag_name },
+              cached
+            );
+            latestTag = String(cached.tag_name).trim();
+          }
+        }
+
+        // 构建并显示提示（若仍无最新信息，则给出前往 Releases 的兜底）
+        this._ensureModal();
+        if (latestTag) {
+          this._fillModal({
+            current,
+            latest: latestTag,
+            html_url: latest?.html_url || this._RELEASES_PAGE,
+            name: latest?.name || latestTag,
+            body: latest?.body || ''
+          });
+        } else {
+          this._fillModal({
+            current,
+            latest: '',
+            html_url: this._RELEASES_PAGE,
+            name: 'Releases',
+            body: '暂时无法获取最新版本详情，请前往 Releases 查看。'
+          });
+        }
+        this._openModal();
+      } catch (e) {
+        console.warn('[归墟] 打开更新浮窗失败：', e);
+        try {
+          this._ensureModal();
+          this._fillModal({
+            current: this._getCurrentVersion() || '',
+            latest: '',
+            html_url: this._RELEASES_PAGE,
+            name: 'Releases',
+            body: '暂时无法获取最新版本详情，请前往 Releases 查看。'
+          });
+          this._openModal();
+        } catch (_) {}
+      }
+    },
+
     // ——— UI ———
     _ensureModal() {
       try {
@@ -209,6 +274,7 @@
         footer.style.marginTop = '10px';
 
         const dontLabel = document.createElement('label');
+        dontLabel.className = 'dont-remind';
         dontLabel.style.cssText = 'display:flex;align-items:center;gap:8px;margin-right:auto;';
         const dontInput = document.createElement('input');
         dontInput.type = 'checkbox';

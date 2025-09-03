@@ -2279,6 +2279,38 @@ body { margin: 0; }
   gap: 20px;
 }
 
+/* 更新提醒浮窗（移动端适配） */
+.guixu-root-container.mobile-view #update-modal .modal-content {
+  width: 96vw;
+  max-width: 96vw;
+  height: auto;
+  max-height: 90vh;
+  overflow-x: hidden;
+}
+.guixu-root-container.mobile-view #update-modal .modal-body {
+  overflow-y: auto;
+}
+.guixu-root-container.mobile-view #update-modal .confirm-modal-buttons {
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: stretch;
+}
+.guixu-root-container.mobile-view #update-modal .confirm-modal-buttons > .interaction-btn,
+.guixu-root-container.mobile-view #update-modal .confirm-modal-buttons > .primary-btn,
+.guixu-root-container.mobile-view #update-modal #update-go-btn,
+.guixu-root-container.mobile-view #update-modal #update-later-btn {
+  min-width: 0;
+  height: 34px;
+  padding: 0 10px;
+  flex: 1 1 auto;
+  box-sizing: border-box;
+}
+.guixu-root-container.mobile-view #update-modal .dont-remind {
+  width: 100%;
+  margin-right: 0 !important;
+  order: -1;
+  margin-bottom: 6px;
+}
 /* --- 新增：存档管理模态框样式 --- */
 /* 移动端-存档管理 浮窗与每条存档布局优化（不影响桌面） */
 .guixu-root-container.mobile-view #save-load-modal .modal-content {
