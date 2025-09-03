@@ -187,6 +187,7 @@
                 try {
                   const idx = window.GuixuState?.getState?.().unifiedIndex || 1;
                   localStorage.setItem(`guixu_gate_unblocked_${idx}`, '1');
+                  localStorage.setItem(`guixu_apply_default_bg_once_${idx}`, '1');
                 } catch (_) {}
                 window.location.reload();
                 return;
@@ -196,6 +197,7 @@
               const idx = window.GuixuState?.getState?.().unifiedIndex || 1;
               // 非首轮或检测失败：直接解锁并刷新
               localStorage.setItem(`guixu_gate_unblocked_${idx}`, '1');
+              localStorage.setItem(`guixu_apply_default_bg_once_${idx}`, '1');
             } catch (_) {}
             window.location.reload();
           });
@@ -301,6 +303,8 @@
                   // 初始数据加载与渲染
       this.syncUserPreferencesFromRoaming().finally(() => this.applyUserPreferences());
       this.loadInputDraft();
+      // 新增：一键刷新后，若未设置背景，自动读取世界书首条背景并应用
+      this._applyDefaultBackgroundIfFlagged();
 
       // 首轮门禁：首次进入不抓取/渲染 MVU，待玩家“一键刷新”后再启用
       this._evaluateFirstRunGateAndMaybeShow().then((blocked) => {
@@ -2566,6 +2570,49 @@ container.style.fontFamily = `"Microsoft YaHei", "Noto Sans SC", "PingFang SC", 
         this._applyViewportSizing(prefs);
       } catch (e) {
         console.warn('[归墟] 应用用户主题偏好失败:', e);
+      }
+    },
+
+    // 新增：在“一键刷新”后的首帧，如果用户未选择背景，则自动读取世界书中带前缀的第一条背景并应用
+    async _applyDefaultBackgroundIfFlagged() {
+      try {
+        const idx = window.GuixuState?.getState?.().unifiedIndex || 1;
+        const flagKey = `guixu_apply_default_bg_once_${idx}`;
+        const flagged = localStorage.getItem(flagKey) === '1';
+        if (!flagged) return;
+        // 一次性执行
+        localStorage.removeItem(flagKey);
+
+        // 若已有背景选择，则不覆盖用户选择
+        const st = window.GuixuState?.getState?.();
+        const prefsNow = (st && st.userPreferences) ? st.userPreferences : {};
+        if (prefsNow && prefsNow.backgroundUrl) return;
+
+        const bookName = window.GuixuConstants?.LOREBOOK?.NAME;
+        const prefix = String(window.GuixuConstants?.BACKGROUND?.PREFIX || '归墟背景/');
+        if (!bookName || !window.GuixuAPI) return;
+
+        const allEntries = await window.GuixuAPI.getLorebookEntries(bookName);
+        const list = Array.isArray(allEntries) ? allEntries.filter(e => (e.comment || '').startsWith(prefix)) : [];
+        if (!list.length) return;
+
+        const first = list[0];
+        const newPrefs = Object.assign({}, prefsNow || {}, { backgroundUrl: `lorebook://${first.comment}` });
+        try { window.GuixuState.update('userPreferences', newPrefs); } catch (_) {}
+        this.applyUserPreferences(newPrefs);
+        // 尝试持久化到全局（可选）
+        try {
+          if (window.TavernHelper && typeof window.TavernHelper.insertOrAssignVariables === 'function') {
+            await window.TavernHelper.insertOrAssignVariables({ Guixu: { userPreferences: newPrefs } }, { type: 'global' });
+          }
+        } catch (_) {}
+        // 预置设置中心的下拉选中值（若DOM存在）
+        try {
+          const sel = document.getElementById('pref-bg-select');
+          if (sel) sel.value = String(first.comment || '');
+        } catch (_) {}
+      } catch (e) {
+        console.warn('[归墟] 默认背景应用失败:', e);
       }
     },
 
