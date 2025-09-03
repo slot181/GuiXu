@@ -103,6 +103,9 @@
                     should_stream: !!st.isStreamingEnabled,
                 };
 
+                // 暂停自动写入，防止“恢复上一轮消息”阶段触发自动写入导致卡片重复
+                try { window.GuixuState.update('autoWritePaused', true); } catch (_) {}
+
                 // 在重掷前，尽量精确移除“上一轮AI输出所追加的历程块”（仅影响上一轮，不清空整个序号）
                 try { await this._deleteLastJourneyFromLastResponseIfExists(); } catch (_) {}
 
@@ -131,8 +134,27 @@
                             window.GuixuMain?.updateDynamicData?.();
                             window.GuixuAttributeService?.calculateFinalAttributes?.();
                         } catch (_) {}
+                        // 对齐提取缓存与已写入标记：以“恢复的上一轮消息”为准，避免自动写入重复
+                        try {
+                            const H = window.GuixuHelpers || GuixuHelpers;
+                            const baseText = String(prevMsg || '')
+                                .replace(/<thinking[^>]*>[\s\S]*?<\/thinking>/gi, '')
+                                .replace(/<\s*action[^>]*>[\s\S]*?<\/\s*action\s*>/gi, '');
+                            const j = (H.extractLastTagContentByAliases?.('本世历程', baseText, true)) ?? H.extractLastTagContent('本世历程', baseText);
+                            const p = (H.extractLastTagContentByAliases?.('往世涟漪', baseText, true)) ?? H.extractLastTagContent('往世涟漪', baseText);
+                            const n = H.extractLastTagContent('gametxt', baseText);
+                            try { window.GuixuState.update('lastExtractedJourney', j || ''); } catch (_) {}
+                            try { window.GuixuState.update('lastWrittenJourney', j || ''); } catch (_) {}
+                            try { window.GuixuState.update('lastExtractedPastLives', p || ''); } catch (_) {}
+                            try { window.GuixuState.update('lastWrittenPastLives', p || ''); } catch (_) {}
+                            try { window.GuixuState.update('lastExtractedNovelText', n || ''); } catch (_) {}
+                            try { window.GuixuState.update('lastWrittenNovelText', n || ''); } catch (_) {}
+                        } catch (_) {}
                     }
                 } catch (_) {}
+
+                // 恢复阶段已完成：解除自动写入暂停
+                try { window.GuixuState.update('autoWritePaused', false); } catch (_) {}
 
                 try { window.GuixuMain?.showWaitingMessage?.(); } catch (_) {}
                 const aiResponse = await GuixuAPI.generate(generateConfig).finally(() => {

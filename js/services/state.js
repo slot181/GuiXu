@@ -47,6 +47,7 @@
     unifiedIndex: 1,
     isAutoToggleLorebookEnabled: false,
     isAutoSaveEnabled: false,
+    autoWritePaused: false,
     isAutoTrimEnabled: false,
     isStreamingEnabled: false,
     currencyUnit: '下品灵石',
@@ -296,13 +297,18 @@
       if (!this.isAutoWriteEnabled) return;
       console.log('[归墟] 启动自动写入轮询 (5秒)...');
       this.autoWriteIntervalId = setInterval(async () => {
-        if (this.lastExtractedJourney && this.lastExtractedJourney !== this.lastWrittenJourney) {
-          await window.GuixuLorebookService.writeToLorebook('本世历程', this.lastExtractedJourney, this.unifiedIndex, this.isAutoTrimEnabled, true);
-          this.update('lastWrittenJourney', this.lastExtractedJourney);
-        }
-        if (this.lastExtractedPastLives && this.lastExtractedPastLives !== this.lastWrittenPastLives) {
-          await window.GuixuLorebookService.writeToLorebook('往世涟漪', this.lastExtractedPastLives, this.unifiedIndex, false, true);
-          this.update('lastWrittenPastLives', this.lastExtractedPastLives);
+        try {
+          if (this.autoWritePaused) return;
+          if (this.lastExtractedJourney && this.lastExtractedJourney !== this.lastWrittenJourney) {
+            await window.GuixuLorebookService.writeToLorebook('本世历程', this.lastExtractedJourney, this.unifiedIndex, this.isAutoTrimEnabled, true);
+            this.update('lastWrittenJourney', this.lastExtractedJourney);
+          }
+          if (this.lastExtractedPastLives && this.lastExtractedPastLives !== this.lastWrittenPastLives) {
+            await window.GuixuLorebookService.writeToLorebook('往世涟漪', this.lastExtractedPastLives, this.unifiedIndex, false, true);
+            this.update('lastWrittenPastLives', this.lastExtractedPastLives);
+          }
+        } catch (e) {
+          console.warn('[归墟] 自动写入轮询异常:', e);
         }
       }, 5000);
     },
