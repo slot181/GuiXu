@@ -209,6 +209,13 @@
           .map(tag => `<span class="tag-item">${tag}</span>`)
           .join('');
 
+        // 放宽：渲染任意“标签|内容”键值到详细信息区（保留已知字段在固定区域）
+        const KNOWN_KEYS = new Set(['序号','日期','标题','地点','描述','人物','人物关系','重要信息','暗线与伏笔','自动化系统','标签']);
+        const extraDetails = Object.keys(eventData)
+          .filter(k => !KNOWN_KEYS.has(k) && eventData[k] != null && String(eventData[k]).trim() !== '')
+          .map(k => `<div class="detail-section"><strong>${k}：</strong>${String(eventData[k])}</div>`)
+          .join('');
+
         const basicInfo = `
           <div class="timeline-header">
             <div class="timeline-date">${date}</div>
@@ -234,6 +241,7 @@
             ${relationships ? `<div class="detail-section"><strong>人物关系：</strong>${relationships}</div>` : ''}
             ${importantInfo ? `<div class="detail-section"><strong>重要信息：</strong>${importantInfo}</div>` : ''}
             ${hiddenPlot ? `<div class="detail-section"><strong>暗线与伏笔：</strong>${hiddenPlot}</div>` : ''}
+            ${extraDetails}
             ${autoSystem ? `<div class="detail-section"><strong>自动化系统：</strong><pre style="white-space: pre-wrap; font-size: 11px; color: #a09c91;">${autoSystem}</pre></div>` : ''}
           </div>
         `;

@@ -187,6 +187,7 @@
                 try {
                   const idx = window.GuixuState?.getState?.().unifiedIndex || 1;
                   localStorage.setItem(`guixu_gate_unblocked_${idx}`, '1');
+                  localStorage.setItem(`guixu_apply_default_bg_once_${idx}`, '1');
                 } catch (_) {}
                 window.location.reload();
                 return;
@@ -196,6 +197,7 @@
               const idx = window.GuixuState?.getState?.().unifiedIndex || 1;
               // 非首轮或检测失败：直接解锁并刷新
               localStorage.setItem(`guixu_gate_unblocked_${idx}`, '1');
+              localStorage.setItem(`guixu_apply_default_bg_once_${idx}`, '1');
             } catch (_) {}
             window.location.reload();
           });
@@ -301,14 +303,16 @@
                   // 初始数据加载与渲染
       this.syncUserPreferencesFromRoaming().finally(() => this.applyUserPreferences());
       this.loadInputDraft();
+      // 新增：一键刷新后，若未设置背景，自动读取世界书首条背景并应用
+      this._applyDefaultBackgroundIfFlagged();
 
       // 首轮门禁：首次进入不抓取/渲染 MVU，待玩家“一键刷新”后再启用
       this._evaluateFirstRunGateAndMaybeShow().then((blocked) => {
         if (blocked) return;
         this.ensureServices();
         this.updateDynamicData().catch(err => console.error('[归墟] 初次加载失败:', err));
-        // 检查远程 Releases 是否有更新（仅在非首轮放行后提示）
-        try { setTimeout(() => window.UpdateNotifier?.checkAndMaybeNotify?.(), 500); } catch (_) {}
+        // 仅预取最新版本信息以填充缓存与版本徽标，不主动弹窗打扰；弹窗改为点击徽标触发
+        try { setTimeout(() => window.UpdateNotifier?._fetchLatestRelease?.(), 500); } catch (_) {}
       });
 
       // 首次加载引导弹窗（移动端/桌面端，非全屏优先；嵌入式 iframe 亦适用）
@@ -593,21 +597,25 @@ if (!document.getElementById('guixu-gate-style')) {
           insertAfterRefresh();
           applyMobileTwoBtnLayout();
 
-          btn.addEventListener('click', () => {
+          btn.addEventListener('click', async () => {
             try {
               const last = window.GuixuState?.getState?.().lastSentPrompt;
               if (!last || !String(last).trim()) {
                 window.GuixuHelpers?.showTemporaryMessage?.('没有找到上一轮输入，无法重掷');
                 return;
               }
-              const msg = '确定要根据“上一轮的输入指令”重新生成上一轮的回复吗？';
-              if (window.GuixuMain && typeof window.GuixuMain.showCustomConfirm === 'function') {
-                window.GuixuMain.showCustomConfirm(msg, () => {
-                  try { window.GuixuActionService?.rerollLast?.(); } catch (_) {}
-                });
-              } else {
-                if (confirm(msg)) { try { window.GuixuActionService?.rerollLast?.(); } catch (_) {} }
-              }
+              // 弹出文本编辑弹窗：允许用户修改上一轮输入（桌面/移动端、全屏/非全屏统一风格）
+              const edited = await window.GuixuMain?.showTextPrompt?.({
+                title: '编辑上一轮输入并重掷',
+                message: '可在下方修改上一轮输入后重掷；留空将使用上一轮输入。',
+                defaultValue: last,
+                placeholder: '在此编辑上一轮输入…',
+                okText: '重掷',
+                cancelText: '取消'
+              });
+              if (edited === null) return;
+              const content = String(edited).trim() || last;
+              try { window.GuixuActionService?.rerollLast?.(content); } catch (_) {}
             } catch (e) {
               console.warn('[归墟] 重掷触发失败:', e);
               window.GuixuHelpers?.showTemporaryMessage?.('重掷失败');
@@ -2565,6 +2573,49 @@ container.style.fontFamily = `"Microsoft YaHei", "Noto Sans SC", "PingFang SC", 
       }
     },
 
+    // 新增：在“一键刷新”后的首帧，如果用户未选择背景，则自动读取世界书中带前缀的第一条背景并应用
+    async _applyDefaultBackgroundIfFlagged() {
+      try {
+        const idx = window.GuixuState?.getState?.().unifiedIndex || 1;
+        const flagKey = `guixu_apply_default_bg_once_${idx}`;
+        const flagged = localStorage.getItem(flagKey) === '1';
+        if (!flagged) return;
+        // 一次性执行
+        localStorage.removeItem(flagKey);
+
+        // 若已有背景选择，则不覆盖用户选择
+        const st = window.GuixuState?.getState?.();
+        const prefsNow = (st && st.userPreferences) ? st.userPreferences : {};
+        if (prefsNow && prefsNow.backgroundUrl) return;
+
+        const bookName = window.GuixuConstants?.LOREBOOK?.NAME;
+        const prefix = String(window.GuixuConstants?.BACKGROUND?.PREFIX || '归墟背景/');
+        if (!bookName || !window.GuixuAPI) return;
+
+        const allEntries = await window.GuixuAPI.getLorebookEntries(bookName);
+        const list = Array.isArray(allEntries) ? allEntries.filter(e => (e.comment || '').startsWith(prefix)) : [];
+        if (!list.length) return;
+
+        const first = list[0];
+        const newPrefs = Object.assign({}, prefsNow || {}, { backgroundUrl: `lorebook://${first.comment}` });
+        try { window.GuixuState.update('userPreferences', newPrefs); } catch (_) {}
+        this.applyUserPreferences(newPrefs);
+        // 尝试持久化到全局（可选）
+        try {
+          if (window.TavernHelper && typeof window.TavernHelper.insertOrAssignVariables === 'function') {
+            await window.TavernHelper.insertOrAssignVariables({ Guixu: { userPreferences: newPrefs } }, { type: 'global' });
+          }
+        } catch (_) {}
+        // 预置设置中心的下拉选中值（若DOM存在）
+        try {
+          const sel = document.getElementById('pref-bg-select');
+          if (sel) sel.value = String(first.comment || '');
+        } catch (_) {}
+      } catch (e) {
+        console.warn('[归墟] 默认背景应用失败:', e);
+      }
+    },
+
     async _resolveLorebookDataUrl(entryComment) {
       try {
         const bookName = window.GuixuConstants?.LOREBOOK?.NAME;
@@ -3062,6 +3113,117 @@ container.style.fontFamily = `"Microsoft YaHei", "Noto Sans SC", "PingFang SC", 
             const n = parseInt(String(fallback || ''), 10);
             if (!Number.isFinite(n)) resolve(null);
             else resolve(n);
+          }
+        });
+      },
+
+      // 新增：文本编辑弹窗（用于重掷前允许修改上一轮输入）
+      async showTextPrompt({ title = '编辑输入', message = '', defaultValue = '', placeholder = '在此输入...', okText = '确定', cancelText = '取消' } = {}) {
+        return new Promise((resolve) => {
+          try {
+            // 防重：若此前遗留了文本弹窗，先移除
+            try { const ex = document.getElementById('custom-text-prompt-modal'); if (ex) ex.remove(); } catch(_) {}
+            const root = document.querySelector('.guixu-root-container') || document.body;
+
+            // 外层遮罩
+            const overlay = document.createElement('div');
+            overlay.className = 'modal-overlay';
+            overlay.id = 'custom-text-prompt-modal';
+
+            // 内容容器（复用确认弹窗风格）
+            const content = document.createElement('div');
+            content.className = 'modal-content confirm-modal-content';
+            content.style.width = 'auto';
+            content.style.maxWidth = '600px';
+            content.style.height = 'auto';
+            content.style.maxHeight = '80vh';
+
+            // 头部
+            const header = document.createElement('div');
+            header.className = 'modal-header';
+
+            const titleEl = document.createElement('div');
+            titleEl.className = 'modal-title';
+            titleEl.textContent = String(title || '编辑输入');
+
+            const closeBtn = document.createElement('button');
+            closeBtn.className = 'modal-close-btn';
+            closeBtn.innerHTML = '&times;';
+
+            header.appendChild(titleEl);
+            header.appendChild(closeBtn);
+
+            // 主体
+            const body = document.createElement('div');
+            body.className = 'modal-body';
+
+            const msg = document.createElement('div');
+            msg.className = 'confirm-modal-message';
+            msg.textContent = String(message || '');
+
+            const textarea = document.createElement('textarea');
+            textarea.style.cssText = 'margin-top:10px;width:100%;height:220px;padding:8px 10px;background:rgba(0,0,0,0.4);border:1px solid #8b7355;border-radius:4px;color:#e0dcd1;box-sizing:border-box;font-size:13px;line-height:1.5;resize:vertical;';
+            textarea.placeholder = String(placeholder || '');
+            textarea.value = String(defaultValue || '');
+
+            body.appendChild(msg);
+            body.appendChild(textarea);
+
+            // 底部按钮
+            const footer = document.createElement('div');
+            footer.className = 'confirm-modal-buttons';
+
+            const okBtn = document.createElement('button');
+            okBtn.className = 'interaction-btn';
+            okBtn.style.cssText = 'min-width:120px;height:36px;padding:0 12px;box-sizing:border-box;';
+            okBtn.textContent = String(okText || '确定');
+
+            const cancelBtn = document.createElement('button');
+            cancelBtn.className = 'danger-btn';
+            cancelBtn.style.cssText = 'min-width:120px;height:36px;padding:0 12px;box-sizing:border-box;';
+            cancelBtn.textContent = String(cancelText || '取消');
+
+            footer.appendChild(okBtn);
+            footer.appendChild(cancelBtn);
+
+            // 组装
+            content.appendChild(header);
+            content.appendChild(body);
+            content.appendChild(footer);
+            overlay.appendChild(content);
+            root.appendChild(overlay);
+
+            const cleanup = (ret = null) => {
+              try { overlay.remove(); } catch (_) {}
+              resolve(ret);
+            };
+
+            closeBtn.addEventListener('click', () => cleanup(null));
+            cancelBtn.addEventListener('click', () => cleanup(null));
+            overlay.addEventListener('click', (e) => {
+              if (e.target === overlay) cleanup(null);
+            });
+            okBtn.addEventListener('click', () => cleanup(textarea.value));
+
+            // 显示与交互
+            overlay.style.display = 'flex';
+            overlay.style.zIndex = '9000';
+            setTimeout(() => textarea.focus(), 0);
+            textarea.addEventListener('keydown', (e) => {
+              // Ctrl/Cmd+Enter 或 Shift+Enter 快速确认
+              if ((e.key === 'Enter' && (e.ctrlKey || e.metaKey)) || (e.key === 'Enter' && e.shiftKey)) {
+                e.preventDefault();
+                okBtn.click();
+              } else if (e.key === 'Escape') {
+                e.preventDefault();
+                cancelBtn.click();
+              }
+            });
+          } catch (e) {
+            console.warn('[归墟] showTextPrompt 失败，回退到 prompt:', e);
+            const fallback = prompt(message || '请输入内容', String(defaultValue || ''));
+            if (fallback == null) return resolve(null);
+            resolve(String(fallback));
           }
         });
       },

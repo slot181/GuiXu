@@ -33,6 +33,18 @@
           el.setAttribute('aria-label', '版本信息');
           bottom.appendChild(el);
         }
+        // 点击行为：若可更新则拦截并弹出更新浮窗；否则保持跳转到 Releases
+        if (el && !el._vbClickBound) {
+          el.addEventListener('click', (e) => {
+            try {
+              if (el.classList.contains('is-update') && window.UpdateNotifier?.openFromBadge) {
+                e.preventDefault();
+                UpdateNotifier.openFromBadge();
+              }
+            } catch (_) {}
+          });
+          el._vbClickBound = true;
+        }
         return el;
       } catch (_) {
         return null;

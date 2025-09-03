@@ -12,6 +12,8 @@
       fuxiuXinfa: null,
     },
     currentMvuState: null, // 缓存最新的完整mvu状态
+    prevRoundMvuState: null, // 上一轮开始前的MVU快照（用于重掷恢复）
+    prevRoundMessageContent: '', // 上一轮开始前的楼层正文快照（用于重掷恢复）
     pendingActions: [], // 指令队列/购物车
     equipSwapBuffer: {}, // 本轮会话内的槽位临时回退缓存：slotKey -> 之前的装备对象
     // 交易违规计数（会话级/可持久化）：key -> attempts
@@ -45,6 +47,7 @@
     unifiedIndex: 1,
     isAutoToggleLorebookEnabled: false,
     isAutoSaveEnabled: false,
+    autoWritePaused: false,
     isAutoTrimEnabled: false,
     isStreamingEnabled: false,
     currencyUnit: '下品灵石',
@@ -294,13 +297,18 @@
       if (!this.isAutoWriteEnabled) return;
       console.log('[归墟] 启动自动写入轮询 (5秒)...');
       this.autoWriteIntervalId = setInterval(async () => {
-        if (this.lastExtractedJourney && this.lastExtractedJourney !== this.lastWrittenJourney) {
-          await window.GuixuLorebookService.writeToLorebook('本世历程', this.lastExtractedJourney, this.unifiedIndex, this.isAutoTrimEnabled, true);
-          this.update('lastWrittenJourney', this.lastExtractedJourney);
-        }
-        if (this.lastExtractedPastLives && this.lastExtractedPastLives !== this.lastWrittenPastLives) {
-          await window.GuixuLorebookService.writeToLorebook('往世涟漪', this.lastExtractedPastLives, this.unifiedIndex, false, true);
-          this.update('lastWrittenPastLives', this.lastExtractedPastLives);
+        try {
+          if (this.autoWritePaused) return;
+          if (this.lastExtractedJourney && this.lastExtractedJourney !== this.lastWrittenJourney) {
+            await window.GuixuLorebookService.writeToLorebook('本世历程', this.lastExtractedJourney, this.unifiedIndex, this.isAutoTrimEnabled, true);
+            this.update('lastWrittenJourney', this.lastExtractedJourney);
+          }
+          if (this.lastExtractedPastLives && this.lastExtractedPastLives !== this.lastWrittenPastLives) {
+            await window.GuixuLorebookService.writeToLorebook('往世涟漪', this.lastExtractedPastLives, this.unifiedIndex, false, true);
+            this.update('lastWrittenPastLives', this.lastExtractedPastLives);
+          }
+        } catch (e) {
+          console.warn('[归墟] 自动写入轮询异常:', e);
         }
       }, 5000);
     },
