@@ -12,6 +12,8 @@
       fuxiuXinfa: null,
     },
     currentMvuState: null, // 缓存最新的完整mvu状态
+    prevRoundMvuState: null, // 上一轮开始前的MVU快照（用于重掷恢复）
+    prevRoundMessageContent: '', // 上一轮开始前的楼层正文快照（用于重掷恢复）
     pendingActions: [], // 指令队列/购物车
     equipSwapBuffer: {}, // 本轮会话内的槽位临时回退缓存：slotKey -> 之前的装备对象
     // 交易违规计数（会话级/可持久化）：key -> attempts

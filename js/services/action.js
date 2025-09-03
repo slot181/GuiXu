@@ -8,6 +8,8 @@
     }
 
     const ActionService = {
+        // 深拷贝工具：用于生成上一轮MVU快照
+        _deepClone(obj) { try { return JSON.parse(JSON.stringify(obj)); } catch (_) { return obj; } },
         /**
          * 处理所有用户和系统动作的核心函数。
          * @param {string} userMessage - 用户在输入框中输入的消息。
@@ -36,6 +38,15 @@
             state.update('lastSentPrompt', combinedContent);
 
             // 3. 调用AI生成（统一显示/隐藏等待提示）
+            // 在发送前，快照“上一轮开始前”的MVU变量与楼层正文，供后续重掷恢复
+            try {
+                const currentId = GuixuAPI.getCurrentMessageId();
+                const messagesBefore = await GuixuAPI.getChatMessages(currentId);
+                const prevMsg = (messagesBefore && messagesBefore[0] && messagesBefore[0].message) || '';
+                window.GuixuState.update('prevRoundMessageContent', prevMsg);
+                const clonedMvu = this._deepClone(GuixuState.getState().currentMvuState);
+                window.GuixuState.update('prevRoundMvuState', clonedMvu);
+            } catch (_) {}
             try { window.GuixuMain?.showWaitingMessage?.(); } catch (_) {}
             const aiResponse = await GuixuAPI.generate(generateConfig).finally(() => {
                 try { window.GuixuMain?.hideWaitingMessage?.(); } catch (_) {}
@@ -94,6 +105,34 @@
 
                 // 在重掷前，尽量精确移除“上一轮AI输出所追加的历程块”（仅影响上一轮，不清空整个序号）
                 try { await this._deleteLastJourneyFromLastResponseIfExists(); } catch (_) {}
+
+                // 恢复上一轮的 MVU 变量与楼层正文，避免“不满意结果”的变量与正文污染上下文
+                try {
+                    const sPrev = window.GuixuState.getState();
+                    const prevMvu = sPrev?.prevRoundMvuState || null;
+                    const prevMsg = sPrev?.prevRoundMessageContent ?? '';
+                    const hasPrevMvu = !!(prevMvu && typeof prevMvu === 'object');
+                    const hasPrevMsg = (typeof prevMsg === 'string' && prevMsg.trim().length > 0);
+                    if (hasPrevMvu || hasPrevMsg) {
+                        try { await window.GuixuMvuIO?.flushNow?.(); } catch (_) {}
+                        const currentId = GuixuAPI.getCurrentMessageId();
+                        const updates = [{ message_id: currentId }];
+                        if (hasPrevMvu) updates[0].data = prevMvu;
+                        if (hasPrevMsg) updates[0].message = String(prevMsg);
+                        await GuixuAPI.setChatMessages(updates, { refresh: 'none' });
+                        try {
+                            if (hasPrevMvu) {
+                                window.GuixuState.update('currentMvuState', this._deepClone(prevMvu));
+                            }
+                        } catch (_) {}
+                        try {
+                            const stat = (hasPrevMvu && prevMvu.stat_data) ? prevMvu.stat_data : (sPrev.currentMvuState && sPrev.currentMvuState.stat_data) || null;
+                            if (stat) window.GuixuMain?.renderUI?.(stat);
+                            window.GuixuMain?.updateDynamicData?.();
+                            window.GuixuAttributeService?.calculateFinalAttributes?.();
+                        } catch (_) {}
+                    }
+                } catch (_) {}
 
                 try { window.GuixuMain?.showWaitingMessage?.(); } catch (_) {}
                 const aiResponse = await GuixuAPI.generate(generateConfig).finally(() => {
