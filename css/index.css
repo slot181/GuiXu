@@ -1,0 +1,16 @@
+/*!
+ * GuiXu CSS 入口 (阶段0/1)
+ * - 作用域要求：尽量在 .guixu-root-container 下定义全局规则，避免污染宿主页面
+ * - 渐进式迁移：当前仍通过 legacy 引入现有 guixu.css，确保无回归
+ */
+
+/* 基础设计层（Phase 1：Design Tokens 与基础层抽取） */
+@import url("./base/variables.css");
+@import url("./base/reset.css");
+@import url("./base/typography.css");
+@import url("./base/utilities.css");
+
+/* 迁移过渡层：保留旧选择器，逐步从 guixu.css 削减 */
+@import url("./legacy/guixu.legacy.css");
+
+/* 后续阶段将依次引入：layout/、components/、responsive/、themes/ */

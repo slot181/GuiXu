@@ -1,0 +1,98 @@
+/*!
+ * Design Tokens & Component Variables (阶段1)
+ * 作用域：仅在 .guixu-root-container 下声明，避免污染宿主页面
+ * 说明：当前仍由 legacy/guixu.css 覆盖同名变量，确保视觉零回归；后续阶段逐步删去 guixu.css 内重复变量定义
+ */
+
+.guixu-root-container {
+  /* 基础色板 */
+  --gx-color-gold: #c9aa71;
+  --gx-color-gold-strong: #daa520;
+  --gx-color-brown: #8b7355;
+  --gx-color-cream: #e8e3d6;
+  --gx-color-text-muted: #a09c91;
+  --gx-color-danger: #8b0000;
+  --gx-color-danger-weak: #ff6b6b;
+
+  --gx-color-bg-1: rgba(26, 26, 46, 0.5);
+  --gx-color-bg-1-hover: rgba(26, 26, 46, 0.6);
+  --gx-color-bg-1-focus: rgba(26, 26, 46, 0.65);
+  --gx-color-bg-2: rgba(15, 15, 35, 0.8);
+  --gx-color-bg-overlay: rgba(0, 0, 0, 0.8);
+
+  /* 尺寸与圆角/阴影/间距 */
+  --gx-radius-sm: 4px;
+  --gx-radius-md: 6px;
+  --gx-radius-lg: 8px;
+  --gx-radius-xl: 10px;
+
+  --gx-shadow-focus: 0 0 0 2px rgba(201, 170, 113, 0.12);
+  --gx-shadow-elev-1: 0 1px 8px rgba(201, 170, 113, 0.15);
+  --gx-shadow-elev-2: 0 6px 18px rgba(0, 0, 0, 0.35);
+
+  --gx-space-4: 4px;
+  --gx-space-6: 6px;
+  --gx-space-8: 8px;
+  --gx-space-10: 10px;
+  --gx-space-12: 12px;
+  --gx-space-15: 15px;
+  --gx-space-20: 20px;
+
+  /* 字体与排版 */
+  --guixu-font-family: "ZCOOL KuaiLe","Ma Shan Zheng",serif;
+  --guixu-story-font-size: 14px; /* 与现有变量保持一致，供正文字号调节使用 */
+
+  /* 背景参数（与设置中心联动） */
+  --guixu-bg-mask: 0.7;
+  --guixu-bg-size: cover;
+  --guixu-bg-repeat: no-repeat;
+  --guixu-bg-position: center;
+
+  /* 表单控件（输入/选择/文本域）统一变量 */
+  --gx-input-bg: var(--gx-color-bg-1);
+  --gx-input-bg-hover: var(--gx-color-bg-1-hover);
+  --gx-input-bg-focus: var(--gx-color-bg-1-focus);
+
+  --gx-input-border-color: rgba(201, 170, 113, 0.35);
+  --gx-input-border-color-hover: rgba(201, 170, 113, 0.45);
+  --gx-input-border-color-focus: rgba(201, 170, 113, 0.65);
+
+  --gx-input-color: var(--gx-color-cream);
+  --gx-placeholder-color: var(--gx-color-brown);
+
+  --gx-input-radius: var(--gx-radius-lg);
+  --gx-input-height: 32px;
+  --gx-input-shadow-focus: var(--gx-shadow-focus);
+
+  /* 按钮变量（初版：与现有视觉保持一致，后续在 components/buttons.css 中细化） */
+  --gx-btn-height: 32px;
+  --gx-btn-font-size: 12px;
+  --gx-btn-padding-x: 12px;
+  --gx-btn-radius: 5px;
+
+  --gx-btn-primary-bg: linear-gradient(45deg, #8b4513, #cd853f);
+  --gx-btn-primary-border: var(--gx-color-gold-strong);
+  --gx-btn-primary-color: #fff;
+
+  --gx-btn-base-bg: linear-gradient(45deg, #1a1a2e, #2d1b3d);
+  --gx-btn-base-border: var(--gx-color-gold);
+  --gx-btn-base-color: var(--gx-color-gold);
+
+  --gx-btn-danger-bg: var(--gx-color-danger);
+  --gx-btn-danger-border: var(--gx-color-danger-weak);
+  --gx-btn-danger-color: #fff;
+
+  /* 进度/充能条变量（后续 progress.css 使用） */
+  --gx-progress-height: 6px;
+  --gx-progress-bg: rgba(0, 0, 0, 0.5);
+  --gx-progress-border: var(--gx-color-gold);
+  --gx-progress-fill: linear-gradient(90deg, #ff6b6b, #ffd93d);
+
+  --guixu-charge: 0%; /* 充能进度（运行时通过 JS 设置） */
+
+  /* 徽章/标签 */
+  --gx-badge-radius: 999px;
+  --gx-badge-bg: linear-gradient(180deg, rgba(201,170,113,0.28), rgba(201,170,113,0.12));
+  --gx-badge-border: rgba(201,170,113,0.55);
+  --gx-badge-color: var(--gx-color-cream);
+}

@@ -1,0 +1,52 @@
+/*!
+ * Utilities (阶段1)
+ * 说明：
+ * - 提供轻量工具类，统一作用域限定到 .guixu-root-container，避免污染宿主页面
+ * - 后续阶段可按需补充，但避免与组件样式重复定义
+ */
+
+/* 显隐与可访问性 */
+.guixu-root-container .u-hidden { display: none !important; }
+.guixu-root-container .u-sr-only {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+
+/* 文本与换行 */
+.guixu-root-container .u-ellipsis {
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+.guixu-root-container .u-nowrap { white-space: nowrap !important; }
+.guixu-root-container .u-prewrap { white-space: pre-wrap !important; word-wrap: break-word !important; }
+
+/* 对齐与布局 */
+.guixu-root-container .u-flex { display: flex !important; }
+.guixu-root-container .u-flex-col { display: flex !important; flex-direction: column !important; }
+.guixu-root-container .u-center { display: flex !important; align-items: center !important; justify-content: center !important; }
+.guixu-root-container .u-between { display: flex !important; align-items: center !important; justify-content: space-between !important; }
+
+/* 间距（少量通用间距，避免过多原子类） */
+.guixu-root-container .u-gap-6 { gap: 6px !important; }
+.guixu-root-container .u-gap-8 { gap: 8px !important; }
+.guixu-root-container .u-gap-10 { gap: 10px !important; }
+.guixu-root-container .u-mt-8 { margin-top: 8px !important; }
+.guixu-root-container .u-mb-8 { margin-bottom: 8px !important; }
+.guixu-root-container .u-p-8 { padding: 8px !important; }
+.guixu-root-container .u-p-10 { padding: 10px !important; }
+
+/* 滚动与溢出 */
+.guixu-root-container .u-scroll-y { overflow-y: auto !important; }
+.guixu-root-container .u-scroll-x { overflow-x: auto !important; }
+.guixu-root-container .u-overflow-hidden { overflow: hidden !important; }
+
+/* 选择与指针 */
+.guixu-root-container .u-no-select { user-select: none !important; }
+.guixu-root-container .u-pointer { cursor: pointer !important; }

@@ -1,0 +1,6 @@
+/*!
+ * GuiXu Legacy Bridge (阶段0)
+ * - 过渡期间保留旧样式，以避免视觉回归
+ * - 后续阶段将逐步从 guixu.css 迁出到分层文件
+ */
+@import url("../guixu.css");

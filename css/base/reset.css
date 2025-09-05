@@ -1,0 +1,73 @@
+/*!
+ * Lightweight Scoped Reset (阶段1)
+ * 仅作用于 .guixu-root-container 与其子元素，避免污染宿主页面
+ */
+
+/* 盒模型统一 */
+.guixu-root-container, 
+.guixu-root-container *::before, 
+.guixu-root-container *::after {
+  box-sizing: border-box;
+}
+
+/* 基础 margin/padding 清零（容器内） */
+.guixu-root-container, 
+.guixu-root-container * {
+  margin: 0;
+  padding: 0;
+}
+
+/* 图片/媒体默认自适应容器宽度 */
+.guixu-root-container img,
+.guixu-root-container svg,
+.guixu-root-container video,
+.guixu-root-container canvas,
+.guixu-root-container audio {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* 表单元素与按钮：继承字体，统一外观 */
+.guixu-root-container input,
+.guixu-root-container select,
+.guixu-root-container textarea,
+.guixu-root-container button {
+  font: inherit;
+  color: inherit;
+}
+
+/* 按钮与交互元素：移除默认边框背景，交由组件样式控制 */
+.guixu-root-container button {
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+/* 列表：移除默认样式，必要处由组件样式接管 */
+.guixu-root-container ul,
+.guixu-root-container ol {
+  list-style: none;
+}
+
+/* 链接：继承颜色，交互在组件层定义 */
+.guixu-root-container a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* 表格：边框合并与单元格内边距交由组件层控制 */
+.guixu-root-container table {
+  border-collapse: collapse;
+  border-spacing: 0;
+}
+
+/* 代码块/预格式文本：换行策略更友好 */
+.guixu-root-container pre,
+.guixu-root-container code,
+.guixu-root-container kbd,
+.guixu-root-container samp {
+  font: 100%/1.4 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
