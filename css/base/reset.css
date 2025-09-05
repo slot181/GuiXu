@@ -37,10 +37,8 @@
   color: inherit;
 }
 
-/* 按钮与交互元素：移除默认边框背景，交由组件样式控制 */
+/* 按钮与交互元素：不强制移除默认边框/背景，避免未样式化按钮“无边框”问题；统一光标 */
 .guixu-root-container button {
-  background: none;
-  border: none;
   cursor: pointer;
 }
 
