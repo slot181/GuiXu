@@ -50,3 +50,9 @@
 /* 选择与指针 */
 .guixu-root-container .u-no-select { user-select: none !important; }
 .guixu-root-container .u-pointer { cursor: pointer !important; }
+
+/* 新增：常用布局工具（用于移除行内样式） */
+.guixu-root-container .u-ml-auto { margin-left: auto !important; }
+.guixu-root-container .u-flex-1 { flex: 1 1 0% !important; }
+.guixu-root-container .u-ml-10 { margin-left: 10px !important; }
+.guixu-root-container .u-ml-15 { margin-left: 15px !important; }

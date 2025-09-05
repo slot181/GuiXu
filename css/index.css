@@ -13,4 +13,8 @@
 /* 迁移过渡层：保留旧选择器，逐步从 guixu.css 削减 */
 @import url("./legacy/guixu.legacy.css");
 
+/* 组件层（阶段2）：统一按钮与表单基类 */
+@import url("./components/buttons.css");
+@import url("./components/forms.css");
+
 /* 后续阶段将依次引入：layout/、components/、responsive/、themes/ */

@@ -1,0 +1,177 @@
+/*!
+ * Forms (阶段2)
+ * 作用域：仅在 .guixu-root-container 内，避免污染宿主页面
+ * 目标：
+ * - 统一输入类：.gx-input（input[type=text|search|number|password|...]）、.gx-textarea、.gx-select（select）
+ * - 统一交互态：hover / focus / disabled / readonly / placeholder
+ * - 统一尺寸修饰：.is-compact / .is-lg / .is-full
+ * - 尽量以 CSS 变量驱动，面板容器可覆写变量（如高度/圆角/边框色/背景）
+ *
+ * 说明：
+ * - 选择组件 .gx-select 使用 appearance: none + 背景箭头，避免修改 HTML 结构。
+ * - 后续可在不破坏 API 的前提下，支持 .gx-select-wrapper + 伪元素箭头实现更灵活的主题色。
+ */
+
+.guixu-root-container {
+  /* 表单控件兜底变量（variables.css 已提供主变量） */
+  --gx-input-padding-x: 10px;
+  --gx-input-padding-y: 6px;
+  --gx-input-font-size: 12px;
+
+  /* 选择器箭头（当前用固定色实现，后续可改 wrapper 伪元素以支持变量） */
+  --gx-select-arrow-size: 9px;
+  --gx-select-arrow-color: #c9aa71; /* 与 --gx-color-gold 接近 */
+}
+
+/* 基类：输入类（input 与 textarea） */
+.guixu-root-container .gx-input,
+.guixu-root-container .gx-textarea {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  min-height: var(--gx-input-height);
+  padding: var(--gx-input-padding-y) var(--gx-input-padding-x);
+  border-radius: var(--gx-input-radius);
+  border: 1px solid var(--gx-input-border-color);
+  background: var(--gx-input-bg);
+  color: var(--gx-input-color);
+  font-size: var(--gx-input-font-size);
+  line-height: 1.2;
+  outline: none;
+  transition: background 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.guixu-root-container .gx-input:hover,
+.guixu-root-container .gx-textarea:hover {
+  background: var(--gx-input-bg-hover);
+  border-color: var(--gx-input-border-color-hover);
+}
+
+.guixu-root-container .gx-input:focus,
+.guixu-root-container .gx-textarea:focus,
+.guixu-root-container .gx-input:focus-visible,
+.guixu-root-container .gx-textarea:focus-visible {
+  background: var(--gx-input-bg-focus);
+  border-color: var(--gx-input-border-color-focus);
+  box-shadow: var(--gx-input-shadow-focus);
+}
+
+.guixu-root-container .gx-input::placeholder,
+.guixu-root-container .gx-textarea::placeholder {
+  color: var(--gx-placeholder-color);
+  opacity: 0.9;
+}
+
+/* 多行文本区域 */
+.guixu-root-container .gx-textarea {
+  resize: vertical;
+  min-height: calc(var(--gx-input-height) * 2);
+}
+
+/* 选择器（select）：统一箭头与交互态 */
+.guixu-root-container .gx-select {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  min-height: var(--gx-input-height);
+  padding: var(--gx-input-padding-y) calc(var(--gx-input-padding-x) + var(--gx-select-arrow-size) + 12px) var(--gx-input-padding-y) var(--gx-input-padding-x);
+  border-radius: var(--gx-input-radius);
+  border: 1px solid var(--gx-input-border-color);
+  background:
+    /* 箭头（右侧） */
+    linear-gradient(45deg, transparent 49%, var(--gx-select-arrow-color) 50%) right calc(var(--gx-input-padding-x) + 8px) center/ var(--gx-select-arrow-size) var(--gx-select-arrow-size),
+    linear-gradient(-45deg, transparent 49%, var(--gx-select-arrow-color) 50%) right calc(var(--gx-input-padding-x) + 2px) center/ var(--gx-select-arrow-size) var(--gx-select-arrow-size),
+    var(--gx-input-bg);
+  background-repeat: no-repeat;
+  color: var(--gx-input-color);
+  font-size: var(--gx-input-font-size);
+  line-height: 1.2;
+  outline: none;
+  transition: background-color 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.guixu-root-container .gx-select:hover {
+  background-color: var(--gx-input-bg-hover);
+  border-color: var(--gx-input-border-color-hover);
+}
+
+.guixu-root-container .gx-select:focus,
+.guixu-root-container .gx-select:focus-visible {
+  background-color: var(--gx-input-bg-focus);
+  border-color: var(--gx-input-border-color-focus);
+  box-shadow: var(--gx-input-shadow-focus);
+}
+
+/* 状态：禁用/只读/无效 */
+.guixu-root-container .gx-input[disabled],
+.guixu-root-container .gx-textarea[disabled],
+.guixu-root-container .gx-select[disabled] {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.guixu-root-container .gx-input[readonly],
+.guixu-root-container .gx-textarea[readonly] {
+  filter: saturate(0.9);
+}
+
+.guixu-root-container .is-invalid.gx-input,
+.guixu-root-container .is-invalid.gx-textarea,
+.guixu-root-container .is-invalid.gx-select {
+  border-color: rgba(255, 107, 107, 0.8);
+  box-shadow: 0 0 0 2px rgba(255, 107, 107, 0.18);
+}
+
+/* 尺寸修饰 */
+.guixu-root-container .gx-input.is-compact,
+.guixu-root-container .gx-textarea.is-compact,
+.guixu-root-container .gx-select.is-compact {
+  min-height: calc(var(--gx-input-height) - 4px);
+  padding: calc(var(--gx-input-padding-y) - 2px) calc(var(--gx-input-padding-x) - 2px);
+  font-size: calc(var(--gx-input-font-size) - 1px);
+}
+
+.guixu-root-container .gx-input.is-lg,
+.guixu-root-container .gx-textarea.is-lg,
+.guixu-root-container .gx-select.is-lg {
+  min-height: calc(var(--gx-input-height) + 6px);
+  padding: calc(var(--gx-input-padding-y) + 2px) calc(var(--gx-input-padding-x) + 2px);
+  font-size: calc(var(--gx-input-font-size) + 1px);
+}
+
+.guixu-root-container .gx-input.is-full,
+.guixu-root-container .gx-textarea.is-full,
+.guixu-root-container .gx-select.is-full {
+  width: 100%;
+  display: block;
+}
+
+/* 输入类型细化 */
+.guixu-root-container input.gx-input[type="search"]::-webkit-search-decoration,
+.guixu-root-container input.gx-input[type="search"]::-webkit-search-cancel-button,
+.guixu-root-container input.gx-input[type="search"]::-webkit-search-results-button,
+.guixu-root-container input.gx-input[type="search"]::-webkit-search-results-decoration {
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+/* 与按钮对齐（表单行内组合时的垂直对齐） */
+.guixu-root-container .form-inline {
+  display: flex;
+  align-items: center;
+  gap: var(--gx-space-8, 8px);
+}
+
+.guixu-root-container .form-inline .gx-input,
+.guixu-root-container .form-inline .gx-select,
+.guixu-root-container .form-inline .gx-textarea,
+.guixu-root-container .form-inline .interaction-btn {
+  margin: 0;
+}
+
+/* 提示文字/帮助文本（可选） */
+.guixu-root-container .form-help {
+  color: var(--gx-color-text-muted);
+  font-size: 11px;
+  margin-top: 4px;
+}

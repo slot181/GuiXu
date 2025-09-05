@@ -1,0 +1,129 @@
+/*!
+ * Buttons (阶段2)
+ * 作用域：仅在 .guixu-root-container 内，避免污染宿主页面
+ * 目标：
+ * - 提供统一的按钮基类 .interaction-btn
+ * - 提供主按钮 .primary-btn 与危险按钮 .danger-btn
+ * - 提供修饰类：.is-compact、.is-lg、.is-full、.is-ghost
+ * - 使用 CSS 变量驱动，可在面板容器内覆写尺寸/色彩
+ */
+
+.guixu-root-container {
+  /* 本组件的尺寸变量（若未在 variables.css 定义，则使用以下兜底值） */
+  --gx-btn-height-compact: 28px;
+  --gx-btn-height-lg: 36px;
+  --gx-btn-gap: 6px;
+  --gx-btn-shadow-focus: var(--gx-shadow-focus, 0 0 0 2px rgba(201, 170, 113, 0.12));
+}
+
+/* 基类：交互按钮 */
+.guixu-root-container .interaction-btn {
+  -webkit-appearance: none;
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--gx-btn-gap);
+  height: var(--gx-btn-height);
+  padding: 0 var(--gx-btn-padding-x);
+  border-radius: var(--gx-btn-radius);
+  border: 1px solid var(--gx-btn-base-border);
+  background: var(--gx-btn-base-bg);
+  color: var(--gx-btn-base-color);
+  font-size: var(--gx-btn-font-size);
+  line-height: 1;
+  white-space: nowrap;
+  user-select: none;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, color 0.2s ease, transform 0.05s ease;
+  text-decoration: none;
+}
+
+.guixu-root-container .interaction-btn:hover {
+  filter: brightness(1.05);
+}
+
+.guixu-root-container .interaction-btn:active {
+  transform: translateY(1px);
+  filter: brightness(0.98);
+}
+
+.guixu-root-container .interaction-btn:focus-visible {
+  outline: none;
+  box-shadow: var(--gx-btn-shadow-focus);
+}
+
+.guixu-root-container .interaction-btn[disabled],
+.guixu-root-container .interaction-btn:disabled,
+.guixu-root-container .interaction-btn[aria-disabled="true"] {
+  opacity: 0.6;
+  cursor: not-allowed;
+  filter: none;
+}
+
+/* 修饰类：尺寸与布局 */
+.guixu-root-container .interaction-btn.is-compact {
+  height: var(--gx-btn-height-compact);
+  padding: 0 calc(var(--gx-btn-padding-x) - 4px);
+  font-size: calc(var(--gx-btn-font-size) - 1px);
+}
+
+.guixu-root-container .interaction-btn.is-lg {
+  height: var(--gx-btn-height-lg);
+  padding: 0 calc(var(--gx-btn-padding-x) + 4px);
+  font-size: calc(var(--gx-btn-font-size) + 1px);
+}
+
+.guixu-root-container .interaction-btn.is-full {
+  display: flex;
+  width: 100%;
+}
+
+/* 主题：主按钮 */
+.guixu-root-container .primary-btn {
+  border-color: var(--gx-btn-primary-border);
+  background: var(--gx-btn-primary-bg);
+  color: var(--gx-btn-primary-color);
+}
+
+/* 主题：危险按钮 */
+.guixu-root-container .danger-btn {
+  border-color: var(--gx-btn-danger-border);
+  background: var(--gx-btn-danger-bg);
+  color: var(--gx-btn-danger-color);
+}
+
+/* 主题：幽灵按钮（仅描边/透明背景） */
+.guixu-root-container .interaction-btn.is-ghost {
+  background: transparent;
+  color: var(--gx-btn-base-color);
+  border-color: var(--gx-btn-base-border);
+}
+
+.guixu-root-container .interaction-btn.is-ghost:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+/* 图标按钮（仅当存在 .icon-* 或 svg 时更紧凑） */
+.guixu-root-container .interaction-btn .icon,
+.guixu-root-container .interaction-btn [class^="icon-"],
+.guixu-root-container .interaction-btn svg {
+  width: 1em;
+  height: 1em;
+  flex: 0 0 auto;
+}
+
+/* 按钮组（可选） */
+.guixu-root-container .btn-group {
+  display: inline-flex;
+  gap: var(--gx-space-6, 6px);
+}
+
+.guixu-root-container .btn-group .interaction-btn {
+  border-radius: var(--gx-btn-radius);
+}
+
+/* 在 .mobile-view 下可做轻微尺寸收紧（保留到 responsive/mobile.css 进一步细化） */
+.guixu-root-container.mobile-view .interaction-btn.is-compact {
+  height: calc(var(--gx-btn-height-compact) - 2px);
+}

@@ -13,15 +13,13 @@
 
       const body = $('#guixu-system-modal .modal-body');
       if (!body) return;
-      body.innerHTML =
-        '<p class="modal-placeholder" style="text-align:center; color:#8b7355; font-size:12px;">正在连接归墟...</p>';
+      body.innerHTML = '<p class="modal-placeholder">正在连接归墟...</p>';
 
       try {
         const messages = await window.GuixuAPI.getChatMessages(window.GuixuAPI.getCurrentMessageId());
         const stat_data = messages?.[0]?.data?.stat_data;
         if (!stat_data) {
-          body.innerHTML =
-            '<p class="modal-placeholder" style="text-align:center; color:#8b7355; font-size:12px;">无法连接归墟。</p>';
+          body.innerHTML = '<p class="modal-placeholder">无法连接归墟。</p>';
           return;
         }
 
@@ -49,7 +47,7 @@
             </div>
           </div>
           <div style="padding: 20px 10px; text-align: center;">
-            <button id="btn-trigger-guixu" class="interaction-btn primary-btn" style="width: 80%; padding: 12px; font-size: 16px;">归 墟</button>
+            <button id="btn-trigger-guixu" class="interaction-btn primary-btn is-lg" style="width: 80%;">归 墟</button>
           </div>
         `;
 
@@ -81,8 +79,7 @@
         });
       } catch (error) {
         console.error('[归墟] 加载归墟系统时出错:', error);
-        body.innerHTML =
-          '<p class="modal-placeholder" style="text-align:center; color:#8b7355; font-size:12px;">加载数据时出错。</p>';
+        body.innerHTML = '<p class="modal-placeholder">加载数据时出错。</p>';
       }
     }
   };

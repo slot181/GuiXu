@@ -14,7 +14,7 @@
       const body = $('#inventory-modal .modal-body');
       if (!body) return;
 
-      body.innerHTML = '<p class="modal-placeholder" style="text-align:center; color:#8b7355; font-size:12px;">正在清点行囊...</p>';
+      body.innerHTML = '<p class="modal-placeholder">正在清点行囊...</p>';
 
       try {
         const currentId = window.GuixuAPI.getCurrentMessageId();
@@ -48,7 +48,7 @@
         } catch (_) {}
 
         if (!stat_data) {
-          body.innerHTML = '<p class="modal-placeholder" style="text-align:center; color:#8b7355; font-size:12px;">无法获取背包数据。</p>';
+          body.innerHTML = '<p class="modal-placeholder">无法获取背包数据。</p>';
           return;
         }
 
@@ -59,7 +59,7 @@
         this.bindCurrencyUnit(body);
       } catch (error) {
         console.error('[归墟] 加载背包时出错:', error);
-        body.innerHTML = `<p class="modal-placeholder" style="text-align:center; color:#8b7355; font-size:12px;">加载背包时出错: ${error.message}</p>`;
+        body.innerHTML = `<p class="modal-placeholder">加载背包时出错: ${error.message}</p>`;
       }
     },
 
@@ -84,7 +84,7 @@
       const stonesDisplay = `${Curr.formatFromBase(stonesVal, unit, { decimals: 2, compact: true })} ${unit}`;
 
       if (!stat_data || Object.keys(stat_data).length === 0) {
-        return '<p class="modal-placeholder" style="text-align:center; color:#8b7355; font-size:12px;">背包数据为空。</p>';
+        return '<p class="modal-placeholder">背包数据为空。</p>';
       }
 
       const categories = [
@@ -214,7 +214,7 @@
         </div>
 
         <div class="inventory-search">
-          <input type="text" id="inventory-search-input" class="gx-input" placeholder="搜索物品名称或描述…" />
+          <input type="text" id="inventory-search-input" class="gx-input is-compact" placeholder="搜索物品名称或描述…" />
         </div>
 
         <div class="panel-section">
@@ -222,7 +222,7 @@
             <div class="attribute-item" style="gap:8px; align-items:center;">
               <span class="attribute-name">灵石</span>
               <span class="attribute-value" id="inventory-stones" data-base="${stonesVal}">${stonesDisplay}</span>
-              <select id="inventory-currency-unit" class="gx-select" style="height: 26px; padding: 0 8px; background: rgba(26,26,46,0.5); border: 1px solid rgba(201,170,113,0.35); border-radius: 4px; color:#e0dcd1; font-size:12px;">
+              <select id="inventory-currency-unit" class="gx-select is-compact">
                 <option value="下品灵石" ${unit === '下品灵石' ? 'selected' : ''}>下品灵石</option>
                 <option value="中品灵石" ${unit === '中品灵石' ? 'selected' : ''}>中品灵石</option>
                 <option value="上品灵石" ${unit === '上品灵石' ? 'selected' : ''}>上品灵石</option>
@@ -380,7 +380,8 @@
                   }
 
                   <!-- 第四行：操作按钮（装备/辅修/丢弃/删除等） -->
-                  <div class="item-row item-row--actions">
+                  ${ (actionButton = this._normalizeActionButtons(actionButton), '') }
+                  <div class="item-row item-row--actions u-flex u-gap-8">
                     ${actionButton}
                   </div>
                 </div>
@@ -1283,6 +1284,28 @@
         fabao1: '法宝',
       };
       return map[slotKey] || null;
+    },
+
+    // 阶段2：统一按钮样式并移除行内样式（装备/使用/丢弃/删除等）
+    _normalizeActionButtons(html) {
+      try {
+        if (!html) return '';
+        let s = String(html);
+
+        // 为操作按钮补充统一类名（交互按钮 + 紧凑）
+        s = s.replace(/<button([^>]*?)class="([^"]*?)item-equip-btn([^"]*?)"([^>]*)>/g, '<button$1class="interaction-btn is-compact item-equip-btn $2$3"$4>');
+        s = s.replace(/<button([^>]*?)class="([^"]*?)item-use-btn([^"]*?)"([^>]*)>/g, '<button$1class="interaction-btn is-compact item-use-btn $2$3"$4>');
+        s = s.replace(/<button([^>]*?)class="([^"]*?)item-discard-btn([^"]*?)"([^>]*)>/g, '<button$1class="interaction-btn danger-btn is-compact item-discard-btn $2$3"$4>');
+        s = s.replace(/<button([^>]*?)class="([^"]*?)item-delete-btn([^"]*?)"([^>]*)>/g, '<button$1class="interaction-btn danger-btn is-compact item-delete-btn $2$3"$4>');
+
+        // 将“禁用样式”改为语义化 disabled，移除左外边距等内联样式
+        s = s.replace(/style="margin-left:\s*5px;\s*opacity:\s*0\.5;\s*cursor:\s*not-allowed;?"/g, ' disabled');
+        s = s.replace(/style="margin-left:\s*5px;?"/g, '');
+
+        return s;
+      } catch (_) {
+        return String(html || '');
+      }
     },
   };
 

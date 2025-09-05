@@ -124,8 +124,8 @@
               </div>
               <div class="attribute-item" style="gap:8px; align-items:center; flex-wrap: wrap;">
                 <span class="attribute-name" style="min-width:90px;">自定义字体</span>
-                <button id="pref-font-upload" class="interaction-btn" style="padding: 4px 8px; font-size: 12px;">本地上传</button>
-                <button id="pref-font-clear" class="interaction-btn danger-btn" style="padding: 4px 8px; font-size: 12px;">清除字体</button>
+                <button id="pref-font-upload" class="interaction-btn is-compact">本地上传</button>
+                <button id="pref-font-clear" class="interaction-btn danger-btn is-compact">清除字体</button>
                 <span id="pref-font-name" class="attribute-value" style="min-width: 120px;">（未选择）</span>
               </div>
             </div>

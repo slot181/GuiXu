@@ -14,7 +14,7 @@
       const body = $('#relationships-modal .modal-body');
       if (!body) return;
 
-      body.innerHTML = '<p class="modal-placeholder" style="text-align:center; color:#8b7355; font-size:12px;">正在梳理人脉...</p>';
+      body.innerHTML = '<p class="modal-placeholder">正在梳理人脉...</p>';
 
       try {
         const currentId = window.GuixuAPI.getCurrentMessageId();
@@ -39,7 +39,7 @@
         }
         
         if (!stat_data) {
-          body.innerHTML = '<p class="modal-placeholder" style="text-align:center; color:#8b7355; font-size:12px;">无法获取人物关系数据。</p>';
+          body.innerHTML = '<p class="modal-placeholder">无法获取人物关系数据。</p>';
           return;
         }
 
@@ -58,7 +58,7 @@
         body.innerHTML = this.render(relationships || []);
       } catch (error) {
         console.error('[归墟] 加载人物关系时出错:', error);
-        body.innerHTML = `<p class="modal-placeholder" style="text-align:center; color:#8b7355; font-size:12px;">加载人物关系时出错: ${error.message}</p>`;
+        body.innerHTML = `<p class="modal-placeholder">加载人物关系时出错: ${error.message}</p>`;
       }
     },
 
@@ -66,7 +66,7 @@
       const h = window.GuixuHelpers;
 
       if (!Array.isArray(relationships) || relationships.length === 0) {
-        return '<p class="modal-placeholder" style="text-align:center; color:#8b7355; font-size:12px;">红尘俗世，暂无纠葛。</p>';
+        return '<p class="modal-placeholder">红尘俗世，暂无纠葛。</p>';
       }
 
       let html = '';
@@ -121,11 +121,11 @@
                   </div>
                 </div>
                 <div class="rel-actions">
-                  <button class="btn-detail ${allowView ? 'primary' : ''}" ${allowView ? '' : 'disabled'}>详细</button>
-                  <button class="btn-trade ${allowTrade ? 'primary' : ''}" ${allowTrade ? '' : 'disabled'}>交易</button>
-                  <button class="interaction-btn btn-extract" data-rel-name="${name}">提取</button>
-                  <button class="interaction-btn btn-mark ${marked ? 'primary' : ''}" data-rel-name="${name}">${marked ? '取消标注' : '标注'}</button>
-                  <button class="btn-delete-relationship">删除</button>
+                  <button class="interaction-btn is-compact ${allowView ? 'primary-btn' : ''} btn-detail" ${allowView ? '' : 'disabled'}>详细</button>
+                  <button class="interaction-btn is-compact ${allowTrade ? 'primary-btn' : ''} btn-trade" ${allowTrade ? '' : 'disabled'}>交易</button>
+                  <button class="interaction-btn is-compact btn-extract" data-rel-name="${name}">提取</button>
+                  <button class="interaction-btn is-compact ${marked ? 'primary-btn' : ''} btn-mark" data-rel-name="${name}">${marked ? '取消标注' : '标注'}</button>
+                  <button class="interaction-btn danger-btn is-compact btn-delete-relationship">删除</button>
                 </div>
               </div>
               <div class="relationship-body">
@@ -156,7 +156,7 @@
                 .join('')}
                         </ul>
                         <div class="event-history-actions">
-                          <button class="interaction-btn ev-add-btn" title="新增一条过往交集" style="padding: 2px 8px; font-size: 12px;">新增交集</button>
+                          <button class="interaction-btn is-compact ev-add-btn" title="新增一条过往交集">新增交集</button>
                         </div>
                       </details>
                     `
@@ -170,7 +170,7 @@
         }
       });
 
-      return html || '<p class="modal-placeholder" style="text-align:center; color:#8b7355; font-size:12px;">红尘俗世，暂无纠葛。</p>';
+      return html || '<p class="modal-placeholder">红尘俗世，暂无纠葛。</p>';
     },
 
     bindEvents(container) {
@@ -372,7 +372,7 @@
           const name = window.GuixuHelpers.SafeGetValue(relData, 'name', '');
           const isMarked = RelationshipsComponent._toggleMarked(name);
           e.target.textContent = isMarked ? '取消标注' : '标注';
-          e.target.classList.toggle('primary', isMarked);
+          e.target.classList.toggle('primary-btn', isMarked);
           return;
         }
       });
@@ -584,7 +584,7 @@
       const body = $('#relationships-modal .modal-body');
       if (!body) return;
 
-      body.innerHTML = '<p class="modal-placeholder" style="text-align:center; color:#8b7355; font-size:12px;">正在梳理人脉...</p>';
+      body.innerHTML = '<p class="modal-placeholder">正在梳理人脉...</p>';
 
       try {
         const currentId = window.GuixuAPI.getCurrentMessageId();
@@ -609,7 +609,7 @@
         }
         
         if (!stat_data) {
-          body.innerHTML = '<p class="modal-placeholder" style="text-align:center; color:#8b7355; font-size:12px;">无法获取人物关系数据。</p>';
+          body.innerHTML = '<p class="modal-placeholder">无法获取人物关系数据。</p>';
           return;
         }
 
@@ -839,63 +839,6 @@
               gap: 6px;
               flex: 0 0 auto;
             }
-            /* 提取/标注按钮与“交易/详细”统一尺寸与风格（严格对齐 guixu.css 中的 .rel-actions .btn-trade/.btn-detail） */
-            .rel-actions .btn-extract,
-            .rel-actions .btn-mark {
-              display: inline-flex;
-              align-items: center;
-              justify-content: center;
-              height: 28px;
-              padding: 0 10px;
-              font-size: 12px;
-              border-radius: 4px;
-              border: 1px solid #c9aa71;
-              background: linear-gradient(45deg, #1a1a2e, #2d1b3d);
-              color: #c9aa71;
-              cursor: pointer;
-              transition: all 0.2s ease;
-            }
-            .rel-actions .btn-extract:hover,
-            .rel-actions .btn-mark:hover {
-              background: linear-gradient(45deg, #2d1b3d, #3d2b4d);
-              border-color: #c9aa71;
-              color: #c9aa71;
-            }
-            .rel-actions .btn-extract.primary,
-            .rel-actions .btn-mark.primary {
-              background: linear-gradient(45deg, #8b4513, #cd853f);
-              border-color: #daa520;
-              color: #fff;
-            }
-            .rel-actions .btn-extract.primary:hover,
-            .rel-actions .btn-mark.primary:hover {
-              background: linear-gradient(45deg, #cd853f, #daa520);
-              border-color: #daa520;
-              color: #fff;
-            }
-            /* 遵循全局按钮风格，避免悬停时出现半透明 */
-            .rel-actions .btn-detail:hover,
-            .rel-actions .btn-trade:hover {
-              background: linear-gradient(45deg, #2d1b3d, #3d2b4d);
-              border-color: #c9aa71;
-              color: #c9aa71;
-            }
-            .rel-actions .btn-detail.primary:hover,
-            .rel-actions .btn-trade.primary:hover {
-              background: linear-gradient(45deg, #cd853f, #daa520);
-              border-color: #daa520;
-              color: #fff;
-            }
-            .rel-actions button:disabled {
-              opacity: 0.6;
-              cursor: not-allowed;
-            }
-            /* 删除按钮：与背包按钮完全一致，使用 guixu.css 全局 .btn-delete-relationship 样式；此处不覆盖 */
-            /* 保留禁用态的通用语义（若需要） */
-            .rel-actions .btn-delete-relationship:disabled {
-              opacity: .6;
-              cursor: not-allowed;
-            }
             .relationship-body p { margin: 0; }
             .rel-desc {
               margin: 0;
@@ -995,11 +938,11 @@
             <div class="rel-tabs" id="rel-tabs">${tabsHtml}</div>
             <div class="rel-content">
               <div class="rel-toolbar">
-                <input id="rel-search-input" class="gx-input" type="search" placeholder="搜索姓名/描述..." />
+                <input id="rel-search-input" class="gx-input is-compact" type="search" placeholder="搜索姓名/描述..." />
               </div>
               <div class="rel-settings">
                 <label><input type="checkbox" id="rel-auto-extract-toggle" /> 自动提取</label>
-                <label>阈值 <input type="number" id="rel-auto-extract-threshold" min="1" step="1" style="width:64px;" /></label>
+                <label>阈值 <input type="number" id="rel-auto-extract-threshold" class="gx-input is-compact" min="1" step="1" /></label>
                 <label><input type="checkbox" id="rel-auto-delete-toggle" /> 提取后删除</label>
                 <label><input type="checkbox" id="rel-auto-toggle-lorebook" /> 自动开关角色条目</label>
                 <button id="rel-clear-character-entries" class="interaction-btn danger-btn">一键清空角色目录</button>
@@ -1052,7 +995,7 @@
         this._initRelSettingsControls(relationships);
       } catch (error) {
         console.error('[归墟] 加载人物关系时出错:', error);
-        body.innerHTML = `<p class="modal-placeholder" style="text-align:center; color:#8b7355; font-size:12px;">加载人物关系时出错: ${error.message}</p>`;
+        body.innerHTML = `<p class="modal-placeholder">加载人物关系时出错: ${error.message}</p>`;
       }
     },
 
@@ -2485,7 +2428,7 @@ try { await this._syncNpcFourDimMaxToMvu(rel, computedMax); } catch (_) {}
             <div class="trade-item" data-item-id="${id}" data-item-data='${JSON.stringify(it).replace(/'/g, "&#39;")}'>
               <span class="item-name item-clickable" style="${tierStyle}; cursor: pointer;" data-item-id="${id}">${n}</span>
               <span class="item-meta">${meta}</span>
-              <button class="btn-purchase-item" data-item-id="${id}">购买</button>
+              <button class="interaction-btn is-compact btn-purchase-item" data-item-id="${id}">购买</button>
             </div>
           `;
         };
@@ -2515,25 +2458,13 @@ try { await this._syncNpcFourDimMaxToMvu(rel, computedMax); } catch (_) {}
             <div class="trade-item" data-item-id="${id}" data-item-data='${JSON.stringify(it).replace(/'/g, "&#39;")}'>
               <span class="item-name item-clickable" style="${tierStyle}; cursor: pointer;" data-item-id="${id}">${n}</span>
               <span class="item-meta">${meta}</span>
-              <button class="btn-sell-item" data-item-id="${id}">出售</button>
+              <button class="interaction-btn is-compact btn-sell-item" data-item-id="${id}">出售</button>
             </div>
           `;
         };
 
         const bodyHtml = `
           <style>
-            #trade-search-input {
-              flex: 1 1 auto;
-              min-width: 160px;
-              border: 1px solid rgba(201,170,113,0.35);
-              background: rgba(26,26,46,0.5);
-              color: #e8e3d6;
-              border-radius: 8px;
-              padding: 8px 10px;
-              font-size: 12px;
-              outline: none;
-            }
-            #trade-search-input::placeholder { color:#8b7355; }
             #trade-modal .trade-toolbar { display: inline-flex; gap: 8px; align-items: center; flex-wrap: wrap; }
           </style>
           <div class="trade-summary">
@@ -2558,8 +2489,8 @@ try { await this._syncNpcFourDimMaxToMvu(rel, computedMax); } catch (_) {}
             <div class="trade-toolbar">
               <button id="trade-tab-npc" class="interaction-btn">对方物品</button>
               <button id="trade-tab-user" class="interaction-btn">我的物品</button>
-              <input id="trade-search-input" class="gx-input" type="search" placeholder="搜索物品..." />
-              <select id="trade-currency-unit" class="gx-select">
+              <input id="trade-search-input" class="gx-input is-compact" type="search" placeholder="搜索物品..." />
+              <select id="trade-currency-unit" class="gx-select is-compact">
                 <option value="下品灵石" ${currentUnit === '下品灵石' ? 'selected' : ''}>下品灵石</option>
                 <option value="中品灵石" ${currentUnit === '中品灵石' ? 'selected' : ''}>中品灵石</option>
                 <option value="上品灵石" ${currentUnit === '上品灵石' ? 'selected' : ''}>上品灵石</option>
@@ -2584,7 +2515,7 @@ try { await this._syncNpcFourDimMaxToMvu(rel, computedMax); } catch (_) {}
             </div>
             <p style="color:#8b7355; margin-top:8px; font-size:12px;">提示：点击表头可排序；点击名称查看详情；出价越接近推荐价，且好感度越高，成交越稳妥。</p>
             <div style="text-align: center; margin-top: 15px; padding-top: 10px; border-top: 1px solid rgba(201, 170, 113, 0.3);">
-              <button id="btn-batch-fix-items" class="interaction-btn" style="padding: 8px 16px; font-size: 12px;">🔧 批量修复物品分类</button>
+              <button id="btn-batch-fix-items" class="interaction-btn is-compact">🔧 批量修复物品分类</button>
               <p style="color:#8b7355; font-size: 11px; margin-top: 5px;">如遇到物品分类错误，点击此按钮进行修复</p>
             </div>
           </div>
@@ -2670,8 +2601,8 @@ try { await this._syncNpcFourDimMaxToMvu(rel, computedMax); } catch (_) {}
             const sorted = applySort(data);
             tableBody.innerHTML = sorted.map(row => {
               const actionBtn = row.isNpc
-                ? `<button class="btn-purchase-item" data-item-id="${escape(row.id)}">购买</button>`
-                : `<button class="btn-sell-item" data-item-id="${escape(row.id)}">出售</button>`;
+                ? `<button class="interaction-btn is-compact btn-purchase-item" data-item-id="${escape(row.id)}">购买</button>`
+                : `<button class="interaction-btn is-compact btn-sell-item" data-item-id="${escape(row.id)}">出售</button>`;
               const itJson = JSON.stringify(row.it).replace(/'/g, "&#39;");
               return `<tr class="trade-row" data-item-id="${escape(row.id === 'N/A' ? row.name : row.id)}" data-item-data='${itJson}'>
                 <td><span class="item-name item-clickable" style="${h.getTierStyle(row.tier)}" data-item-id="${escape(row.id)}">${escape(row.name)}</span></td>

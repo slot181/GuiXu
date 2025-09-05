@@ -18,7 +18,7 @@
 
       const pending = Array.isArray(state.pendingActions) ? state.pendingActions : [];
       if (pending.length === 0) {
-        body.innerHTML = '<p class="modal-placeholder" style="text-align:center; color:#8b7355; font-size:12px;">暂无待执行的指令。</p>';
+        body.innerHTML = '<p class="modal-placeholder">暂无待执行的指令。</p>';
         return;
       }
 
