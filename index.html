@@ -210,42 +210,42 @@
       <div class="modal-content">
         <div class="modal-header">
           <h2 class="modal-title">最后一次提取的AI内容</h2>
-          <div class="u-ml-auto" style="display: flex; align-items: center; gap: 10px;"></div>
+          <div class="u-ml-auto extracted-toolbar"></div>
           <button class="modal-close-btn u-ml-15">&times;</button>
         </div>
         <div class="modal-body">
           <div class="panel-section">
-            <div class="section-title" style="display: flex; justify-content: space-between; align-items: center">
+            <div class="section-title extracted-section-title">
               <span>本世历程</span>
               <button id="btn-write-journey" class="interaction-btn is-compact u-ml-10">写入世界书</button>
             </div>
-            <pre id="extracted-journey" style="white-space: pre-wrap; word-wrap: break-word; color: #e0dcd1; font-size: 12px; padding: 10px; background: rgba(0, 0, 0, 0.2); border-radius: 4px; min-height: 50px;">无内容</pre>
+            <pre id="extracted-journey" class="extracted-pre">无内容</pre>
           </div>
           <div class="panel-section">
-            <div class="section-title" style="display: flex; justify-content: space-between; align-items: center">
+            <div class="section-title extracted-section-title">
               <span>往世涟漪</span>
               <button id="btn-write-past-lives" class="interaction-btn is-compact u-ml-10">写入世界书</button>
             </div>
-            <pre id="extracted-past-lives" style="white-space: pre-wrap; word-wrap: break-word; color: #e0dcd1; font-size: 12px; padding: 10px; background: rgba(0, 0, 0, 0.2); border-radius: 4px; min-height: 50px;">无内容</pre>
+            <pre id="extracted-past-lives" class="extracted-pre">无内容</pre>
           </div>
           <div class="panel-section">
-            <div class="section-title" style="display: flex; justify-content: space-between; align-items: center">
+            <div class="section-title extracted-section-title">
               <span>小说模式</span>
               <button id="btn-write-novel-mode" class="interaction-btn is-compact u-ml-10">写入世界书</button>
             </div>
-            <pre id="extracted-novel-mode" style="white-space: pre-wrap; word-wrap: break-word; color: #e0dcd1; font-size: 12px; padding: 10px; background: rgba(0, 0, 0, 0.2); border-radius: 4px; min-height: 50px;">小说模式已关闭</pre>
+            <pre id="extracted-novel-mode" class="extracted-pre">小说模式已关闭</pre>
           </div>
           <div class="auto-write-section">
             <input type="checkbox" id="novel-mode-enabled-checkbox" />
             <label for="novel-mode-enabled-checkbox" class="auto-write-label">开启小说模式</label>
-            <input type="checkbox" id="auto-write-checkbox" checked style="margin-left: 20px" />
+            <input type="checkbox" id="auto-write-checkbox" checked class="u-ml-20" />
             <label for="auto-write-checkbox" class="auto-write-label">自动写入历程/涟漪</label>
           </div>
-          <details class="panel-section" style="margin-top: 15px">
-            <summary class="section-title" style="cursor: pointer; list-style: none">
+          <details class="panel-section u-mt-15">
+            <summary class="section-title extracted-summary">
               <span>本次变量改变</span>
             </summary>
-            <pre id="extracted-variable-changes" style="white-space: pre-wrap; word-wrap: break-word; color: #e0dcd1; font-size: 12px; padding: 10px; background: rgba(0, 0, 0, 0.2); border-radius: 4px; min-height: 50px;">无内容</pre>
+            <pre id="extracted-variable-changes" class="extracted-pre">无内容</pre>
           </details>
         </div>
       </div>
@@ -351,9 +351,9 @@
         <div class="modal-body">
           <div class="panel-section">
             <div class="section-title">背景图</div>
-            <div class="attributes-list" style="padding: 10px;">
-              <div class="attribute-item" style="gap:8px; align-items:center;">
-                <span class="attribute-name" style="min-width:70px;">背景库</span>
+            <div class="attributes-list">
+              <div class="attribute-item">
+                <span class="attribute-name attr-name--min70">背景库</span>
                 <select id="pref-bg-select" class="gx-select u-flex-1">
                   <option value="">（未选择）</option>
                 </select>
@@ -361,24 +361,24 @@
                 <button id="pref-bg-delete" class="interaction-btn danger-btn is-compact">删除背景</button>
                 <button id="pref-bg-clear" class="interaction-btn is-compact">清除背景</button>
               </div>
-              <div class="attribute-item" style="margin-top:8px;">
-                <div id="pref-bg-preview" class="bg-preview" style="width:100%;"></div>
+              <div class="attribute-item u-mt-8">
+                <div id="pref-bg-preview" class="bg-preview"></div>
               </div>
             </div>
           </div>
           <div class="panel-section">
             <div class="section-title">背景遮罩透明度</div>
-            <div class="attributes-list" style="padding: 10px;">
-              <div class="attribute-item" style="gap:10px; align-items:center;">
-                <input id="pref-bg-mask" type="range" min="0" max="0.8" step="0.01" style="flex:1;">
+            <div class="attributes-list">
+              <div class="attribute-item">
+                <input id="pref-bg-mask" type="range" min="0" max="0.8" step="0.01" class="u-flex-1">
                 <span id="pref-bg-mask-val" class="attribute-value">0.70</span>
               </div>
             </div>
           </div>
           <div class="panel-section">
             <div class="section-title">背景显示方式</div>
-            <div class="attributes-list" style="padding: 10px;">
-              <div class="attribute-item" style="gap:10px; align-items:center;">
+            <div class="attributes-list">
+              <div class="attribute-item">
                 <select id="pref-bg-fit-mode" class="gx-select u-flex-1">
                   <option value="cover">拉伸填充（cover）</option>
                   <option value="contain">完整适配（contain）</option>
@@ -391,13 +391,13 @@
       </div>
       <div class="panel-section">
         <div class="section-title">背景压缩</div>
-        <div class="attributes-list" style="padding: 10px;">
-          <div class="attribute-item" style="gap:10px; align-items:center;">
-            <span class="attribute-name" style="min-width:90px;">质量</span>
-            <input id="pref-bg-quality" type="range" min="0.6" max="1.0" step="0.01" value="0.90" style="flex:1;">
+        <div class="attributes-list">
+          <div class="attribute-item">
+            <span class="attribute-name attr-name--min90">质量</span>
+            <input id="pref-bg-quality" type="range" min="0.6" max="1.0" step="0.01" value="0.90" class="u-flex-1">
             <span id="pref-bg-quality-val" class="attribute-value">0.90</span>
           </div>
-          <div class="attribute-item" style="gap:8px; align-items:center;">
+          <div class="attribute-item">
             <input id="pref-bg-keep-size" type="checkbox" />
             <label for="pref-bg-keep-size" class="auto-write-label">保留原始尺寸（不缩放）</label>
           </div>
@@ -405,9 +405,9 @@
       </div>
       <div class="panel-section">
         <div class="section-title">故事文本字号</div>
-            <div class="attributes-list" style="padding: 10px;">
-              <div class="attribute-item" style="gap:10px; align-items:center;">
-                <input id="pref-story-font-size" type="range" min="12" max="20" step="1" style="flex:1;">
+            <div class="attributes-list">
+              <div class="attribute-item">
+                <input id="pref-story-font-size" type="range" min="12" max="20" step="1" class="u-flex-1">
                 <span id="pref-story-font-size-val" class="attribute-value">14px</span>
               </div>
             </div>

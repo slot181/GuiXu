@@ -38,6 +38,7 @@
 .guixu-root-container .u-gap-8 { gap: 8px !important; }
 .guixu-root-container .u-gap-10 { gap: 10px !important; }
 .guixu-root-container .u-mt-8 { margin-top: 8px !important; }
+.guixu-root-container .u-mt-15 { margin-top: 15px !important; }
 .guixu-root-container .u-mb-8 { margin-bottom: 8px !important; }
 .guixu-root-container .u-p-8 { padding: 8px !important; }
 .guixu-root-container .u-p-10 { padding: 10px !important; }
@@ -56,6 +57,7 @@
 .guixu-root-container .u-flex-1 { flex: 1 1 0% !important; }
 .guixu-root-container .u-ml-10 { margin-left: 10px !important; }
 .guixu-root-container .u-ml-15 { margin-left: 15px !important; }
+.guixu-root-container .u-ml-20 { margin-left: 20px !important; }
 
 /* 新增：右外边距工具 */
 .guixu-root-container .u-mr-15 { margin-right: 15px !important; }

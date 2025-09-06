@@ -83,50 +83,50 @@
           panel.id = 'panel-story-font-color';
           panel.innerHTML = `
             <div class="section-title" id="section-title-story-font">正文字体与颜色</div>
-            <div class="attributes-list" style="padding: 10px;">
+            <div class="attributes-list">
               <!-- 1) 纯正文颜色（未被任何符号包裹） -->
-              <div class="attribute-item" style="gap:10px; align-items:center;">
-                <span class="attribute-name" style="min-width:90px;">正文颜色</span>
-                <input id="pref-story-default-color" type="color" value="#e0dcd1" style="width:44px; height:28px; padding:0; background:transparent; border:1px solid #8b7355; border-radius: 4px;">
+              <div class="attribute-item">
+                <span class="attribute-name attr-name--min90">正文颜色</span>
+                <input id="pref-story-default-color" type="color" value="#e0dcd1">
                 <span id="pref-story-default-color-val" class="attribute-value">#e0dcd1</span>
               </div>
               <!-- 2) 方括号文本颜色（【…】等特殊文本，映射 text-scenery） -->
-              <div class="attribute-item" style="gap:10px; align-items:center;">
-                <span class="attribute-name" style="min-width:90px;">方括号文本颜色</span>
-                <input id="pref-story-font-color" type="color" value="#e0dcd1" style="width:44px; height:28px; padding:0; background:transparent; border:1px solid #8b7355; border-radius: 4px;">
+              <div class="attribute-item">
+                <span class="attribute-name attr-name--min90">方括号文本颜色</span>
+                <input id="pref-story-font-color" type="color" value="#e0dcd1">
                 <span id="pref-story-font-color-val" class="attribute-value">#e0dcd1</span>
               </div>
-              <div class="attribute-item" style="gap:10px; align-items:center;">
-                <span class="attribute-name" style="min-width:90px;">引号文本颜色</span>
-                <input id="pref-story-quote-color" type="color" value="#ff4d4f" style="width:44px; height:28px; padding:0; background:transparent; border:1px solid #8b7355; border-radius: 4px;">
+              <div class="attribute-item">
+                <span class="attribute-name attr-name--min90">引号文本颜色</span>
+                <input id="pref-story-quote-color" type="color" value="#ff4d4f">
                 <span id="pref-story-quote-color-val" class="attribute-value">#FF4D4F</span>
               </div>
-              <div class="attribute-item" style="gap:10px; align-items:center;">
-                <span class="attribute-name" style="min-width:90px;">思维链文字颜色</span>
-                <input id="pref-thinking-text-color" type="color" value="#e0dcd1" style="width:44px; height:28px; padding:0; background:transparent; border:1px solid #8b7355; border-radius: 4px;">
+              <div class="attribute-item">
+                <span class="attribute-name attr-name--min90">思维链文字颜色</span>
+                <input id="pref-thinking-text-color" type="color" value="#e0dcd1">
                 <span id="pref-thinking-text-color-val" class="attribute-value">#E0DCD1</span>
               </div>
-              <div class="attribute-item" style="gap:10px; align-items:center;">
-                <span class="attribute-name" style="min-width:90px;">思维链背景透明</span>
-                <input id="pref-thinking-bg-opacity" type="range" min="0" max="1" step="0.05" value="0.85" style="width:160px;">
+              <div class="attribute-item">
+                <span class="attribute-name attr-name--min90">思维链背景透明</span>
+                <input id="pref-thinking-bg-opacity" type="range" min="0" max="1" step="0.05" value="0.85" class="u-flex-1">
                 <span id="pref-thinking-bg-opacity-val" class="attribute-value">0.85</span>
               </div>
               <!-- 3) 行动选项（按钮）颜色与背景透明度 -->
-              <div class="attribute-item" style="gap:10px; align-items:center;">
-                <span class="attribute-name" style="min-width:90px;">行动选项文字</span>
-                <input id="pref-guideline-text-color" type="color" value="#e0dcd1" style="width:44px; height:28px; padding:0; background:transparent; border:1px solid #8b7355; border-radius: 4px;">
+              <div class="attribute-item">
+                <span class="attribute-name attr-name--min90">行动选项文字</span>
+                <input id="pref-guideline-text-color" type="color" value="#e0dcd1">
                 <span id="pref-guideline-text-color-val" class="attribute-value">#E0DCD1</span>
               </div>
-              <div class="attribute-item" style="gap:10px; align-items:center;">
-                <span class="attribute-name" style="min-width:90px;">行动选项背景</span>
-                <input id="pref-guideline-bg-opacity" type="range" min="0" max="1" step="0.05" value="0.60" style="width:160px;">
+              <div class="attribute-item">
+                <span class="attribute-name attr-name--min90">行动选项背景</span>
+                <input id="pref-guideline-bg-opacity" type="range" min="0" max="1" step="0.05" value="0.60" class="u-flex-1">
                 <span id="pref-guideline-bg-opacity-val" class="attribute-value">0.60</span>
               </div>
-              <div class="attribute-item" style="gap:8px; align-items:center; flex-wrap: wrap;">
-                <span class="attribute-name" style="min-width:90px;">自定义字体</span>
+              <div class="attribute-item">
+                <span class="attribute-name attr-name--min90">自定义字体</span>
                 <button id="pref-font-upload" class="interaction-btn is-compact">本地上传</button>
                 <button id="pref-font-clear" class="interaction-btn danger-btn is-compact">清除字体</button>
-                <span id="pref-font-name" class="attribute-value" style="min-width: 120px;">（未选择）</span>
+                <span id="pref-font-name" class="attribute-value minw-120">（未选择）</span>
               </div>
             </div>
           `;
@@ -215,7 +215,7 @@
           const input = document.createElement('input');
           input.type = 'file';
           input.accept = '.ttf,.otf,.woff,.woff2,application/font-woff,application/font-woff2,font/ttf,font/otf';
-          input.style.display = 'none';
+          input.className = 'u-hidden';
           document.body.appendChild(input);
           input.click();
           await new Promise(res => input.addEventListener('change', res, { once: true }));
@@ -252,7 +252,7 @@
         if (document.getElementById('guixu-info-tooltip')) return;
         const tip = document.createElement('div');
         tip.id = 'guixu-info-tooltip';
-        tip.style.cssText = 'position: fixed; z-index: 10070; max-width: 260px; padding: 8px 10px; background: rgba(15,15,35,0.96); color: #e0dcd1; border: 1px solid #8b7355; border-radius: 6px; font-size: 12px; line-height: 1.5; display: none; box-shadow: 0 6px 16px rgba(0,0,0,0.45);';
+        /* 样式移至 CSS（settings.css） */
         (document.querySelector('.guixu-root-container') || document.body).appendChild(tip);
       };
       const showInfoTooltip = (ev, text) => {
@@ -260,7 +260,7 @@
         const tip = document.getElementById('guixu-info-tooltip');
         if (!tip) return;
         tip.textContent = String(text || '');
-        tip.style.display = 'block';
+        tip.classList.add('is-open');
         const vw = window.innerWidth;
         const rect = ev.target.getBoundingClientRect();
         const tipRect = tip.getBoundingClientRect();
@@ -271,7 +271,7 @@
         // 点击外部隐藏
         const onDocClick = (e2) => {
           if (!tip.contains(e2.target)) {
-            tip.style.display = 'none';
+            tip.classList.remove('is-open');
             document.removeEventListener('click', onDocClick);
           }
         };
@@ -283,7 +283,6 @@
         icon.className = 'info-icon';
         icon.textContent = '?';
         icon.title = '点击查看说明';
-        icon.style.marginLeft = '8px';
         icon.addEventListener('click', (e) => {
           e.stopPropagation();
           showInfoTooltip(e, text);
@@ -428,8 +427,8 @@
           panel.id = 'panel-streaming-toggle';
           panel.innerHTML = `
             <div class="section-title">流式请求</div>
-            <div class="attributes-list" style="padding: 10px;">
-              <div class="attribute-item" style="gap:10px; align-items:center;">
+            <div class="attributes-list">
+              <div class="attribute-item">
                 <input id="pref-streaming-enabled" type="checkbox" />
                 <label for="pref-streaming-enabled" class="auto-write-label">流式请求开关</label>
               </div>
@@ -459,16 +458,7 @@
         }
       } catch (_) {}
 
-      // 初始化预览容器样式兜底（若CSS未定义）
-      if (previewEl && !previewEl.style.minHeight) {
-        previewEl.style.minHeight = '120px';
-        previewEl.style.background = 'rgba(0,0,0,0.3)';
-        previewEl.style.border = '1px solid #8b7355';
-        previewEl.style.borderRadius = '4px';
-        previewEl.style.backgroundSize = 'cover';
-        previewEl.style.backgroundPosition = 'center';
-        previewEl.style.backgroundRepeat = 'no-repeat';
-      }
+      // 预览容器样式统一由 CSS (.bg-preview) 提供
     },
 
     loadFromState() {
@@ -679,12 +669,12 @@
       const previewEl = $('#pref-bg-preview');
       if (!previewEl) return;
       if (!comment) {
-        previewEl.style.backgroundImage = '';
+        previewEl.style.setProperty('--gx-bg-preview-image', 'none');
         return;
       }
       const target = this._bgEntriesCache.find(e => (e.comment || '') === comment);
       const dataUrl = target?.content || '';
-      previewEl.style.backgroundImage = dataUrl ? `url("${dataUrl}")` : '';
+      previewEl.style.setProperty('--gx-bg-preview-image', dataUrl ? `url("${dataUrl}")` : 'none');
     },
 
     // 上传并创建新世界书条目（不会覆盖已有）
@@ -693,7 +683,7 @@
         const fileInput = document.createElement('input');
         fileInput.type = 'file';
         fileInput.accept = 'image/*';
-        fileInput.style.display = 'none';
+        fileInput.className = 'u-hidden';
 
         const once = () => new Promise((resolve) => {
           fileInput.addEventListener('change', () => resolve(), { once: true });

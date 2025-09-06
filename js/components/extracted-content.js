@@ -51,7 +51,7 @@
       }
       if (characterCardBtn) {
         characterCardBtn.disabled = true;
-        characterCardBtn.style.display = 'none';
+        characterCardBtn.classList.add('u-hidden');
         characterCardBtn._gxBound = true; // 防止旧逻辑绑定
       }
     }

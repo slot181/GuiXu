@@ -217,3 +217,35 @@ CSS 支撑：
 - 注释 css/index.css 新增的 @import
 - 恢复 index.html 变更片段（diff 见版本历史）
 - legacy 仍保底存在
+
+--------------------------------------------------------------------------------
+
+## 11) Settings / Extracted Content（本批完成）
+
+作用域：
+- .guixu-root-container #settings-modal
+- .guixu-root-container #extracted-content-modal
+
+HTML/JS 内联 → 类/变量 映射：
+- BEFORE: `<div class="attributes-list" style="padding: 10px;">…`
+  - AFTER: `<div class="attributes-list">…`
+  - 样式归属：settings.css（统一 attributes-list 的 padding）
+- BEFORE: `<div class="attribute-item" style="gap:10px; align-items:center;">…`
+  - AFTER: `<div class="attribute-item">…`
+  - 样式归属：settings.css（attribute-item 统一 gap 与对齐）
+- BEFORE: `characterCardBtn.style.display = 'none'`
+  - AFTER: `characterCardBtn.classList.add('u-hidden')`
+  - 样式归属：utilities.css（.u-hidden）
+- BEFORE: JS 直接写 `previewEl.style.backgroundImage = 'url(...)'`
+  - AFTER: `previewEl.style.setProperty('--gx-bg-preview-image', 'url(...)')`
+  - 样式归属：settings.css（`background-image: var(--gx-bg-preview-image, none)`）
+- BEFORE: Info Tooltip 行内样式/显隐混用
+  - AFTER: CSS 状态类 `#guixu-info-tooltip.is-open` 控制展示，JS 仅写 class 与定位 left/top
+
+灰度删除（legacy）：
+- 已删除 css/guixu.css 中与 #settings-modal 重叠的规则块；其余模块将按验证逐块继续删除。
+
+受影响文件：
+- js/components/settings.js（模板内联清除 + Tooltip 状态类）
+- js/components/extracted-content.js（.style.display → .u-hidden）
+- css/components/settings.css、css/components/extracted-content.css（接管样式）

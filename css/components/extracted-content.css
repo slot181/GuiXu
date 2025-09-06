@@ -1,0 +1,39 @@
+/*!
+ * extracted-content.css（阶段5）
+ * 作用域：.guixu-root-container #extracted-content-modal
+ * 目标：
+ * - 移除 extracted-content 模态内的内联样式，统一为类 + 变量驱动
+ * - 保障移动端/嵌入/全屏一致性
+ */
+
+/* 头部工具区（右侧占位） */
+.guixu-root-container #extracted-content-modal .extracted-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* 小节标题：左右布局（标题 + 按钮） */
+.guixu-root-container #extracted-content-modal .extracted-section-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* 内容区的预格式文本块 */
+.guixu-root-container #extracted-content-modal .extracted-pre {
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  color: #e0dcd1;
+  font-size: 12px;
+  padding: 10px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+  min-height: 50px;
+}
+
+/* 变量改变：折叠块标题行为 */
+.guixu-root-container #extracted-content-modal .extracted-summary {
+  cursor: pointer;
+  list-style: none;
+}

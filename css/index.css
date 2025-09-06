@@ -34,6 +34,8 @@
 @import url("./components/command-center.css");
 @import url("./components/save-load.css");
 @import url("./components/world-book.css");
+@import url("./components/settings.css");
+@import url("./components/extracted-content.css");
 
 /* 响应式与嵌入修复（阶段3） */
 @import url("./responsive/embed-fixes.css");
