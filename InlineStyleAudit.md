@@ -142,8 +142,7 @@ HTML 变更映射（index.html）：
 
 ## 7) 后续拆分与统一（未纳入本批交付）
 
-- 动态品阶颜色（跨 Inventory/Relationships/Statuses/Trade）：
-  - 将 `h.getTierStyle(tier)` 内联 style → `data-tier="…" / class="tier-…"`；在 variables.css 暴露 `--tier-*` 变量表
+- 动态品阶/境界颜色：已完成（见第 10 节“动态品阶/境界颜色迁移（本批已完成）”）
 - settings 面板（settings.js 动态拼接）：
   - 颜色选择器输入的边框/圆角/宽度等内联迁移至 `settings.css` 或复用 forms.css 工具类
 - extracted-content 模态：
@@ -182,6 +181,37 @@ HTML 变更映射（index.html）：
 - js/components/past-lives.js（移除内联）
 - css/index.css（引入新组件样式）
 - index.html（history/world-book/save-load 的内联样式精准替换）
+
+## 10) 动态品阶/境界颜色迁移（本批已完成）
+
+作用域与规范：
+- 样式作用域：所有规则均在 .guixu-root-container 下生效。
+- 基础类：.tier-text 作为统一的“品阶/境界着色文本”基类。
+- 数据驱动：通过 data-tier="…" 标注具体品阶/境界；高阶品阶使用渐变 + -webkit-background-clip:text + 动画（详见 css/base/utilities.css 中的 keyframes）。
+
+旧 → 新映射：
+- BEFORE: style="${getTierStyle(tier)}" / style="${h.getTierStyle(t)}"
+- AFTER:  class="tier-text" data-tier="${tier}"
+- BEFORE: el.setAttribute('style', tierStyle)
+- AFTER:  el.removeAttribute('style'); el.dataset.tier = tier; el.classList.add('tier-text')
+- BEFORE: `<span style="margin-right: 15px;">…</span>`
+- AFTER:  `<span class="u-mr-15">…</span>`
+- BEFORE: 行内 margin-top: 5px 用于分段
+- AFTER:  使用 .u-mt-8 或相应工具类
+
+受影响文件（本批修改）：
+- js/utils/renderers.js：tooltip 标题使用 tier-text + data-tier；分段标题使用 .u-mt-8
+- js/main.js：境界显示 (#val-jingjie) 与装备槽着色均改为 tier-text + data-tier
+- js/components/inventory.js：条目名称/品阶旗标与装备槽更新
+- js/components/relationships.js：关系卡标题、修为徽章、角色详情、NPC 装备格、交易表格名称与 tooltip 回退标题
+
+CSS 支撑：
+- css/base/utilities.css：提供 .tier-text 与 [data-tier="…"] 的映射；为高阶品阶提供渐变与动画（gx-god-tier-animation）
+- 保持移动端与 :fullscreen 行为，所有选择器均以 .guixu-root-container 开头
+
+统计与校验：
+- 快速检索残留：getTierStyle|getTierColorStyle|\btierStyle\b|style="[^"]*color
+- 本批结果：仓库中已无上述匹配（见本次检索记录）
 
 回滚方式：
 - 注释 css/index.css 新增的 @import

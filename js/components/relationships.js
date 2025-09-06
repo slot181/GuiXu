@@ -98,7 +98,6 @@
                 })
               : []);
 
-          const tierStyle = h.getTierStyle(tier);
           const favorabilityPercent = Math.max(0, Math.min(100, (favorability / 200) * 100)); // 假设好感度上限为200
           const cultivationDisplay = level ? `${tier} ${level}` : tier;
 
@@ -113,7 +112,7 @@
             <div class="relationship-card" data-relationship="${relationshipType}" data-relationship-details='${relJson}'>
               <div class="relationship-header">
                 <div class="header-title">
-                  <p class="relationship-name" style="${tierStyle}">${name}</p>
+                  <p class="relationship-name tier-text" data-tier="${tier}">${name}</p>
                   <div class="header-sub">
                     <span class="rel-badge">${relationshipCN}</span>
                     ${allowView ? '<span class="rel-badge">可见</span>' : ''}
@@ -133,7 +132,7 @@
 
                 <div class="relationship-meta">
                   <span class="rel-badge">关系：${relationshipCN}</span>
-                  <span class="rel-badge">修为：<span style="${tierStyle}">${cultivationDisplay}</span></span>
+                  <span class="rel-badge">修为：<span class="tier-text" data-tier="${tier}">${cultivationDisplay}</span></span>
                 </div>
 
                 <p class="rel-favor-label">好感度: ${favorability}</p>
@@ -1178,16 +1177,15 @@ const description = h.SafeGetValue(rel, 'description', h.SafeGetValue(rel, '身�
           const safeArr = arr.filter(item => item);
           if (safeArr.length === 0) return '<div class="attribute-item"><span class="attribute-name">无</span><span class="attribute-value">-</span></div>';
           return safeArr.map(item => {
-            const n = h.SafeGetValue(item, titleKey, h.SafeGetValue(item, '名称', '未知'));
-            const t = h.SafeGetValue(item, tierKey, h.SafeGetValue(item, '品阶', '凡品'));
-            const d = h.SafeGetValue(item, descKey, h.SafeGetValue(item, '描述', ''));
-            const color = h.getTierColorStyle(t);
-            return `
-              <details class="details-container">
-                <summary><span class="attribute-value" style="${color}">${n}</span><span class="attribute-name">【${t}】</span></summary>
-                <div class="details-content">${d || '无描述'}</div>
-              </details>
-            `;
+          const n = h.SafeGetValue(item, titleKey, h.SafeGetValue(item, '名称', '未知'));
+          const t = h.SafeGetValue(item, tierKey, h.SafeGetValue(item, '品阶', '凡品'));
+          const d = h.SafeGetValue(item, descKey, h.SafeGetValue(item, '描述', ''));
+          return `
+            <details class="details-container">
+              <summary><span class="attribute-value tier-text" data-tier="${t}">${n}</span><span class="attribute-name">【${t}】</span></summary>
+              <div class="details-content">${d || '无描述'}</div>
+            </details>
+          `;
           }).join('');
         };
 
@@ -1244,7 +1242,6 @@ const description = h.SafeGetValue(rel, 'description', h.SafeGetValue(rel, '身�
             const n = h.SafeGetValue(obj, 'name', h.SafeGetValue(obj, '名称', '未知'));
             const t = h.SafeGetValue(obj, 'tier', h.SafeGetValue(obj, '品阶', '凡品'));
             const d = h.SafeGetValue(obj, 'description', h.SafeGetValue(obj, '描述', ''));
-            const color = h.getTierColorStyle(t);
             const ab = normalizeField(obj['attributes_bonus'] ?? obj['属性加成'] ?? {}) || {};
             const pb = normalizeField(obj['百分比加成'] ?? obj['percent_bonus'] ?? {}) || {};
             const sePairs = (function (v) {
@@ -1291,7 +1288,7 @@ const description = h.SafeGetValue(rel, 'description', h.SafeGetValue(rel, '身�
             })(obj['special_effects'] ?? obj['词条效果'] ?? obj['词条'] ?? []);
             return `
               <details class="details-container">
-                <summary><span class="attribute-value" style="${color}">${n}</span><span class="attribute-name">【${t}】</span></summary>
+                <summary><span class="attribute-value tier-text" data-tier="${t}">${n}</span><span class="attribute-name">【${t}】</span></summary>
                 <div class="details-content">
                   ${d ? `<div style="margin-bottom:6px;">${d}</div>` : ''}
                   ${Object.keys(ab).length ? `<div class="attribute-item"><span class="attribute-name">属性加成</span><span class="attribute-value"></span></div>${renderKV(ab)}` : ''}
@@ -1303,7 +1300,6 @@ const description = h.SafeGetValue(rel, 'description', h.SafeGetValue(rel, '身�
           }).join('');
         };
 
-        const tierStyle = h.getTierStyle(tier);
         const cultivationDisplay = level ? `${tier} ${level}` : tier;
 
         // 构建“游戏风格”的四维进度条（使用 加成后attrs 作为上限，当前curAttrs 作为填充）
@@ -1702,10 +1698,10 @@ try { await this._syncNpcFourDimMaxToMvu(rel, computedMax); } catch (_) {}
               <div class="gx-card">
                 <div class="section-title">角色信息</div>
                 <div class="name-line">
-                  <div class="char-name" style="${tierStyle}">${name}</div>
+                  <div class="char-name tier-text" data-tier="${tier}">${name}</div>
                   <div class="pill-group">
                     <span class="gx-badge">${relationshipCN}</span>
-                    <span class="gx-badge">修为：<span style="${tierStyle}">${cultivationDisplay}</span></span>
+                    <span class="gx-badge">修为：<span class="tier-text" data-tier="${tier}">${cultivationDisplay}</span></span>
                     <span class="gx-badge">气运：${qiyun}</span>
                   </div>
                 </div>
@@ -1773,9 +1769,8 @@ try { await this._syncNpcFourDimMaxToMvu(rel, computedMax); } catch (_) {}
               if (it && typeof it === 'object') {
                 const n = h.SafeGetValue(it, 'name', h.SafeGetValue(it, '名称', def.label));
                 const t = h.SafeGetValue(it, 'tier', h.SafeGetValue(it, '品阶', '凡品'));
-                const tierStyle = h.getTierStyle(t);
                 const json = JSON.stringify(it).replace(/'/g, "&#39;");
-                return `<div class="equipment-slot equipped" data-slot="${def.key}" data-item='${json}' style="${tierStyle}">${n}</div>`;
+                return `<div class="equipment-slot equipped tier-text" data-slot="${def.key}" data-item='${json}' data-tier="${t}">${n}</div>`;
               }
               return `<div class="equipment-slot" data-slot="${def.key}">${def.label}</div>`;
             }).join('');
@@ -1788,8 +1783,8 @@ try { await this._syncNpcFourDimMaxToMvu(rel, computedMax); } catch (_) {}
                 <div class="section-title">灵根</div>
                 <div class="attributes-list">
                   ${linggen && (linggen.名称 || linggen.name) ? `
-                      <div class="attribute-item"><span class="attribute-name">名称</span><span class="attribute-value" style="${h.getTierColorStyle(linggen.品阶 || linggen.tier || '凡品')}">【${linggen.品阶 || linggen.tier || '凡品'}】 ${linggen.名称 || linggen.name || '未知灵根'}</span></div>
-                      <div class="attribute-item"><span class="attribute-name">品阶</span><span class="attribute-value" style="${h.getTierColorStyle(linggen.品阶 || linggen.tier || '凡品')}">${linggen.品阶 || linggen.tier || '凡品'}</span></div>
+                      <div class="attribute-item"><span class="attribute-name">名称</span><span class="attribute-value tier-text" data-tier="${linggen.品阶 || linggen.tier || '凡品'}">【${linggen.品阶 || linggen.tier || '凡品'}】 ${linggen.名称 || linggen.name || '未知灵根'}</span></div>
+                      <div class="attribute-item"><span class="attribute-name">品阶</span><span class="attribute-value tier-text" data-tier="${linggen.品阶 || linggen.tier || '凡品'}">${linggen.品阶 || linggen.tier || '凡品'}</span></div>
                       ${linggen.描述 || linggen.description ? `<div class="details-content">${linggen.描述 || linggen.description}</div>` : ''}
 
                       ${Object.keys(lgAttrBonus || {}).length ? `
@@ -2425,11 +2420,10 @@ try { await this._syncNpcFourDimMaxToMvu(rel, computedMax); } catch (_) {}
             }
           }
 
-          const tierStyle = h.getTierStyle(t);
           const meta = `品阶:${t} | 数量:${q} | 基础价值:${baseVal} | 买入价:${buyPrice}`;
           return `
             <div class="trade-item" data-item-id="${id}" data-item-data='${JSON.stringify(it).replace(/'/g, "&#39;")}'>
-              <span class="item-name item-clickable" style="${tierStyle}" data-item-id="${id}">${n}</span>
+              <span class="item-name item-clickable tier-text" data-tier="${t}" data-item-id="${id}">${n}</span>
               <span class="item-meta">${meta}</span>
               <button class="interaction-btn is-compact btn-purchase-item" data-item-id="${id}">购买</button>
             </div>
@@ -2455,11 +2449,10 @@ try { await this._syncNpcFourDimMaxToMvu(rel, computedMax); } catch (_) {}
             }
           }
 
-          const tierStyle = h.getTierStyle(t);
           const meta = `品阶:${t} | 数量:${q} | 基础价值:${baseVal} | 卖出价:${sellPrice}`;
           return `
             <div class="trade-item" data-item-id="${id}" data-item-data='${JSON.stringify(it).replace(/'/g, "&#39;")}'>
-              <span class="item-name item-clickable" style="${tierStyle}" data-item-id="${id}">${n}</span>
+              <span class="item-name item-clickable tier-text" data-tier="${t}" data-item-id="${id}">${n}</span>
               <span class="item-meta">${meta}</span>
               <button class="interaction-btn is-compact btn-sell-item" data-item-id="${id}">出售</button>
             </div>
@@ -2605,7 +2598,7 @@ try { await this._syncNpcFourDimMaxToMvu(rel, computedMax); } catch (_) {}
                 : `<button class="interaction-btn is-compact btn-sell-item" data-item-id="${escape(row.id)}">出售</button>`;
               const itJson = JSON.stringify(row.it).replace(/'/g, "&#39;");
               return `<tr class="trade-row" data-item-id="${escape(row.id === 'N/A' ? row.name : row.id)}" data-item-data='${itJson}'>
-                <td><span class="item-name item-clickable" style="${h.getTierStyle(row.tier)}" data-item-id="${escape(row.id)}">${escape(row.name)}</span></td>
+                <td><span class="item-name item-clickable tier-text" data-tier="${escape(row.tier)}" data-item-id="${escape(row.id)}">${escape(row.name)}</span></td>
                 <td>${escape(row.tier)}</td>
                 <td>${row.quantity}</td>
                 <td>${keep(Curr.fromBase(row.base, state.unit))}</td>
@@ -2715,11 +2708,10 @@ try { await this._syncNpcFourDimMaxToMvu(rel, computedMax); } catch (_) {}
                   // 附加数量/基础价值信息
                   html += `<div class="tooltip-attributes"><p><strong>数量:</strong> ${qty}</p><p><strong>基础价值:</strong> ${base}</p></div>`;
                 } else {
-                  const tierStyle = h.getTierStyle(tier);
                   const details = (window.GuixuRenderers && typeof window.GuixuRenderers.renderItemDetailsForInventory === 'function')
                     ? window.GuixuRenderers.renderItemDetailsForInventory(it)
                     : '';
-                  html = `<div class="tooltip-title" style="${tierStyle}">${title}</div>
+                  html = `<div class="tooltip-title tier-text" data-tier="${tier}">${title}</div>
                     <div class="tooltip-attributes">
                       <p><strong>品阶:</strong> ${tier}</p>
                       <p><strong>数量:</strong> ${qty}</p>

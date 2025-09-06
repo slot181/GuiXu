@@ -56,3 +56,99 @@
 .guixu-root-container .u-flex-1 { flex: 1 1 0% !important; }
 .guixu-root-container .u-ml-10 { margin-left: 10px !important; }
 .guixu-root-container .u-ml-15 { margin-left: 15px !important; }
+
+/* 新增：右外边距工具 */
+.guixu-root-container .u-mr-15 { margin-right: 15px !important; }
+
+/* 新增：品阶着色（统一使用 data-tier / 类名 tier-text） */
+@keyframes gx-god-tier-animation {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 200% 50%; }
+}
+
+/* 基础文字风格：略带斜体 */
+.guixu-root-container .tier-text { font-style: italic; }
+
+/* 修为（境界）映射 */
+.guixu-root-container [data-tier="练气"] { color: #FFFFFF; }
+.guixu-root-container [data-tier="筑基"] { color: #66CDAA; }
+.guixu-root-container [data-tier="金丹"] { color: #FFD700; }
+.guixu-root-container [data-tier="元婴"] {
+  background: linear-gradient(90deg, #DA70D6, #BA55D3, #9932CC, #BA55D3, #DA70D6);
+  background-size: 200% auto;
+  -webkit-background-clip: text; background-clip: text;
+  color: transparent;
+  animation: gx-god-tier-animation 3s linear infinite;
+  font-weight: bold;
+}
+.guixu-root-container [data-tier="化神"] {
+  background: linear-gradient(90deg, #DC143C, #FF4500, #B22222, #FF4500, #DC143C);
+  background-size: 200% auto;
+  -webkit-background-clip: text; background-clip: text;
+  color: transparent;
+  animation: gx-god-tier-animation 3s linear infinite;
+  font-weight: bold;
+}
+.guixu-root-container [data-tier="合体"] {
+  background: linear-gradient(90deg, #C71585, #FF1493, #DB7093, #FF1493, #C71585);
+  background-size: 200% auto;
+  -webkit-background-clip: text; background-clip: text;
+  color: transparent;
+  animation: gx-god-tier-animation 3s linear infinite;
+  font-weight: bold;
+}
+.guixu-root-container [data-tier="飞升"] {
+  background: linear-gradient(90deg, #FF416C, #FF4B2B, #FF6B6B, #FF4B2B, #FF416C);
+  background-size: 200% auto;
+  -webkit-background-clip: text; background-clip: text;
+  color: transparent;
+  animation: gx-god-tier-animation 3s linear infinite;
+  font-weight: bold;
+}
+.guixu-root-container [data-tier="神桥"] {
+  background: linear-gradient(90deg, #cccccc, #ffffff, #bbbbbb, #ffffff, #cccccc);
+  background-size: 200% auto;
+  -webkit-background-clip: text; background-clip: text;
+  color: transparent;
+  animation: gx-god-tier-animation 3s linear infinite;
+  font-weight: bold;
+}
+
+/* 物品/品阶映射 */
+.guixu-root-container [data-tier="凡品"] { color: #9e9e9e; }
+.guixu-root-container [data-tier="下品"] { color: #8bc34a; }
+.guixu-root-container [data-tier="中品"] { color: #4caf50; }
+.guixu-root-container [data-tier="上品"] { color: #00bcd4; }
+.guixu-root-container [data-tier="极品"] { color: #2196f3; }
+.guixu-root-container [data-tier="天品"] {
+  background: linear-gradient(90deg, #b388ff, #7c4dff, #b388ff);
+  background-size: 200% auto;
+  -webkit-background-clip: text; background-clip: text;
+  color: transparent;
+  animation: gx-god-tier-animation 3s linear infinite;
+  font-weight: bold;
+}
+.guixu-root-container [data-tier="仙品"] {
+  background: linear-gradient(90deg, #fff2a8, #ffd700, #fff2a8);
+  background-size: 200% auto;
+  -webkit-background-clip: text; background-clip: text;
+  color: transparent;
+  animation: gx-god-tier-animation 3s linear infinite;
+  font-weight: bold;
+}
+.guixu-root-container [data-tier="神品"] {
+  background: linear-gradient(90deg, #ff6b6b, #ffd93d, #ff6b6b);
+  background-size: 200% auto;
+  -webkit-background-clip: text; background-clip: text;
+  color: transparent;
+  animation: gx-god-tier-animation 3s linear infinite;
+  font-weight: bold;
+}
+
+/* 兜底：凡人/未知品阶统一为浅金色（与主题协调） */
+.guixu-root-container [data-tier="凡人"],
+.guixu-root-container [data-tier="无"],
+.guixu-root-container [data-tier="未知"],
+.guixu-root-container [data-tier="N/A"] {
+  color: #e0dcd1;
+}

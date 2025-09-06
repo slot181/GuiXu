@@ -1777,8 +1777,9 @@ if (!document.getElementById('guixu-gate-style')) {
       const jingjieValue = window.GuixuHelpers.SafeGetValue(data, '当前境界', '...');
       const match = jingjieValue.match(/^(\S{2})/);
       const jingjieTier = match ? match[1] : '';
-      const jingjieStyle = window.GuixuHelpers.getTierStyle(jingjieTier);
-      updateText('val-jingjie', jingjieValue, jingjieStyle);
+      updateText('val-jingjie', jingjieValue, '');
+      const jingjieEl = document.getElementById('val-jingjie');
+      if (jingjieEl) { jingjieEl.removeAttribute('style'); jingjieEl.dataset.tier = jingjieTier; jingjieEl.classList.add('tier-text'); }
 
       updateText('val-jinian', window.GuixuHelpers.SafeGetValue(data, '当前时间纪年', '...'));
 
@@ -1879,9 +1880,10 @@ if (!document.getElementById('guixu-gate-style')) {
 
         if (item) {
           const tier = window.GuixuHelpers.SafeGetValue(item, 'tier', '凡品');
-          const tierStyle = window.GuixuHelpers.getTierStyle(tier);
           slot.textContent = window.GuixuHelpers.SafeGetValue(item, 'name');
-          slot.setAttribute('style', tierStyle);
+          slot.removeAttribute('style');
+          slot.dataset.tier = tier;
+          slot.classList.add('tier-text');
           slot.classList.add('equipped');
           slot.dataset.itemDetails = JSON.stringify(item).replace(/'/g, "'");
         } else {
@@ -2046,7 +2048,6 @@ if (!document.getElementById('guixu-gate-style')) {
             const name = pick(normalized, ['名称', 'name', '灵根名称', 'title', 'data.名称', 'data.name'], '未知灵根');
             const tier = pick(normalized, ['品阶', 'tier', '等级', 'rank', 'data.品阶', 'data.tier'], '凡品');
             const desc = pick(normalized, ['描述', 'description', '说明', 'data.描述', 'data.description'], '无描述');
-            const color = window.GuixuHelpers.getTierColorStyle(tier);
             const details = window.GuixuRenderers?.renderItemDetailsForInventory
               ? window.GuixuRenderers.renderItemDetailsForInventory(normalized)
               : '';
@@ -2054,7 +2055,7 @@ if (!document.getElementById('guixu-gate-style')) {
               <details class="details-container">
                 <summary>
                   <span class="attribute-name">灵根</span>
-                  <span class="attribute-value" style="${color}">【${tier}】 ${name}</span>
+                  <span class="attribute-value tier-text" data-tier="${tier}">【${tier}】 ${name}</span>
                 </summary>
                 <div class="details-content">
                   <p>${desc}</p>
@@ -2116,7 +2117,6 @@ if (!document.getElementById('guixu-gate-style')) {
             const name = window.GuixuHelpers.SafeGetValue(item, 'name', '未知天赋');
             const tier = window.GuixuHelpers.SafeGetValue(item, 'tier', '凡品');
             const desc = window.GuixuHelpers.SafeGetValue(item, 'description', '无描述');
-            const color = window.GuixuHelpers.getTierColorStyle(tier);
             const details = window.GuixuRenderers?.renderItemDetailsForInventory
               ? window.GuixuRenderers.renderItemDetailsForInventory(item)
               : '';
@@ -2124,7 +2124,7 @@ if (!document.getElementById('guixu-gate-style')) {
               <details class="details-container">
                 <summary>
                   <span class="attribute-name">${talentLabel}</span>
-                  <span class="attribute-value" style="${color}">【${tier}】 ${name}</span>
+                  <span class="attribute-value tier-text" data-tier="${tier}">【${tier}】 ${name}</span>
                 </summary>
                 <div class="details-content">
                   <p>${desc}</p>

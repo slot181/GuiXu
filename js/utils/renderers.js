@@ -169,7 +169,7 @@
       let attributesHtml = '';
       const attributes = item?.attributes_bonus || item?.['属性加成'];
       if (attributes && typeof attributes === 'object' && Object.keys(attributes).length > 0) {
-        attributesHtml += '<div class="tooltip-section-title" style="margin-top: 5px;">固定加成</div>';
+        attributesHtml += '<div class="tooltip-section-title u-mt-8">固定加成</div>';
         for (const [key, value] of Object.entries(attributes)) {
           attributesHtml += `<p><strong>${key}:</strong> ${value > 0 ? '+' : ''}${value}</p>`;
         }
@@ -177,7 +177,7 @@
 
       const percentBonuses = item?.['百分比加成'] || item?.percent_bonus || item?.['百分比'];
       if (percentBonuses && typeof percentBonuses === 'object' && Object.keys(percentBonuses).length > 0) {
-        attributesHtml += '<div class="tooltip-section-title" style="margin-top: 5px;">百分比加成</div>';
+        attributesHtml += '<div class="tooltip-section-title u-mt-8">百分比加成</div>';
         for (const [key, value] of Object.entries(percentBonuses)) {
           attributesHtml += `<p><strong>${key}:</strong> +${value}</p>`;
         }
@@ -193,7 +193,7 @@
       }
       const entries = normalizeEffects(effects);
       if (entries.length > 0) {
-        effectsHtml += `<div class="tooltip-section-title" style="margin-top: 5px;">特殊词条</div>`;
+        effectsHtml += `<div class="tooltip-section-title u-mt-8">特殊词条</div>`;
         effectsHtml += entries
           .map(({ key, value }) => {
             const label = key ? `${window.GuixuHelpers.SafeGetValue({ k: key }, 'k')}: ` : '';
@@ -208,7 +208,6 @@
 
     // 装备槽悬浮提示
     renderTooltipContent(item) {
-      const tierStyle = window.GuixuHelpers.getTierStyle(window.GuixuHelpers.SafeGetValue(item, 'tier'));
       const level = window.GuixuHelpers.SafeGetValue(item, 'level', '');
       const tierDisplay = level
         ? `${window.GuixuHelpers.SafeGetValue(item, 'tier', '凡品')} ${level}`
@@ -225,7 +224,7 @@
 
       const percentBonuses = item?.['百分比加成'] || item?.percent_bonus || item?.['百分比'];
       if (percentBonuses && typeof percentBonuses === 'object' && Object.keys(percentBonuses).length > 0) {
-        attributesHtml += `<div class="tooltip-section-title" style="margin-top: 5px;">百分比加成</div>`;
+        attributesHtml += `<div class="tooltip-section-title u-mt-8">百分比加成</div>`;
         for (const [key, value] of Object.entries(percentBonuses)) {
           attributesHtml += `<p><strong>${key}:</strong> +${value}</p>`;
         }
@@ -251,7 +250,7 @@
       }
 
       return `
-        <div class="tooltip-title" style="${tierStyle}">${window.GuixuHelpers.SafeGetValue(item, 'name')}</div>
+        <div class="tooltip-title tier-text" data-tier="${window.GuixuHelpers.SafeGetValue(item, 'tier')}">${window.GuixuHelpers.SafeGetValue(item, 'name')}</div>
         <p><strong>品阶:</strong> ${tierDisplay}</p>
         <p><i>${window.GuixuHelpers.SafeGetValue(item, 'description', '无描述')}</i></p>
         ${attributesHtml ? `<div class="tooltip-section tooltip-attributes">${attributesHtml}</div>` : ''}

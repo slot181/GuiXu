@@ -218,8 +218,7 @@
               if (hasQuantity && displayQuantity <= 0) return;
               if (!hasQuantity && pendingDiscards > 0) return;
 
-              const tierStyle = h.getTierStyle(tier);
-              const tierDisplay = tier !== '无' ? `<span style="${tierStyle} margin-right: 15px;">品阶: ${tier}</span>` : '';
+const tierDisplay = tier !== '无' ? `<span class="tier-text u-mr-15" data-tier="${tier}">品阶: ${tier}</span>` : '';
               const quantityDisplay = hasQuantity ? `<span class="item-quantity" title="数量: ${displayQuantity}">数量: ${this.formatNumberCompact(displayQuantity)}</span>` : '';
               const baseValue = Number(h.SafeGetValue(item, 'base_value', 0)) || 0;
               const valueDisplay = (() => {
@@ -289,8 +288,8 @@
                   <!-- 第一行：名称 + 品阶 + 右侧数量 -->
                   <div class="item-row item-row--headline">
                     <div class="item-head-left">
-                      <span class="item-name" style="${tierStyle}">${name}</span>
-                      ${tier !== '无' ? `<span class="item-tier" style="${tierStyle}">【${tier}】</span>` : ''}
+                      <span class="item-name tier-text" data-tier="${tier}">${name}</span>
+                      ${tier !== '无' ? `<span class="item-tier tier-text" data-tier="${tier}">【${tier}】</span>` : ''}
                     </div>
                     <div class="item-head-right">
                       ${valueDisplay} ${quantityDisplay}
@@ -577,12 +576,13 @@
       // 更新槽位DOM
       const slotEl = $(`#equip-${slotKey}`);
       if (slotEl) {
-        const tier = h.SafeGetValue(item, 'tier', '凡品');
-        const tierStyle = h.getTierStyle(tier);
-        slotEl.textContent = h.SafeGetValue(item, 'name');
-        slotEl.setAttribute('style', tierStyle);
-        slotEl.classList.add('equipped');
-        slotEl.dataset.itemDetails = JSON.stringify(item).replace(/'/g, "'");
+const tier = h.SafeGetValue(item, 'tier', '凡品');
+slotEl.textContent = h.SafeGetValue(item, 'name');
+slotEl.removeAttribute('style');
+slotEl.dataset.tier = tier;
+slotEl.classList.add('tier-text');
+slotEl.classList.add('equipped');
+slotEl.dataset.itemDetails = JSON.stringify(item).replace(/'/g, "'");
       }
 
             // 实时写入：装备对象到槽位，并从对应背包列表中删除（对象字典优先）
@@ -650,12 +650,13 @@
         window.GuixuState.update('equippedItems', equipped);
 
         try {
-          const prevTier = h.SafeGetValue(swapPrev, 'tier', '凡品');
-          const prevStyle = h.getTierStyle(prevTier);
-          slotEl.textContent = h.SafeGetValue(swapPrev, 'name');
-          slotEl.setAttribute('style', prevStyle);
-          slotEl.classList.add('equipped');
-          slotEl.dataset.itemDetails = JSON.stringify(swapPrev).replace(/'/g, "'");
+const prevTier = h.SafeGetValue(swapPrev, 'tier', '凡品');
+slotEl.textContent = h.SafeGetValue(swapPrev, 'name');
+slotEl.removeAttribute('style');
+slotEl.dataset.tier = prevTier;
+slotEl.classList.add('tier-text');
+slotEl.classList.add('equipped');
+slotEl.dataset.itemDetails = JSON.stringify(swapPrev).replace(/'/g, "'");
         } catch (_) {}
 
         // 将当前“新物品”（正要卸下的）放回背包（仅回退到背包列表，不清空槽位）
