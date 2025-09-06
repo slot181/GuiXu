@@ -1,0 +1,219 @@
+/*!
+ * mobile.css — 阶段6：移动端/小屏规则聚合
+ * 适用范围：
+ * - .guixu-root-container.mobile-view（由 JS/环境切换）
+ * - 小屏媒体查询兜底（保守，仅必要时）
+ * 作用域：限制在 .guixu-root-container/.guixu-viewport 内，避免污染宿主页面
+ * 说明：
+ * - 本文件汇聚通用“移动端布局/尺寸/交互”规则；具体业务面板的移动端细节仍优先放于各组件文件中
+ */
+
+/* 根容器进入移动视图：解除桌面宽高比约束，改为纵向流式布局 */
+.guixu-root-container.mobile-view {
+  width: 100% !important;
+  height: auto !important; /* 嵌入式 iframe 不锁高，允许内容自撑 */
+  aspect-ratio: unset;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 移动视图下的主容器：改为 Flex 纵向堆叠 */
+.mobile-view .game-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  flex: 1 1 auto;   /* 填满剩余空间 */
+  min-height: 0;    /* 允许子项正确计算高度 */
+  height: auto;
+}
+
+/* 非全屏 + 移动端：视口高度兜底，消除底部空白 */
+.guixu-root-container.mobile-view:not(:fullscreen) .game-container {
+  min-height: calc(100dvh - 0px);
+  min-height: calc(100svh - 0px);
+  min-height: calc(100vh - 0px);
+}
+.guixu-root-container.mobile-view:not(:fullscreen) {
+  min-height: 100dvh;
+  min-height: 100svh;
+  min-height: 100vh;
+}
+
+/* 移动端：隐藏顶部角落控制按钮（设置/视图切换/全屏） */
+.guixu-root-container.mobile-view .settings-btn,
+.guixu-root-container.mobile-view .view-toggle-btn,
+.guixu-root-container.mobile-view .fullscreen-btn {
+  display: none !important;
+}
+
+/* 通用 FAB 尺寸（更小、更稳） */
+.guixu-root-container.mobile-view .mobile-fab {
+  width: 44px !important;
+  height: 44px !important;
+  font-size: 12px !important;
+  border-radius: 50% !important;
+}
+
+/* 让主区域各块在移动端占满整行（配合 layout 栅格） */
+.mobile-view .top-status,
+.mobile-view .character-panel,
+.mobile-view .main-content,
+.mobile-view .interaction-panel,
+.mobile-view .bottom-status {
+  grid-column: 1 / -1;
+}
+
+/* 移动端细节布局调整（与桌面差异） */
+.mobile-view .character-panel {
+  grid-row: 3;
+  border-right: none;
+  border-bottom: 1px solid #c9aa71;
+  max-height: 250px;
+}
+.mobile-view .main-content {
+  grid-row: 2;
+}
+.mobile-view .interaction-panel {
+  grid-row: 4;
+  border-left: none;
+  border-top: 1px solid #c9aa71;
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px;
+}
+.mobile-view .interaction-btn {
+  flex-grow: 1;
+  min-width: 120px;
+}
+.mobile-view .world-line-section {
+  width: 100%;
+  display: flex;
+  justify-content: space-around;
+}
+.mobile-view .bottom-status {
+  flex-direction: column;
+  height: auto;
+  padding: 8px;
+}
+
+/* 状态与文本字号在移动端做轻微收敛（遵循变量） */
+.mobile-view .status-value { font-size: 12px; }
+.mobile-view .status-label { font-size: 10px; }
+.mobile-view .section-title { font-size: 12px; }
+.mobile-view .attribute-item { font-size: 11px; }
+.mobile-view .game-text-container { font-size: var(--guixu-story-font-size, 13px); }
+.mobile-view .interaction-btn { font-size: 11px; }
+
+/* 快速发送区（底栏）移动端布局：三段纵排 + 两键等分 */
+.guixu-root-container.mobile-view .quick-send-container {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  gap: 8px;
+}
+/* 刷新 + 重掷 两键等分（当 .qs-left 带 .qs-left--two-btn 修饰时） */
+.guixu-root-container.mobile-view .quick-send-container .qs-left.qs-left--two-btn {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+.guixu-root-container.mobile-view #btn-first-run-refresh,
+.guixu-root-container.mobile-view #btn-reroll-last {
+  flex: 0 0 calc(50% - 4px);
+  width: calc(50% - 4px);
+  height: 34px;
+  min-width: 0;
+  box-sizing: border-box;
+}
+.guixu-root-container.mobile-view .quick-send-container .qs-left,
+.guixu-root-container.mobile-view .quick-send-container .qs-center,
+.guixu-root-container.mobile-view .quick-send-container .qs-right {
+  width: 100%;
+}
+.mobile-view .quick-send-input { width: 100%; }
+
+/* 移动端：快速指令弹出宽度与位置 */
+.mobile-view #quick-command-popup {
+  width: 90%;
+  left: 5%;
+  right: 5%;
+  bottom: 110px;
+}
+
+/* 移动端视口容器允许滚动（嵌入式环境常见） */
+.guixu-viewport.mobile-view {
+  position: relative;
+  width: 100%;
+  height: auto;
+  margin: 0 auto;
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+}
+/* 视口内根容器参与文档流，避免父容器坍塌 */
+.guixu-viewport.mobile-view .guixu-root-container {
+  position: static;
+  left: auto;
+  top: auto;
+}
+
+/* 移动端：底部状态区纵向堆叠（修复早期网格冲突） */
+.mobile-view .bottom-status {
+  display: flex;
+  flex-direction: column;
+  transition: none;
+}
+
+/* 极小屏：输入高度收敛 */
+@media (max-width: 520px) {
+  .guixu-root-container {
+    --gx-input-height: 30px;
+  }
+}
+
+/* 小屏兜底（<=900px）：在 JS 尚未注入 .mobile-view 之前，确保嵌入式环境也可见且可滚动 */
+@media (max-width: 900px) {
+  /* 视口容器参与文档流，按内容自适应高度，允许滚动 */
+  .guixu-viewport {
+    width: 100% !important;
+    height: auto !important;
+    overflow: auto !important;
+  }
+  /* 根容器不可用绝对定位，否则父容器高度会被误判为 0 导致整块不可见 */
+  .guixu-viewport .guixu-root-container {
+    position: static !important;
+    left: auto !important;
+    top: auto !important;
+    width: 100% !important;
+    height: auto !important;
+  }
+  /* 覆盖桌面端固定尺寸的默认值 */
+  .guixu-root-container {
+    width: 100% !important;
+    height: auto !important;
+  }
+  /* 在 CSS 层面直接启用“移动端纵向布局”，即使 JS 还未给 .mobile-view 类 */
+  .game-container {
+    display: flex !important;
+    flex-direction: column !important;
+    height: auto !important;
+    min-height: 0 !important;
+    gap: 0 !important;
+  }
+  .main-content {
+    order: 2;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+  }
+  .bottom-status {
+    order: 5;
+    flex: 0 0 auto;
+  }
+  /* 小屏默认隐藏左右侧栏（仅在移动端视图且未打开浮层时隐藏） */
+  .guixu-root-container.mobile-view:not(.show-character-panel) .character-panel,
+  .guixu-root-container.mobile-view:not(.show-interaction-panel) .interaction-panel {
+    display: none !important;
+  }
+}

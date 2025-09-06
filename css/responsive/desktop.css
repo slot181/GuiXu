@@ -1,0 +1,35 @@
+/*!
+ * desktop.css — 阶段6：桌面端增强与紧凑化
+ * 适用范围：
+ * - .guixu-root-container:not(.mobile-view)（由 JS/环境切换或小屏强制桌面）
+ * 作用域：限制在 .guixu-root-container 下，避免污染宿主页面
+ * 说明：
+ * - 本文件聚合“桌面端统一尺寸/紧凑度”的通用规则；业务模块的桌面端细节仍在各组件文件维护
+ */
+
+/* 桌面端通用按钮统一尺寸（不影响移动端），一次性修复“大小不一/四字拥挤/被行内样式压缩”等问题 */
+.guixu-root-container:not(.mobile-view) .interaction-btn:not(.worldline-btn),
+.guixu-root-container:not(.mobile-view) .primary-btn:not(.worldline-btn),
+.guixu-root-container:not(.mobile-view) .danger-btn:not(.worldline-btn),
+.guixu-root-container:not(.mobile-view) .clear-saves-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+
+  /* 统一高度与内边距，覆盖行内样式 */
+  height: 32px !important;
+  padding: 0 12px !important;
+
+  /* 统一文本呈现，避免中文拥挤与上下裁切 */
+  font-size: 12px !important;
+  line-height: normal !important;
+  letter-spacing: normal !important;
+  white-space: nowrap !important;
+  word-break: keep-all !important;
+
+  /* 盒模型统一，避免不同容器出现视觉高度不一致 */
+  box-sizing: border-box !important;
+
+  /* 给足四字中文的最小宽度，但不作用于 worldline-btn（防止右侧窄栏再次溢出） */
+  min-width: 96px;
+}

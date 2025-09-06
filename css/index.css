@@ -37,7 +37,10 @@
 @import url("./components/settings.css");
 @import url("./components/extracted-content.css");
 
-/* 响应式与嵌入修复（阶段3） */
+/* 响应式与嵌入修复（阶段6/3） */
+@import url("./responsive/mobile.css");
+@import url("./responsive/desktop.css");
+@import url("./responsive/fullscreen.css");
 @import url("./responsive/embed-fixes.css");
 
 /* 后续阶段将依次引入：layout/、components/、responsive/、themes/ */

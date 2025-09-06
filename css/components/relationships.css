@@ -467,37 +467,3 @@
   box-sizing: border-box;
   flex: 0 0 auto;
 }
-
-/* 全屏 + 移动端：尺寸与按钮收紧 */
-.guixu-root-container:fullscreen.mobile-view #relationships-modal .modal-content,
-.guixu-root-container:-webkit-full-screen.mobile-view #relationships-modal .modal-content {
-  width: 90%;
-  max-width: 800px;
-  height: 90%;
-  max-height: 550px;
-}
-.guixu-root-container:fullscreen.mobile-view #relationships-modal .relationship-header .rel-actions,
-.guixu-root-container:-webkit-full-screen.mobile-view #relationships-modal .relationship-header .rel-actions {
-  display: grid !important;
-  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
-  grid-auto-rows: minmax(26px, auto) !important;
-  gap: 6px !important;
-  width: 100% !important;
-}
-.guixu-root-container:fullscreen.mobile-view #relationships-modal .relationship-header .rel-actions > button,
-.guixu-root-container:-webkit-full-screen.mobile-view #relationships-modal .relationship-header .rel-actions > button,
-.guixu-root-container:fullscreen.mobile-view .relationship-card .btn-delete-relationship,
-.guixu-root-container:-webkit-full-screen.mobile-view .relationship-card .btn-delete-relationship {
-  height: 26px !important;
-  padding: 0 8px !important;
-  font-size: 11px !important;
-  min-width: 0 !important;
-  box-sizing: border-box !important;
-}
-/* 关系筛选标签在全屏移动端下统一为 32px 高 */
-.guixu-root-container:fullscreen.mobile-view #relationships-modal .rel-tab,
-.guixu-root-container:-webkit-full-screen.mobile-view #relationships-modal .rel-tab {
-  height: 32px !important;
-  padding: 0 10px !important;
-  font-size: 12px !important;
-}

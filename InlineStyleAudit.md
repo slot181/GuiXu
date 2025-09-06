@@ -2,7 +2,7 @@
 
 目的：记录“业务组件分文件 + 内联样式清理”的映射关系，支撑后续 legacy/guixu.css 精准删除与回归验证。仅覆盖本次阶段涉及模块：timeline/history（本世历程/往世涟漪）、command-center、save-load、world-book。
 
-参考：Phase5-Reading.md、Phase5-Task.md
+参考：Phase5-Task.md
 
 --------------------------------------------------------------------------------
 
@@ -30,7 +30,7 @@ JS/HTML 变更映射：
   - AFTER: `<div class="timeline-detailed-info">…`
   - 样式归属：timeline.css (.timeline-detailed-info)，JS 仅切换 display
 
-- 自动化系统内容 <pre>
+- 自动化系统 <pre>
   - BEFORE: `<pre style="white-space:pre-wrap; font-size:11px; color:#a09c91;">…</pre>`
   - AFTER: `<pre class="timeline-auto-system">…</pre>`
   - 样式归属：timeline.css (.timeline-auto-system)
@@ -249,3 +249,116 @@ HTML/JS 内联 → 类/变量 映射：
 - js/components/settings.js（模板内联清除 + Tooltip 状态类）
 - js/components/extracted-content.js（.style.display → .u-hidden）
 - css/components/settings.css、css/components/extracted-content.css（接管样式）
+
+--------------------------------------------------------------------------------
+
+## 12) 阶段6 增量清单（移动端 / 桌面端 / 全屏拆分）
+
+作用域与目标：
+- 仅针对响应式层的组织与拆分；不改动业务结构与 HTML 模板。
+- 所有规则限定在 `.guixu-root-container` / `.guixu-viewport` 作用域，嵌入式 iframe 友好。
+- 采用“mobile-first + 桌面增强 + 全屏覆盖”的分文件策略，保持层叠顺序：base → layout → components → responsive → embed-fixes。
+
+新增样式文件（已引入 css/index.css）：
+- css/responsive/mobile.css
+  - 汇聚 .guixu-root-container.mobile-view 下的流式布局与细节：
+    - 根容器改为 Flex 纵向栈；`.mobile-view .game-container` 纵向堆叠，子项 min-height:0
+    - 底栏纵排；快速发送区三段纵排，`.qs-left--two-btn` 两键等分
+    - 隐藏角落按钮：.settings-btn/.view-toggle-btn/.fullscreen-btn
+    - FAB 缩放：`.mobile-fab` 44px 圆形
+    - 小屏兜底 @media (max-width: 900px)：在 JS 未注入 `.mobile-view` 前，视口/根容器参与文档流，强制纵向布局并可滚动
+    - 非全屏移动端高度兜底：根容器与 `.game-container` 以 dvh/svh/vh 链保证撑满视口
+- css/responsive/desktop.css
+  - 汇聚桌面端统一按钮尺寸规则（不影响移动端）：
+    - `.guixu-root-container:not(.mobile-view) .interaction-btn/.primary-btn/.danger-btn/.clear-saves-btn` 统一 32px 高、padding 0 12px、min-width:96px，文本不拥挤，盒模型统一
+- css/responsive/fullscreen.css
+  - 汇聚全屏（:fullscreen / :-webkit-full-screen）规则：
+    - 根容器铺满视口并避免裁剪，`.game-container{height:100%}`
+    - 移动端全屏下：relationships/save-load/command-center 面板宽高与按钮收紧（90%/max-width:800px，按钮 32px）
+    - 快速发送两键在全屏移动端统一 40px 高度
+    - 移动端横屏全屏：底栏固定、安全区（@supports padding:max）、输入容器居中与宽度收敛（clamp）
+  - 修复拼写错误：`-webkit-full-screen.mobile-view #save-load-modal .slot-actions > button`（已修正）
+
+迁移与删重（首批完成）：
+- 从 css/guixu.css → mobile.css
+  - `.guixu-root-container.mobile-view` 根流式布局、`.mobile-view .game-container`、角落按钮隐藏、FAB、底栏与快速发送通用、非全屏 dvh/svh 兜底、小屏兜底媒体查询、`.guixu-viewport.mobile-view` 滚动
+- 从 css/guixu.css → desktop.css
+  - 桌面端按钮统一尺寸规则（原在 guixu.css 的 not(.mobile-view) 块）
+- 从 css/guixu.css → fullscreen.css
+  - 根容器铺满 + 常用面板在移动全屏下收敛、移动横屏全屏的固定底栏与安全区处理、快速发送 40px
+
+对 guixu.css 的调整：
+- 移除一段不完整的小屏兜底代码块（导致“应为 @ 规则或选择器”的语法错误），完整兜底逻辑已迁入 mobile.css 的 `@media (max-width: 900px)`。
+- 暂保留部分与 responsive 重叠的块用于灰度（靠后引入的 responsive 已覆盖，防回归）。后续“第二批删重”中逐项删去。
+
+验收/回归要点：
+- index.css 引入顺序：responsive 位于 components 之后、embed-fixes 之前（或并列），确保覆盖旧选择器
+- 桌面非全屏嵌入高度链由 embed-fixes.css 保证；移动端/全屏由 mobile/fullscreen.css 接管，避免循环覆盖
+- Safari/iPad 全屏裁剪：fullscreen.css 统一 overflow/安全区处理
+
+回滚方式（阶段6相关）：
+- 注释 index.css 中 responsive 三文件的 @import 即可回退；guixu.css 保留原块保障可用
+
+后续（阶段6 第二批）
+- 删重 guixu.css 中剩余的 mobile-landscape-fullscreen / fullscreen 相关重复块，完全上收至 fullscreen.css
+- 评估 components/* 中与响应式层交叉的少量覆盖，能提升复用的再上收至 responsive/*
+
+变更文件列表（阶段6）
+- 新增：css/responsive/mobile.css、css/responsive/desktop.css、css/responsive/fullscreen.css、Phase6-Task.md
+- 修改：css/index.css（引入 responsive 三文件）
+- 修改：css/guixu.css（剪移首批规则 + 语法修复）
+
+--------------------------------------------------------------------------------
+
+## 13) 阶段6 第二批删重映射清单（responsive/fullscreen 集中覆盖）
+
+目标与范围：
+- 将“全屏(:fullscreen / :-webkit-full-screen) + 移动横屏全屏(.mobile-landscape-fullscreen)”相关的通用样式，从 legacy/组件文件中上收至 `css/responsive/fullscreen.css`，消除跨层重复覆盖，保证作用域仅限 `.guixu-root-container`/`.guixu-viewport`，不影响宿主页面。
+
+映射一：components → responsive
+- 来源文件：css/components/relationships.css（已删除的全屏段）
+  - 选择器与规则（代表性条目）：
+    - `.guixu-root-container:fullscreen.mobile-view #relationships-modal .modal-content` / `:-webkit-full-screen ... .modal-content` → 尺寸收敛 90% + max-width/max-height
+    - `.guixu-root-container:fullscreen.mobile-view #relationships-modal .relationship-header .rel-actions` → 网格布局（3 列、行高 minmax(26px,auto)）
+    - `.guixu-root-container:fullscreen.mobile-view #relationships-modal .relationship-header .rel-actions > button`、`.relationship-card .btn-delete-relationship` → 高度 26px、内边距 0 8px、字体 11px
+    - `.guixu-root-container:fullscreen.mobile-view #relationships-modal .rel-tab` → 高度 32px、内边距 0 10px、字体 12px
+  - 目标文件：css/responsive/fullscreen.css（已存在等价/增强规则）
+  - 原因：这些属于“全屏态通用收敛”，不应由单组件文件维护，避免与其他组件的全屏收敛产生冲突。
+
+映射二：legacy → responsive
+- 来源文件：css/guixu.css（历史已执行的删重，当前仓内检索不再存在 :fullscreen/-webkit-full-screen）
+  - 选择器与规则（按功能聚合）：
+    - relationships/save-load/command-center 在移动全屏下的尺寸与按钮收紧整段 → 已集中至 fullscreen.css
+    - `.guixu-root-container.mobile-view.mobile-landscape-fullscreen ...`（横屏全屏：底栏固定/输入收敛/安全区）→ 已集中至 fullscreen.css
+    - 本批补充（对齐遗留细节）：  
+      `.mobile-landscape-fullscreen .quick-send-container .qs-left.qs-left--two-btn { gap:10px; }`  
+      `.mobile-landscape-fullscreen .game-container { background: rgba(0,0,0,.2); }`
+  - 目标文件：css/responsive/fullscreen.css
+  - 备注：通过 repo 全仓检索确认，guixu.css 中已无 :fullscreen/-webkit-full-screen 的尺寸/布局覆盖项。
+
+保留项（评估/暂留说明）：
+- 若 guixu.css 中存在以下“全屏定位层级”条目（当前检索为 0，历史保留说明仍附录）：
+  - `.guixu-root-container:fullscreen.mobile-view.show-character-panel .character-panel`
+  - `.guixu-root-container:fullscreen.mobile-view.show-interaction-panel .interaction-panel`
+- 暂留原因：仅用于确保浮层在全屏下的定位与 z-index 安全，不改变业务布局；后续如确认与 fullscreen.css 的集中策略不冲突，可一并上收。
+
+验证与索引（本批执行记录）：
+- 校验命令：
+  - 排查全仓非 fullscreen.css 的全屏选择器：`(:fullscreen|:-webkit-full-screen)` → 0 结果
+  - 排查横屏全屏来源：`mobile-landscape-fullscreen` → 仅 `css/responsive/fullscreen.css`
+- 目标文件内索引（便于查阅/回归）：
+  - “进入全屏：根容器铺满”段
+  - “移动端全屏：relationships/save-load/command-center 收敛”段
+  - “快速发送区：全屏移动端 40px”段
+  - “横屏全屏：底栏固定/输入居中/安全区/两键间距/正文底色”段
+
+回滚提示（第二批删重）：
+- 如需临时回退，可：
+  1) 在 `css/index.css` 注释 `responsive/fullscreen.css` 的 @import；
+  2) 恢复 `css/components/relationships.css` 的对应全屏段（已在 Phase6-Task.md 记录）；
+  3) 历史上从 guixu.css 剪移的横屏全屏块如需短期回滚，可从版本历史恢复。
+
+变更文件列表（阶段6 第二批增补）
+- 修改：css/components/relationships.css（删除“全屏 + 移动端”段，改由 fullscreen.css 接管）
+- 修改：css/responsive/fullscreen.css（补入横屏全屏 two-btn 间距与正文底色过渡）
+- 验证：css/guixu.css（确认无 :fullscreen/-webkit-full-screen 尺寸/布局覆盖残留）
