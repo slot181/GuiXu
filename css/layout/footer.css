@@ -21,11 +21,25 @@
   position: relative; /* 作为版本徽标等绝对定位参照 */
 }
 
-/* 快速发送区（基础排列） */
-.quick-send-container {
-  display: flex;
+/* 快速发送区（基础排列 → 三段式布局，CSS接管JS注入） */
+.guixu-root-container .quick-send-container {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
   align-items: center;
   gap: 8px;
+}
+.guixu-root-container .quick-send-container .qs-left,
+.guixu-root-container .quick-send-container .qs-right{
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.guixu-root-container .quick-send-container .qs-center{
+  display: flex;
+  align-items: center;
+}
+.guixu-root-container .quick-send-container .qs-center #quick-send-input{
+  width: 100%;
 }
 
 /* 网格对齐：左侧状态按钮靠左，输入区居中 */

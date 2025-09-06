@@ -1,0 +1,74 @@
+/*!
+ * Notifications / Waiting Popup (阶段7)
+ * 作用域：仅在 .guixu-root-container 内，避免污染宿主页面
+ * 目标：
+ * - 将等待提示弹窗从 JS 行内样式迁移为静态 CSS 规则
+ * - 使用 CSS 变量暴露可定制点（颜色、阴影、位置、层级、尺寸）
+ */
+
+.guixu-root-container {
+  --gx-waiting-z: 10020;
+  --gx-waiting-top: 20px;
+  --gx-waiting-gap: 8px;
+  --gx-waiting-padding-y: 10px;
+  --gx-waiting-padding-x: 14px;
+  --gx-waiting-radius: 8px;
+  --gx-waiting-font-size: 13px;
+  --gx-waiting-font-weight: 600;
+
+  --gx-waiting-bg: rgba(26, 26, 46, 0.95);
+  --gx-waiting-color: #c9aa71;
+  --gx-waiting-border: #c9aa71;
+  --gx-waiting-shadow: 0 0 20px rgba(201, 170, 113, 0.3);
+
+  --gx-spinner-size: 14px;
+  --gx-spinner-border: 2px;
+  --gx-spinner-gap-right: 4px;
+}
+
+/* 等待提示：固定顶部居中，较高层级，遵循归墟配色 */
+.guixu-root-container .waiting-popup {
+  position: fixed;
+  left: 50%;
+  top: var(--gx-waiting-top);
+  transform: translateX(-50%);
+  z-index: var(--gx-waiting-z);
+  display: flex;
+  align-items: center;
+  gap: var(--gx-waiting-gap);
+  padding: var(--gx-waiting-padding-y) var(--gx-waiting-padding-x);
+  border-radius: var(--gx-waiting-radius);
+  border: 1px solid var(--gx-waiting-border);
+  background: var(--gx-waiting-bg);
+  color: var(--gx-waiting-color);
+  box-shadow: var(--gx-waiting-shadow);
+  font-size: var(--gx-waiting-font-size);
+  font-weight: var(--gx-waiting-font-weight);
+  pointer-events: none; /* 避免拦截用户交互 */
+}
+
+/* 旋转加载动画 */
+@keyframes gx-waiting-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.guixu-root-container .waiting-spinner {
+  width: var(--gx-spinner-size);
+  height: var(--gx-spinner-size);
+  border: var(--gx-spinner-border) solid var(--gx-waiting-color);
+  border-right-color: transparent;
+  border-radius: 50%;
+  margin-right: var(--gx-spinner-gap-right);
+  animation: gx-waiting-spin 0.9s linear infinite;
+  flex: 0 0 auto;
+}
+
+/* 移动端微调：略微上移并收紧文字尺寸 */
+.guixu-root-container.mobile-view .waiting-popup {
+  --gx-waiting-top: 14px;
+  --gx-waiting-font-size: 12px;
+  --gx-spinner-size: 12px;
+  --gx-spinner-border: 2px;
+}

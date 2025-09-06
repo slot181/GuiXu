@@ -261,21 +261,19 @@
         body.innerHTML = `
           <div class="panel-section">
             <div class="section-title">版本信息</div>
-            <div id="update-version-info" class="attributes-list" style="padding: 10px;"></div>
+            <div id="update-version-info" class="attributes-list u-p-10"></div>
           </div>
           <div class="panel-section">
             <div class="section-title">更新说明（节选）</div>
-            <div id="update-brief-body" class="attributes-list" style="padding: 10px; white-space: pre-wrap; word-break: break-word; font-size: 12px; color: #e0dcd1;"></div>
+            <div id="update-brief-body" class="attributes-list u-p-10 u-prewrap u-text-12 u-color-default"></div>
           </div>
         `;
 
         const footer = document.createElement('div');
         footer.className = 'confirm-modal-buttons';
-        footer.style.marginTop = '10px';
 
         const dontLabel = document.createElement('label');
-        dontLabel.className = 'dont-remind';
-        dontLabel.style.cssText = 'display:flex;align-items:center;gap:8px;margin-right:auto;';
+        dontLabel.className = 'dont-remind u-flex u-gap-8 u-mr-auto';
         const dontInput = document.createElement('input');
         dontInput.type = 'checkbox';
         dontInput.id = 'update-dont-remind-this-tag';

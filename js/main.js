@@ -99,7 +99,7 @@
     ensureQuickSendLayout() {
       try {
         // 样式注入（仅一次）
-        if (!document.getElementById('guixu-quick-send-layout-style')) {
+        if (false && !document.getElementById('guixu-quick-send-layout-style')) {
           const s = document.createElement('style');
           s.id = 'guixu-quick-send-layout-style';
           s.textContent = `
@@ -321,6 +321,9 @@
 
     ensureDynamicStyles() {
       try {
+        // 阶段7：动态样式已迁移到静态CSS（typography.css / extracted-content.css / buttons.css 等）
+        // 为避免重复与提高首屏性能，这里直接停止JS样式注入。
+        return;
         if (!document.getElementById('guixu-dynamic-style')) {
           const style = document.createElement('style');
           style.id = 'guixu-dynamic-style';
@@ -633,6 +636,8 @@ if (!document.getElementById('guixu-gate-style')) {
         console.warn('[归墟] ensureRerollButton 失败:', e);
       }
     },
+
+
 
     bindTopLevelListeners() {
       const $ = (sel, ctx = document) => ctx.querySelector(sel);
@@ -1041,7 +1046,6 @@ if (!document.getElementById('guixu-gate-style')) {
           btn.id = 'btn-toggle-stream';
           btn.className = 'interaction-btn';
           btn.type = 'button';
-          btn.style.padding = '5px 12px';
           btn.title = '切换流式传输（启用时逐字显示AI回复）';
           btn.textContent = '流式';
           // 插入到输入框前（与“当前指令”按钮同一风格）
@@ -1531,7 +1535,7 @@ if (!document.getElementById('guixu-gate-style')) {
         if (!viewport || !root) return;
 
         // 注入一次性样式，确保即使外部CSS未更新也能生效
-        if (!document.getElementById('guixu-embedded-fix-style')) {
+        if (false && !document.getElementById('guixu-embedded-fix-style')) {
           const style = document.createElement('style');
           style.id = 'guixu-embedded-fix-style';
           style.textContent = `
@@ -2240,7 +2244,7 @@ if (!document.getElementById('guixu-gate-style')) {
               container.id = 'guixu-action-guidelines';
               container.setAttribute('role', 'group');
               // 一项一行：纵向列表布局（桌面/移动端统一）
-              container.style.cssText = 'margin-top:8px;border-top:1px solid rgba(201,170,113,0.3);padding-top:6px;display:flex;flex-direction:column;gap:8px;';
+              /* 样式改由 CSS 承接（extracted-content.css #guixu-action-guidelines） */
 
               const label = document.createElement('span');
               label.textContent = '行动选项';
@@ -2345,38 +2349,16 @@ if (!document.getElementById('guixu-gate-style')) {
         const div = document.createElement('div');
         div.id = 'waiting-popup';
         div.className = 'waiting-popup';
-        div.style.cssText = `
-          position: fixed;
-          top: 20px;
-          left: 50%;
-          transform: translateX(-50%);
-          z-index: 10002;
-          background: rgba(26, 26, 46, 0.95);
-          color: #c9aa71;
-          border: 1px solid #c9aa71;
-          border-radius: 8px;
-          padding: 10px 14px;
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          box-shadow: 0 0 20px rgba(201, 170, 113, 0.3);
-          font-size: 13px;
-          font-weight: 600;
-        `;
+
         const spinner = document.createElement('div');
         spinner.className = 'waiting-spinner';
-        spinner.style.cssText = `
-          width: 14px;
-          height: 14px;
-          border: 2px solid #c9aa71;
-          border-right-color: transparent;
-          border-radius: 50%;
-          margin-right: 4px;
-        `;
+
         const span = document.createElement('span');
         span.textContent = msg;
+
         div.appendChild(spinner);
         div.appendChild(span);
+
         const container = document.querySelector('.guixu-root-container') || document.body;
         container.appendChild(div);
       } catch (e) {

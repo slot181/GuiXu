@@ -37,3 +37,117 @@
   cursor: pointer;
   list-style: none;
 }
+
+/* 思维链折叠与芯片按钮（迁移自 JS 注入样式） */
+.guixu-root-container #guixu-thinking-panel {
+  margin-bottom: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 6px;
+}
+.guixu-root-container #guixu-thinking-panel .thinking-chip-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 10px;
+  border-radius: 16px;
+  border: 1px solid #daa520;
+  background: linear-gradient(45deg, #8b4513, #cd853f);
+  color: #fff;
+  font-size: 12px;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.35);
+  transition: transform .15s ease, box-shadow .15s ease, background .2s ease;
+  flex: 0 0 auto;
+  width: auto;
+  min-width: 28px;
+  align-self: flex-start;
+  white-space: nowrap;
+  max-width: 50vw;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.guixu-root-container #guixu-thinking-panel .thinking-chip-btn.interaction-btn {
+  width: auto !important;
+  flex: 0 0 auto !important;
+  display: inline-flex !important;
+}
+.guixu-root-container #guixu-thinking-panel .thinking-chip-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.45);
+  background: linear-gradient(45deg, #cd853f, #daa520);
+}
+.guixu-root-container #guixu-thinking-panel .thinking-chip-text {
+  font-weight: 600;
+  letter-spacing: .5px;
+}
+
+/* 移动端：芯片按钮收紧 */
+.guixu-root-container.mobile-view #guixu-thinking-panel .thinking-chip-btn {
+  height: 24px;
+  padding: 0 8px;
+  font-size: 11px;
+  width: auto !important;
+  flex: 0 0 auto !important;
+  max-width: 60vw;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.guixu-root-container.mobile-view #guixu-thinking-panel .thinking-chip-text {
+  display: inline;
+}
+
+/* 思维链内容盒 */
+.guixu-root-container #guixu-thinking-content.thinking-box {
+  display: none;
+  margin-top: 2px;
+  background: rgba(15, 15, 35, var(--guixu-thinking-bg-opacity, 0.85));
+  border: 1px solid rgba(201, 170, 113, 0.35);
+  border-radius: 10px;
+  padding: 12px;
+  max-height: 280px;
+  overflow: auto;
+  color: var(--guixu-thinking-color, #e0dcd1) !important;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.45);
+  backdrop-filter: blur(1px);
+}
+.guixu-root-container #guixu-thinking-content pre {
+  white-space: pre-wrap;
+  word-break: break-word;
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+/* 行动方针容器与按钮（迁移自 JS 注入样式） */
+.guixu-root-container #guixu-action-guidelines {
+  margin-top: 8px;
+  border-top: 1px solid rgba(201, 170, 113, 0.3);
+  padding-top: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.guixu-root-container #guixu-action-guidelines .guideline-label {
+  font-size: 12px;
+  color: #8b7355;
+}
+.guixu-root-container #guixu-action-guidelines .action-guideline-btn {
+  width: 100% !important;
+  text-align: center;
+  white-space: normal !important;
+  word-break: break-word;
+  line-height: 1.5;
+  padding: 10px 12px;
+  font-size: 13px;
+  height: auto;
+  box-sizing: border-box;
+  color: var(--guixu-guideline-text-color, #e0dcd1) !important;
+  background: rgba(15, 15, 35, var(--guixu-guideline-bg-opacity, 0.6)) !important;
+  border: 1px solid #c9aa71 !important;
+}
+.guixu-root-container.mobile-view #guixu-action-guidelines .action-guideline-btn {
+  font-size: 12px;
+  padding: 10px 10px;
+}

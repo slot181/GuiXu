@@ -127,3 +127,27 @@
 .guixu-root-container.mobile-view .interaction-btn.is-compact {
   height: calc(var(--gx-btn-height-compact) - 2px);
 }
+
+/* 首轮门禁“一键刷新”专用按钮（替代 JS 注入 guixu-gate-style） */
+.guixu-root-container #btn-first-run-refresh.gate-refresh-btn {
+  /* 采用与基础按钮一致的盒模型，但覆盖配色与尺寸 */
+  border: 1px solid #c9aa71;
+  background: linear-gradient(45deg, #1a1a2e, #2d1b3d);
+  color: #c9aa71;
+  height: 32px;
+  padding: 0 10px;
+  border-radius: 6px;
+  margin-right: 6px;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.35);
+}
+
+.guixu-root-container #btn-first-run-refresh.gate-refresh-btn:hover {
+  background: linear-gradient(45deg, #2d1b3d, #3b2753);
+}
+
+/* 移动端紧凑尺寸 */
+.guixu-root-container.mobile-view #btn-first-run-refresh.gate-refresh-btn {
+  height: 30px;
+  padding: 0 8px;
+  font-size: 12px;
+}

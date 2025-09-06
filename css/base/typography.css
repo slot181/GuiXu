@@ -33,3 +33,36 @@
 .guixu-root-container samp {
   font: 100%/1.4 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 }
+
+/* 正文文本与特殊着色（由 CSS 变量驱动；迁移自 JS 注入 guixu-dynamic-style） */
+.guixu-root-container .game-text-container,
+.guixu-root-container .game-text-container gametxt {
+  color: var(--guixu-story-color, #e0dcd1) !important;
+}
+.guixu-root-container #game-text-display {
+  color: var(--guixu-story-default-color, var(--guixu-story-color, #e0dcd1)) !important;
+}
+.guixu-root-container #game-text-display .text-language {
+  color: var(--guixu-story-quote-color, #ff4d4f) !important;
+}
+.guixu-root-container #game-text-display .text-psychology,
+.guixu-root-container #game-text-display .text-scenery {
+  color: var(--guixu-story-color, #e0dcd1) !important;
+}
+
+/* 控件字体覆盖：确保使用变量字体（覆盖宿主 !important；迁移自 JS 注入 guixu-font-override-style） */
+.guixu-root-container .interaction-btn,
+.guixu-root-container .primary-btn,
+.guixu-root-container .danger-btn,
+.guixu-root-container .worldline-btn,
+.guixu-root-container .status-pop-btn,
+.guixu-root-container button,
+.guixu-root-container input,
+.guixu-root-container select,
+.guixu-root-container textarea {
+  font-family: var(--guixu-font-family, "Microsoft YaHei", "Noto Sans SC", "PingFang SC", "Hiragino Sans GB", sans-serif) !important;
+}
+/* 兼容快速发送框（明确继承变量） */
+.guixu-root-container .quick-send-input {
+  font-family: var(--guixu-font-family, inherit) !important;
+}

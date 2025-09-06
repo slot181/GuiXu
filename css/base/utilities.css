@@ -61,6 +61,7 @@
 
 /* 新增：右外边距工具 */
 .guixu-root-container .u-mr-15 { margin-right: 15px !important; }
+.guixu-root-container .u-mr-auto { margin-right: auto !important; }
 
 /* 新增：品阶着色（统一使用 data-tier / 类名 tier-text） */
 @keyframes gx-god-tier-animation {
@@ -154,3 +155,7 @@
 .guixu-root-container [data-tier="N/A"] {
   color: #e0dcd1;
 }
+
+/* 字号与颜色工具（用于替换行内样式） */
+.guixu-root-container .u-text-12 { font-size: 12px !important; }
+.guixu-root-container .u-color-default { color: var(--guixu-story-color, #e0dcd1) !important; }

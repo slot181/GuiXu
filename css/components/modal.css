@@ -100,3 +100,11 @@
   text-align: center;
   padding: 30px;
 }
+
+/* 通用确认按钮区域（供各模态复用） */
+.guixu-root-container .confirm-modal-buttons {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+}
