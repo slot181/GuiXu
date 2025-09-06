@@ -1,0 +1,42 @@
+/*!
+ * embed-fixes.css — 阶段3：嵌入式 iframe 高度链兜底与非全屏修复
+ * 目标：
+ * - 在酒馆楼层等嵌入式环境中，保证高度链完整，避免主体区域被压扁
+ * - 仅针对“桌面端 + 非全屏”生效；移动端与全屏不受影响
+ * 作用域：.guixu-root-container / .guixu-viewport（不影响宿主页面）
+ */
+
+/* 桌面端 非全屏 嵌入修复（根容器高度兜底） */
+.guixu-root-container:not(.mobile-view):not(:fullscreen) {
+  min-height: 100vh;
+  min-height: 100svh;
+  min-height: 100dvh;
+  /* 外层未定高时的硬下限，保证视窗不至于过小 */
+  min-height: 640px;
+  height: auto;
+}
+
+/* 视口容器同样给出最小高度，确保根容器可撑开（使用动态视口单位以适配移动端地址栏） */
+.guixu-viewport {
+  min-height: 100vh;
+  min-height: 100svh;
+  min-height: 100dvh;
+  /* 嵌入式下的像素级下限，促使宿主容器按内容自增高 */
+  min-height: 640px;
+}
+
+/* 网格容器在桌面非全屏下至少占满视口高度（去除祖先链影响） */
+.guixu-root-container:not(.mobile-view):not(:fullscreen) .game-container {
+  min-height: calc(100vh - 0px);
+  min-height: calc(100svh - 0px);
+  min-height: calc(100dvh - 0px);
+  /* 外层未定高时的硬下限，保证主体区域不被压扁 */
+  min-height: 640px;
+  height: auto;
+}
+
+/* Grid 子项需要 min-height:0 才能正确分配剩余空间并滚动 */
+.guixu-root-container:not(.mobile-view):not(:fullscreen) .main-content {
+  min-height: 0;
+  overflow-y: auto;
+}

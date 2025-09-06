@@ -1,0 +1,75 @@
+/*!
+ * components/progress.css — 阶段4：通用进度组件
+ * - 基础进度条（progress-bar/progress-fill）
+ * - 归墟充能条（guixu-charge/guixu-fill）
+ * - 详情/属性进度条（details-progress-*, attr-bar）
+ * - 作用域限制在 .guixu-root-container 下
+ */
+
+/* 基础进度条（小尺寸，用于顶部状态区等） */
+.guixu-root-container .progress-bar {
+  width: 70px;
+  height: 5px;
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 3px;
+  overflow: hidden;
+  border: 1px solid #c9aa71;
+}
+.guixu-root-container .progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #ff6b6b, #ffd93d);
+  border-radius: 2px;
+}
+
+/* 归墟充能条（底部状态/顶部状态等位置使用） */
+.guixu-root-container .guixu-charge {
+  width: 100px;
+  height: 6px;
+  background: rgba(0, 0, 0, 0.7);
+  border-radius: 4px;
+  border: 1px solid #8b4513;
+  overflow: hidden;
+}
+.guixu-root-container .guixu-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #dc143c, #ff6b6b, #ffd700);
+  width: var(--guixu-charge, 0%);
+  border-radius: 3px;
+}
+
+/* 详情模态中的进度条（角色详情/修为详情等） */
+.guixu-root-container .details-progress-bar {
+  width: 100%;
+  height: 8px;
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 4px;
+  overflow: hidden;
+  border: 1px solid #8b7355;
+  margin-top: 8px;
+}
+.guixu-root-container .details-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #6a11cb, #2575fc);
+  border-radius: 3px;
+  transition: width 0.5s ease-in-out;
+}
+
+/* 属性进度条（角色面板：核心属性/修为进度等） */
+.guixu-root-container .attr-bar {
+  height: 12px;
+  border-radius: 8px;
+  background: linear-gradient(180deg, rgba(201,170,113,0.12), rgba(201,170,113,0.05));
+  border: 1px solid rgba(201,170,113,0.25);
+  overflow: hidden;
+}
+.guixu-root-container .attr-bar .attr-bar-fill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, #4caf50, #ffd700);
+  box-shadow: 0 0 10px rgba(255, 215, 0, 0.35);
+  transition: width 300ms ease;
+}
+/* 修为进度的配色（特殊主题） */
+.guixu-root-container .attr-bar--cultivation .attr-bar-fill {
+  background: linear-gradient(90deg, #6a11cb, #2575fc);
+}

@@ -1,0 +1,94 @@
+/*!
+ * layout-core.css — 阶段3：布局核心
+ * 作用域：尽量在 .guixu-root-container / .guixu-viewport 下，避免污染宿主页面
+ * 内容：核心容器、视口容器与主网格、主内容区、作用域化盒模型重置
+ */
+
+/* 根容器：主题变量与基础外观（保持与 guixu.css 一致，后续变量将逐步下沉到 base/variables.css） */
+.guixu-root-container {
+  --guixu-story-font-size: 14px;
+  --guixu-bg-mask: 0.7;
+  --guixu-bg-size: cover;
+  --guixu-bg-repeat: no-repeat;
+  --guixu-bg-position: center;
+
+  /* 全局输入控件统一变量（阶段2存量，后续可沉降到 components/forms.css 或 base/variables.css） */
+  --gx-input-bg: rgba(26, 26, 46, 0.5);
+  --gx-input-border-color: rgba(201, 170, 113, 0.35);
+  --gx-input-color: #e8e3d6;
+  --gx-placeholder-color: #8b7355;
+  --gx-input-radius: 8px;
+  --gx-input-height: 32px;
+  --gx-input-bg-hover: rgba(26, 26, 46, 0.6);
+  --gx-input-bg-focus: rgba(26, 26, 46, 0.65);
+  --gx-input-border-color-hover: rgba(201, 170, 113, 0.45);
+  --gx-input-border-color-focus: rgba(201, 170, 113, 0.65);
+  --gx-input-shadow-focus: 0 0 0 2px rgba(201, 170, 113, 0.12);
+
+  font-family: 'ZCOOL+KuaiLe', 'Ma+Shan+Zheng', serif;
+  background-size: var(--guixu-bg-size, cover);
+  background-position: var(--guixu-bg-position, center);
+  background-repeat: var(--guixu-bg-repeat, no-repeat);
+  color: #c9aa71;
+  border: 1px solid #c9aa71;
+  border-radius: 8px;
+  overflow: hidden;
+  max-width: 100%;
+  margin: auto;
+  box-shadow: 0 0 15px rgba(201, 170, 113, 0.2);
+  position: relative;
+  width: 100%;
+  height: auto;
+  max-width: none;
+}
+
+/* 根容器前景遮罩（背景图暗化） */
+.guixu-root-container::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 15, 35, var(--guixu-bg-mask, 0.7));
+  z-index: 1;
+}
+
+/* 作用域化盒模型重置（仅容器内部，避免污染宿主页面） */
+.guixu-root-container * {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* 视口容器：控制非全屏分辨率与统一缩放的包裹层 */
+.guixu-viewport {
+  position: relative;
+  width: 100%;
+  height: auto;
+  margin: 0 auto;
+  overflow: auto;
+}
+
+/* 视口内的根容器定位（嵌入式场景友好） */
+.guixu-viewport .guixu-root-container {
+  position: relative;
+  left: 0;
+  top: 0;
+}
+
+/* 主网格容器：顶部栏/主体/底部栏 + 三列布局（左/中/右） */
+.game-container {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  grid-template-rows: 65px 1fr auto;
+  grid-template-columns: 220px 1fr 160px;
+  width: 100%;
+  gap: 1px;
+  height: 100%;
+}
+
+/* 中央主内容区（滚动与背景） */
+.main-content {
+  padding: 20px;
+  overflow-y: auto;
+  background: rgba(0, 0, 0, 0.2);
+}

@@ -1,0 +1,33 @@
+/*!
+ * footer.css — 阶段3：底部状态栏与快速发送区布局
+ * 说明：
+ * - 本文件仅包含“布局层”规则（容器、网格、对齐、基础定位）
+ * - 移动端/全屏等响应式覆盖保留在后续 responsive 阶段（或 embed-fixes.css）
+ */
+
+.bottom-status {
+  grid-column: 1 / -1;
+  background: linear-gradient(90deg,
+      rgba(45, 27, 61, 0.8) 0%,
+      rgba(26, 26, 46, 0.8) 50%,
+      rgba(45, 27, 61, 0.8) 100%);
+  border-top: 1px solid #c9aa71;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 15px;
+  padding: 0 15px;
+  transition: height 0.2s ease-in-out;
+  position: relative; /* 作为版本徽标等绝对定位参照 */
+}
+
+/* 快速发送区（基础排列） */
+.quick-send-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* 网格对齐：左侧状态按钮靠左，输入区居中 */
+#btn-status-pop { justify-self: start; }
+.bottom-status .quick-send-container { justify-self: center; }

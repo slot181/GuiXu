@@ -1,0 +1,102 @@
+/*!
+ * components/modal.css — 阶段4：通用模态组件
+ * - 只包含通用模态的基础外观与结构，不含各业务面板的专属配色/尺寸
+ * - 支持尺寸修饰类：.gx-modal--sm / .gx-modal--md / .gx-modal--lg
+ * - 变量可在容器作用域（.guixu-root-container 或具体面板）覆盖
+ */
+
+.guixu-root-container .modal-overlay {
+  display: none;                 /* 默认隐藏 */
+  position: absolute;            /* 相对于 .guixu-root-container 定位 */
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, var(--gx-modal-overlay-bg-alpha, 0.8));
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+/* 通用模态内容容器 */
+.guixu-root-container .modal-content {
+  --gx-modal-bg: rgba(26, 26, 46, 0.95);
+  --gx-modal-border: #c9aa71;
+  --gx-modal-radius: 8px;
+  --gx-modal-padding: 20px;
+
+  background: var(--gx-modal-bg);
+  border: 1px solid var(--gx-modal-border);
+  border-radius: var(--gx-modal-radius);
+  padding: var(--gx-modal-padding);
+  width: 90%;
+  max-width: 800px;
+  height: 90%;
+  max-height: 550px;
+
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 0 20px rgba(201, 170, 113, 0.3);
+}
+
+/* 头部/标题/关闭按钮 */
+.guixu-root-container .modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid rgba(201, 170, 113, 0.5);
+  padding-bottom: 10px;
+  margin-bottom: 15px;
+}
+
+.guixu-root-container .modal-title {
+  font-size: 18px;
+  color: #c9aa71;
+}
+
+.guixu-root-container .modal-close-btn {
+  font-size: 24px;
+  color: #8b7355;
+  cursor: pointer;
+  background: none;
+  border: none;
+}
+.guixu-root-container .modal-close-btn:hover {
+  color: #c9aa71;
+}
+
+/* 主体区（滚动容器） */
+.guixu-root-container .modal-body {
+  flex-grow: 1;
+  overflow-y: auto;
+  position: relative; /* 供各类 tooltip 在模态内相对定位 */
+}
+
+/* 尺寸修饰类（替代内联 style） */
+.guixu-root-container .modal-content.gx-modal--sm {
+  width: auto;
+  max-width: 500px;
+  height: auto;
+  max-height: none;
+}
+.guixu-root-container .modal-content.gx-modal--md {
+  width: auto;
+  max-width: 600px;
+  height: auto;
+  max-height: 90vh;
+}
+.guixu-root-container .modal-content.gx-modal--lg {
+  width: 90%;
+  max-width: 900px;
+  height: 90%;
+  max-height: 600px;
+}
+
+/* 确认对话框常用修饰（已在 HTML 使用 confirm-modal-content，可继续沿用） */
+.guixu-root-container .modal-content.confirm-modal-content {
+  width: auto;
+  max-width: 400px;
+  height: auto;
+  max-height: none;
+  text-align: center;
+  padding: 30px;
+}

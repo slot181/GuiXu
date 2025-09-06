@@ -1,0 +1,47 @@
+/*!
+ * components/tooltip.css — 阶段4：通用 Tooltip 浮层
+ * - 适配装备/交易/状态等信息浮层
+ * - 默认作用域在 .guixu-root-container 内，避免污染宿主页面
+ */
+
+.guixu-root-container #equipment-tooltip,
+.guixu-root-container #trade-tooltip,
+.guixu-root-container .gx-tooltip {
+  display: none;
+  position: absolute;
+  background: rgba(15, 15, 35, 0.95);
+  border: 1px solid #c9aa71;
+  border-radius: 6px;
+  padding: 12px;
+  color: #e0dcd1;
+  font-size: 12px;
+  z-index: 1001;
+  width: auto;
+  max-width: 360px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+  pointer-events: none;
+}
+
+/* 标题与分组 */
+.guixu-root-container .tooltip-title {
+  font-size: 16px;
+  font-weight: bold;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(201, 170, 113, 0.4);
+}
+.guixu-root-container .tooltip-section {
+  margin-top: 10px;
+}
+.guixu-root-container .tooltip-section-title {
+  color: #8b7355;
+  font-style: italic;
+  margin-bottom: 5px;
+}
+.guixu-root-container .tooltip-attributes p {
+  margin: 3px 0;
+}
+.guixu-root-container .tooltip-attributes strong {
+  color: #c9aa71;
+  margin-right: 5px;
+}

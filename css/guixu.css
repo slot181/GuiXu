@@ -5,169 +5,16 @@ html, body { height: auto; min-height: 100%; }
 body { margin: 0; }
 
 /* --- 基础与布局 --- */
-.guixu-root-container {
-  --guixu-story-font-size: 14px;
-  --guixu-bg-mask: 0.7;
-  --guixu-bg-size: cover;
-  --guixu-bg-repeat: no-repeat;
-  --guixu-bg-position: center;
-  /* 全局输入控件统一变量 */
-  --gx-input-bg: rgba(26, 26, 46, 0.5);
-  --gx-input-border-color: rgba(201, 170, 113, 0.35);
-  --gx-input-color: #e8e3d6;
-  --gx-placeholder-color: #8b7355;
-  --gx-input-radius: 8px;
-  --gx-input-height: 32px;
-  /* 交互态扩展（hover/focus） */
-  --gx-input-bg-hover: rgba(26, 26, 46, 0.6);
-  --gx-input-bg-focus: rgba(26, 26, 46, 0.65);
-  --gx-input-border-color-hover: rgba(201, 170, 113, 0.45);
-  --gx-input-border-color-focus: rgba(201, 170, 113, 0.65);
-  --gx-input-shadow-focus: 0 0 0 2px rgba(201, 170, 113, 0.12);
-  font-family: 'ZCOOL+KuaiLe', 'Ma+Shan+Zheng', serif;
-  background-size: var(--guixu-bg-size, cover);
-  background-position: var(--guixu-bg-position, center);
-  background-repeat: var(--guixu-bg-repeat, no-repeat);
-  color: #c9aa71;
-  border: 1px solid #c9aa71;
-  border-radius: 8px;
-  overflow: hidden;
-  max-width: 100%;
-  margin: auto;
-  box-shadow: 0 0 15px rgba(201, 170, 113, 0.2);
-  position: relative;
-  width: 100%;
-  /* 统一自适应：取消固定 900x600，使用容器尺寸 */
-  width: 100%;
-  height: auto;
-  max-width: none;
-}
 
-.guixu-root-container::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(15, 15, 35, var(--guixu-bg-mask, 0.7));
-  z-index: 1;
-}
 
-.game-container {
-  position: relative;
-  z-index: 2;
-  display: grid;
-  grid-template-rows: 65px 1fr auto;
-  /* 让底部栏高度自适应 */
-  grid-template-columns: 220px 1fr 160px;
-  width: 100%;
-  gap: 1px;
-  height: 100%;
-  /* 固定高度以便滚动 */
-}
 
-/* 桌面端 非全屏 嵌入修复：
-   - 在酒馆楼层(iframe)里，祖先高度链路可能不完整，导致网格的 1fr 行过小。
-   - 仅针对“桌面端 + 非全屏”启用，移动端与全屏不受影响。 */
-.guixu-root-container:not(.mobile-view):not(:fullscreen) {
-  /* 以视口高度兜底，避免被父容器的 auto 高度链路压扁 */
-  min-height: 100vh;
-  min-height: 100svh;
-  min-height: 100dvh;
-  /* 嵌入式(酒馆楼层)外层未定高时，使用绝对像素下限保证视窗不至于过小 */
-  min-height: 640px;
-  height: auto;
-}
-.guixu-viewport {
-  /* 视口容器同样给出最小高度，确保根容器可撑开（使用动态视口单位以适配移动端地址栏） */
-  min-height: 100vh;
-  min-height: 100svh;
-  min-height: 100dvh;
-  /* 嵌入式下的像素级下限，促使宿主容器按内容自增高 */
-  min-height: 640px;
-}
-.guixu-root-container:not(.mobile-view):not(:fullscreen) .game-container {
-  /* 网格容器在桌面非全屏下至少占满视口高度（去除祖先链影响）；使用多种视口单位兜底 */
-  min-height: calc(100vh - 0px);
-  min-height: calc(100svh - 0px);
-  min-height: calc(100dvh - 0px);
-  /* 嵌入式外层未定高时的硬下限，保证主体区域不被压扁 */
-  min-height: 640px;
-  height: auto;
-}
-.guixu-root-container:not(.mobile-view):not(:fullscreen) .main-content {
-  /* Grid 子项需要 min-height:0 才能正确分配剩余空间并滚动 */
-  min-height: 0;
-  overflow-y: auto;
-}
 
-.guixu-root-container * {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
 
 /* --- 各面板样式 --- */
-.top-status {
-  grid-column: 1 / -1;
-  background: linear-gradient(90deg,
-      rgba(26, 26, 46, 0.8) 0%,
-      rgba(45, 27, 61, 0.8) 50%,
-      rgba(26, 26, 46, 0.8) 100%);
-  border-bottom: 1px solid #c9aa71;
-  display: flex;
-  align-items: center;
-  justify-content: space-around;
-  padding: 0 10px;
-  box-shadow: 0 1px 8px rgba(201, 170, 113, 0.15);
-  position: relative;
-}
 
 /* 版本小标签：紧贴底部栏右下角（桌面与移动端一致） */
-.version-badge {
-  position: absolute;
-  right: 8px;
-  bottom: 6px;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 2px 6px;                 /* 更小更精致 */
-  background: rgba(15, 15, 35, 0.4); /* 去掉外框，仅半透明底色 */
-  border: none;                      /* 不要外框 */
-  border-radius: 999px;
-  color: #c9aa71;
-  font-size: 10px;                   /* 比原来更小 */
-  text-decoration: none;
-  z-index: 100;
-  line-height: 1;
-  white-space: nowrap;
-}
-.version-badge .vb-text { color: #c9aa71; }
-.version-badge .vb-pill {
-  padding: 1px 5px;                  /* 小胶囊更小 */
-  border: 1px solid #daa520;         /* 仅“可更新”胶囊保留强调边框 */
-  border-radius: 999px;
-  background: linear-gradient(45deg, #8b4513, #cd853f);
-  color: #fff;
-  font-size: 9px;
-  line-height: 1;
-}
-.version-badge.is-update {
-  box-shadow: none;                  /* 去掉外发光，避免显得厚重 */
-}
 
 /* 移动端：同样固定在右下角，略微再收紧 */
-.guixu-root-container.mobile-view .version-badge {
-  right: 8px;
-  bottom: 6px;
-  padding: 2px 5px;
-  font-size: 9px;
-}
-.guixu-root-container.mobile-view .version-badge .vb-pill {
-  padding: 1px 4px;
-  font-size: 8.5px;
-}
 
 .status-item {
   display: flex;
@@ -187,36 +34,9 @@ body { margin: 0; }
   font-weight: bold;
 }
 
-.progress-bar {
-  width: 70px;
-  height: 5px;
-  background: rgba(0, 0, 0, 0.5);
-  border-radius: 3px;
-  overflow: hidden;
-  border: 1px solid #c9aa71;
-}
 
-.progress-fill {
-  height: 100%;
-  background: linear-gradient(90deg, #ff6b6b, #ffd93d);
-  border-radius: 2px;
-}
 
-.guixu-charge {
-  width: 100px;
-  height: 6px;
-  background: rgba(0, 0, 0, 0.7);
-  border-radius: 4px;
-  border: 1px solid #8b4513;
-  overflow: hidden;
-}
 
-.guixu-fill {
-  height: 100%;
-  background: linear-gradient(90deg, #dc143c, #ff6b6b, #ffd700);
-  width: var(--guixu-charge, 0%);
-  border-radius: 3px;
-}
 
 .character-panel {
   background: rgba(26, 26, 46, 0.5);
@@ -417,31 +237,8 @@ body { margin: 0; }
   background: linear-gradient(45deg, #cd853f, #daa520);
 }
 
-.bottom-status {
-  grid-column: 1 / -1;
-  background: linear-gradient(90deg,
-      rgba(45, 27, 61, 0.8) 0%,
-      rgba(26, 26, 46, 0.8) 50%,
-      rgba(45, 27, 61, 0.8) 100%);
-  border-top: 1px solid #c9aa71;
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
-  align-items: center;
-  gap: 15px;
-  padding: 0 15px;
-  transition: height 0.2s ease-in-out;
-  position: relative; /* 作为版本徽标绝对定位的参照 */
-}
 
-.quick-send-container {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
 
-/* 网格布局对齐设置：左侧按钮靠左，输入区居中 */
-#btn-status-pop { justify-self: start; }
-.bottom-status .quick-send-container { justify-self: center; }
 
 /* 移动端：恢复纵向堆叠布局并避免与网格冲突 */
 .mobile-view .bottom-status { display: flex; flex-direction: column; transition: none; }
@@ -546,12 +343,6 @@ body { margin: 0; }
   border-radius: 50%;
 }
 
-/* --- 中央内容区 --- */
-.main-content {
-  padding: 20px;
-  overflow-y: auto;
-  background: rgba(0, 0, 0, 0.2);
-}
 
 .game-text-container {
   font-size: var(--guixu-story-font-size, 14px);
@@ -580,66 +371,12 @@ body { margin: 0; }
 }
 
 /* --- 模态窗口 (Modal) 样式 --- */
-.modal-overlay {
-  display: none;
-  /* 默认隐藏 */
-  position: absolute;
-  /* 相对于 .guixu-root-container 定位 */
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.8);
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-}
 
-.modal-content {
-  background: rgba(26, 26, 46, 0.95);
-  border: 1px solid #c9aa71;
-  border-radius: 8px;
-  padding: 20px;
-  width: 90%;
-  max-width: 800px;
-  height: 90%;
-  max-height: 550px;
-  display: flex;
-  flex-direction: column;
-  box-shadow: 0 0 20px rgba(201, 170, 113, 0.3);
-}
 
-.modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  border-bottom: 1px solid rgba(201, 170, 113, 0.5);
-  padding-bottom: 10px;
-  margin-bottom: 15px;
-}
 
-.modal-title {
-  font-size: 18px;
-  color: #c9aa71;
-}
 
-.modal-close-btn {
-  font-size: 24px;
-  color: #8b7355;
-  cursor: pointer;
-  background: none;
-  border: none;
-}
 
-.modal-close-btn:hover {
-  color: #c9aa71;
-}
 
-.modal-body {
-  flex-grow: 1;
-  overflow-y: auto;
-  position: relative; /* 供 #trade-tooltip 等浮窗进行相对定位 */
-}
 
 /* Intro 引导浮窗：有序列表与链接色，尺寸与 .modal-content 保持一致 */
 #intro-modal a, #intro-modal a:visited { color:#3b82f6 !important; text-decoration: underline; }
@@ -1225,49 +962,11 @@ body { margin: 0; }
   box-sizing: border-box !important;
 }
 
-#equipment-tooltip {
-  display: none;
-  position: absolute;
-  /* 跟随鼠标 */
-  background: rgba(15, 15, 35, 0.95);
-  border: 1px solid #c9aa71;
-  border-radius: 6px;
-  padding: 15px;
-  color: #e0dcd1;
-  font-size: 12px;
-  z-index: 1001;
-  width: auto;
-  max-width: 300px;
-  pointer-events: none;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
-}
 
-.tooltip-title {
-  font-size: 16px;
-  font-weight: bold;
-  margin-bottom: 10px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid rgba(201, 170, 113, 0.4);
-}
 
-.tooltip-section {
-  margin-top: 10px;
-}
 
-.tooltip-section-title {
-  color: #8b7355;
-  font-style: italic;
-  margin-bottom: 5px;
-}
 
-.tooltip-attributes p {
-  margin: 3px 0;
-}
 
-.tooltip-attributes strong {
-  color: #c9aa71;
-  margin-right: 5px;
-}
 
 .command-center-actions {
   list-style-type: none;
@@ -1337,22 +1036,7 @@ body { margin: 0; }
   border-bottom: none;
 }
 
-.details-progress-bar {
-  width: 100%;
-  height: 8px;
-  background: rgba(0, 0, 0, 0.5);
-  border-radius: 4px;
-  overflow: hidden;
-  border: 1px solid #8b7355;
-  margin-top: 8px;
-}
 
-.details-progress-fill {
-  height: 100%;
-  background: linear-gradient(90deg, #6a11cb, #2575fc);
-  border-radius: 3px;
-  transition: width 0.5s ease-in-out;
-}
 
 /* --- 归墟系统模态框美化 --- */
 #guixu-system-modal .modal-content {
@@ -1799,20 +1483,6 @@ body { margin: 0; }
 }
 
 /* 物品详情浮窗（名称点击弹出） */
-#trade-tooltip {
-  display: none;
-  position: absolute;
-  background: rgba(15, 15, 35, 0.95);
-  border: 1px solid #c9aa71;
-  border-radius: 6px;
-  padding: 12px;
-  color: #e0dcd1;
-  font-size: 12px;
-  z-index: 1001;
-  width: auto;
-  max-width: 360px;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
-}
 
 /* 移动端兜底：缩小名称列，允许横向滚动 */
 @media (max-width: 900px) {
@@ -3025,19 +2695,6 @@ body { margin: 0; }
   min-width: 96px;
 }
 
-/* 视口容器：控制非全屏分辨率与统一缩放的包裹层 */
-.guixu-viewport {
-  position: relative;
-  width: 100%;
-  height: auto;
-  margin: 0 auto;
-  overflow: auto;
-}
-.guixu-viewport .guixu-root-container {
-  position: relative;
-  left: 0;
-  top: 0;
-}
 
 /* 移动端：在 viewport 中让根容器参与文档流，避免父容器高度坍塌导致页面不可见 */
 .guixu-viewport.mobile-view .guixu-root-container {
@@ -3547,20 +3204,6 @@ body { margin: 0; }
 .attr-values { color: #c9aa71; font-weight: 600; font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; }
 
 /* 进度条 */
-.attr-bar {
-  height: 12px;
-  border-radius: 8px;
-  background: linear-gradient(180deg, rgba(201,170,113,0.12), rgba(201,170,113,0.05));
-  border: 1px solid rgba(201,170,113,0.25);
-  overflow: hidden;
-}
-.attr-bar .attr-bar-fill {
-  height: 100%;
-  width: 0%;
-  background: linear-gradient(90deg, #4caf50, #ffd700);
-  box-shadow: 0 0 10px rgba(255, 215, 0, 0.35);
-  transition: width 300ms ease;
-}
 
 /* 修为进度区域（与上方属性条统一视觉） */
 .attr-cultivation-wrap {
@@ -3571,9 +3214,6 @@ body { margin: 0; }
   border: 1px solid rgba(201,170,113,0.18);
   border-radius: 6px;
   background: rgba(0,0,0,0.15);
-}
-.attr-bar--cultivation .attr-bar-fill {
-  background: linear-gradient(90deg, #6a11cb, #2575fc);
 }
 .attr-bottleneck {
   margin-top: 4px;
@@ -3591,40 +3231,7 @@ body { margin: 0; }
   justify-content: center;
   margin: 4px 0 10px;
 }
-.qiyun-badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;       /* 徽章内容水平居中 */
-  gap: 5px;
-  padding: 3px 20px;             /* 横向更长、垂直更紧凑 */
-  min-width: 128px;              /* 设定最小左右长度，确保“稍微更长”可见 */
-  border-radius: 999px;
-  border: 1px solid rgba(201,170,113,0.55);
-  background: linear-gradient(180deg, rgba(201,170,113,0.28), rgba(201,170,113,0.12));
-  box-shadow: 0 0 10px rgba(218,165,32,0.25) inset, 0 2px 8px rgba(0,0,0,0.25);
-  color: #e8e3d6;
-}
-.qiyun-badge .label {
-  color: #c9aa71;
-  font-weight: 700;
-  font-size: 11px; /* 略缩小，降低整体高度 */
-  letter-spacing: .5px;
-}
-.qiyun-badge .value {
-  color: #ffd700;
-  font-weight: 800;
-  font-variant-numeric: tabular-nums;
-  font-feature-settings: "tnum";
-  text-shadow: 0 0 6px rgba(255,215,0,0.45);
-}
 /* 移动端缩放 */
-.guixu-root-container.mobile-view .qiyun-badge {
-  padding: 2px 16px; /* 移动端：更细高但更长 */
-  font-size: 12px;
-  min-width: 112px;  /* 移动端保持更长的左右长度 */
-}
-.guixu-root-container.mobile-view .qiyun-badge .label { font-size: 11px; }
-.guixu-root-container.mobile-view .qiyun-badge .value { font-size: 12px; }
 
 /* 属性分解浮窗（点击法力/神海/道心/空速弹出） */
 .attr-tooltip {

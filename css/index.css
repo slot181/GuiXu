@@ -13,8 +13,20 @@
 /* 迁移过渡层：保留旧选择器，逐步从 guixu.css 削减 */
 @import url("./legacy/guixu.legacy.css");
 
-/* 组件层（阶段2）：统一按钮与表单基类 */
+/* 布局层（阶段3）：基础布局与顶部/底部栏 */
+@import url("./layout/layout-core.css");
+@import url("./layout/header.css");
+@import url("./layout/footer.css");
+
+/* 组件层（阶段2/4）：统一按钮与表单基类 + 通用组件（模态/tooltip/徽章/进度） */
 @import url("./components/buttons.css");
 @import url("./components/forms.css");
+@import url("./components/modal.css");
+@import url("./components/tooltip.css");
+@import url("./components/badge.css");
+@import url("./components/progress.css");
+
+/* 响应式与嵌入修复（阶段3） */
+@import url("./responsive/embed-fixes.css");
 
 /* 后续阶段将依次引入：layout/、components/、responsive/、themes/ */

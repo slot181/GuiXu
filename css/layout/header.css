@@ -1,0 +1,19 @@
+/*!
+ * header.css — 阶段3：顶部状态栏布局
+ * 仅迁移布局相关的容器规则（视觉组件如徽章/状态颗粒将在后续阶段抽离）
+ */
+
+.top-status {
+  grid-column: 1 / -1;
+  background: linear-gradient(90deg,
+      rgba(26, 26, 46, 0.8) 0%,
+      rgba(45, 27, 61, 0.8) 50%,
+      rgba(26, 26, 46, 0.8) 100%);
+  border-bottom: 1px solid #c9aa71;
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  padding: 0 10px;
+  box-shadow: 0 1px 8px rgba(201, 170, 113, 0.15);
+  position: relative;
+}

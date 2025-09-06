@@ -1,0 +1,92 @@
+/*!
+ * components/badge.css — 阶段4：通用徽章组件
+ * - 版本徽章（右下角小标签）
+ * - 气运徽章（角色面板内）
+ * - 作用域限制在 .guixu-root-container 下
+ */
+
+/* 版本小标签：紧贴底部栏右下角（桌面与移动端一致） */
+.guixu-root-container .version-badge {
+  position: absolute;
+  right: 8px;
+  bottom: 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px;
+  background: rgba(15, 15, 35, 0.4);
+  border: none;
+  border-radius: 999px;
+  color: #c9aa71;
+  font-size: 10px;
+  text-decoration: none;
+  z-index: 100;
+  line-height: 1;
+  white-space: nowrap;
+}
+.guixu-root-container .version-badge .vb-text { color: #c9aa71; }
+.guixu-root-container .version-badge .vb-pill {
+  padding: 1px 5px;
+  border: 1px solid #daa520;
+  border-radius: 999px;
+  background: linear-gradient(45deg, #8b4513, #cd853f);
+  color: #fff;
+  font-size: 9px;
+  line-height: 1;
+}
+.guixu-root-container .version-badge.is-update {
+  box-shadow: none;
+}
+
+/* 移动端：同样固定在右下角，略微再收紧 */
+.guixu-root-container.mobile-view .version-badge {
+  right: 8px;
+  bottom: 6px;
+  padding: 2px 5px;
+  font-size: 9px;
+}
+.guixu-root-container.mobile-view .version-badge .vb-pill {
+  padding: 1px 4px;
+  font-size: 8.5px;
+}
+
+/* 气运徽章（角色面板） */
+.guixu-root-container .qiyun-row {
+  display: flex;
+  justify-content: center;
+  margin: 4px 0 10px;
+}
+.guixu-root-container .qiyun-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 3px 20px;
+  min-width: 128px;
+  border-radius: 999px;
+  border: 1px solid rgba(201,170,113,0.55);
+  background: linear-gradient(180deg, rgba(201,170,113,0.28), rgba(201,170,113,0.12));
+  box-shadow: 0 0 10px rgba(218,165,32,0.25) inset, 0 2px 8px rgba(0,0,0,0.25);
+  color: #e8e3d6;
+}
+.guixu-root-container .qiyun-badge .label {
+  color: #c9aa71;
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: .5px;
+}
+.guixu-root-container .qiyun-badge .value {
+  color: #ffd700;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+  text-shadow: 0 0 6px rgba(255,215,0,0.45);
+}
+/* 移动端缩放 */
+.guixu-root-container.mobile-view .qiyun-badge {
+  padding: 2px 16px;
+  font-size: 12px;
+  min-width: 112px;
+}
+.guixu-root-container.mobile-view .qiyun-badge .label { font-size: 11px; }
+.guixu-root-container.mobile-view .qiyun-badge .value { font-size: 12px; }
