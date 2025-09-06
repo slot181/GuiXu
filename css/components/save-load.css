@@ -1,0 +1,30 @@
+/*!
+ * components/save-load.css — 阶段5：存档管理
+ * 作用域：.guixu-root-container #save-load-modal
+ * 说明：
+ * - 将 index.html 中 save-load 模态的内联样式抽离为类
+ */
+
+.guixu-root-container #save-load-modal .auto-save-title {
+  font-size: 14px;
+  color: var(--gx-color-cream, #e8e3d6);
+}
+
+.guixu-root-container #save-load-modal .auto-save-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.guixu-root-container #auto-save-slot-container {
+  margin-bottom: 15px;
+}
+
+.guixu-root-container #save-load-modal .manual-save-title {
+  font-size: 14px;
+  color: var(--gx-color-brown, #8b7355);
+  margin-top: 20px;
+  margin-bottom: 10px;
+  border-top: 1px solid rgba(201, 170, 113, 0.3);
+  padding-top: 15px;
+}

@@ -81,9 +81,7 @@
           if (!container) return;
           const isOn = container.classList.toggle('batch-mode');
           // 显示/隐藏批量选择复选框
-          container.querySelectorAll('.timeline-event .batch-select').forEach(el => {
-            el.style.display = isOn ? 'inline-flex' : 'none';
-          });
+          /* 批量选择通过容器 .batch-mode 类控制显示，移除逐项内联样式切换 */
           updateDeleteBtnState();
         });
         delSelBtn?.addEventListener('click', async () => {
@@ -104,7 +102,7 @@
 
       const body = $('#history-modal-body');
       if (!body) return;
-      body.innerHTML = '<p class="modal-placeholder" style="text-align:center; color:#8b7355; font-size:12px;">正在读取命运之卷...</p>';
+      body.innerHTML = '<p class="modal-placeholder">正在读取命运之卷...</p>';
 
       try {
         const bookName = window.GuixuConstants.LOREBOOK.NAME;
@@ -168,22 +166,22 @@
             if (!detailed) return;
             const isHidden = getComputedStyle(detailed).display === 'none';
             detailed.style.display = isHidden ? 'block' : 'none';
-            timelineEvent.style.cursor = 'pointer';
+            
           });
         }
       } catch (err) {
         console.error('[归墟] 读取“本世历程”时出错:', err);
-        body.innerHTML = `<p class="modal-placeholder" style="text-align:center; color:#8b7355; font-size:12px;">读取记忆时出现错误：${err.message}</p>`;
+        body.innerHTML = `<p class="modal-placeholder">读取记忆时出现错误：${err.message}</p>`;
       }
     },
 
     renderJourneyFromEntry(entry) {
       if (!entry || !entry.content)
-        return '<p style="text-align:center; color:#8b7355; font-size:12px;">此生尚未留下任何印记。</p>';
+        return '<p class="modal-placeholder">此生尚未留下任何印记。</p>';
 
       const events = window.GuixuHelpers.parseJourneyEntry(entry.content);
       if (!Array.isArray(events) || events.length === 0)
-        return '<p style="text-align:center; color:#8b7355; font-size:12px;">内容格式有误，无法解析事件。</p>';
+        return '<p class="modal-placeholder">内容格式有误，无法解析事件。</p>';
 
       // 按序号排序
       events.sort((a, b) => (parseInt(a.序号, 10) || 0) - (parseInt(b.序号, 10) || 0));
@@ -222,7 +220,7 @@
             <div class="timeline-tags">${tagsHtml}</div>
           </div>
           <div class="timeline-title">${title}</div>
-          <div class="timeline-location" style="font-size: 12px; color: #8b7355; margin: 5px 0;">地点：${location}</div>
+          <div class="timeline-location">地点：${location}</div>
           <div class="timeline-description">${description}</div>
         `;
 
@@ -236,18 +234,18 @@
           </div>
         `;
         const detailedInfo = `
-          <div class="timeline-detailed-info" id="detailed-${eventId}" style="display: none; margin-top: 15px; padding-top: 15px; border-top: 1px solid rgba(201, 170, 113, 0.3);">
+          <div class="timeline-detailed-info" id="detailed-${eventId}">
             ${characters ? `<div class="detail-section"><strong>人物：</strong>${characters}</div>` : ''}
             ${relationships ? `<div class="detail-section"><strong>人物关系：</strong>${relationships}</div>` : ''}
             ${importantInfo ? `<div class="detail-section"><strong>重要信息：</strong>${importantInfo}</div>` : ''}
             ${hiddenPlot ? `<div class="detail-section"><strong>暗线与伏笔：</strong>${hiddenPlot}</div>` : ''}
             ${extraDetails}
-            ${autoSystem ? `<div class="detail-section"><strong>自动化系统：</strong><pre style="white-space: pre-wrap; font-size: 11px; color: #a09c91;">${autoSystem}</pre></div>` : ''}
+            ${autoSystem ? `<div class="detail-section"><strong>自动化系统：</strong><pre class="timeline-auto-system">${autoSystem}</pre></div>` : ''}
           </div>
         `;
 
         html += `
-          <div class="timeline-event" data-event-id="${eventId}" style="cursor: pointer;">
+          <div class="timeline-event" data-event-id="${eventId}">
             <div class="timeline-content">
               ${basicInfo}
               ${actionsHtml}

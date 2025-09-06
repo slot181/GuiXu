@@ -1,0 +1,47 @@
+/*!
+ * components/world-book.css — 阶段5：世界书控制（侧栏）
+ * 作用域：.guixu-root-container #world-book-controls
+ * 说明：
+ * - 移除 index.html 中针对“世界书控制”面板的内联样式
+ * - 以类与ID选择器实现相同布局与视觉
+ */
+
+.guixu-root-container #world-book-controls {
+  padding: 8px;
+  margin-top: 10px;
+}
+
+.guixu-root-container #world-book-controls .world-book-title {
+  font-size: 11px;
+  margin-bottom: 6px;
+  color: var(--gx-color-cream, #e8e3d6);
+}
+
+.guixu-root-container #world-book-controls .world-book-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.guixu-root-container #world-book-controls .world-book-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.guixu-root-container #world-book-controls .world-book-row.is-justify {
+  justify-content: space-between;
+}
+
+.guixu-root-container #world-book-controls .world-book-label {
+  font-size: 11px;
+  color: var(--gx-color-brown, #8b7355);
+}
+
+.guixu-root-container #world-book-controls #unified-index-input {
+  width: 60px;
+}
+
+.guixu-root-container #world-book-controls #auto-toggle-lorebook-checkbox {
+  cursor: pointer;
+}

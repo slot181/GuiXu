@@ -1,0 +1,114 @@
+/*!
+ * Statuses 组件样式（阶段5：业务组件分文件）
+ * 作用域限定：.guixu-root-container #statuses-modal
+ * 目标：
+ * - 清理 statuses.js 模板中的内联样式，改为类与CSS变量驱动
+ * - 保持与 guixu.css 既有网格/类型配色兼容，可回滚
+ */
+
+/* 占位与空态提示 */
+.guixu-root-container #statuses-modal .modal-placeholder {
+  text-align: center;
+  color: #8b7355;
+  font-size: 12px;
+}
+
+/* 容器与卡片 */
+.guixu-root-container #statuses-modal .statuses-grid {
+  position: relative;
+  overflow: visible;
+}
+
+.guixu-root-container #statuses-modal .status-card-wrapper {
+  display: block;
+}
+
+.guixu-root-container #statuses-modal .status-card {
+  position: relative;
+  overflow: visible;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(201, 170, 113, 0.3);
+  border-radius: 5px;
+  padding: 10px;
+}
+
+/* 标题行 */
+.guixu-root-container #statuses-modal .status-summary {
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.guixu-root-container #statuses-modal .status-summary .status-summary-text {
+  color: #8b7355;
+  font-size: 11px;
+}
+
+/* 标题内片段 */
+.guixu-root-container #statuses-modal .status-name {
+  color: #c9aa71;
+  font-weight: bold;
+}
+.guixu-root-container #statuses-modal .status-stacks,
+.guixu-root-container #statuses-modal .status-duration {
+  color: #a09c91;
+  font-size: 11px;
+}
+
+/* 详情块 */
+.guixu-root-container #statuses-modal .status-details {
+  margin-top: 8px;
+  border-top: 1px solid rgba(201, 170, 113, 0.2);
+  padding-top: 8px;
+}
+
+.guixu-root-container #statuses-modal .status-desc {
+  margin: 6px 0;
+  color: #e0dcd1;
+  font-size: 12px;
+}
+.guixu-root-container #statuses-modal .status-source {
+  margin: 6px 0;
+  color: #8b7355;
+  font-size: 11px;
+}
+
+.guixu-root-container #statuses-modal .status-section {
+  margin: 6px 0;
+}
+
+.guixu-root-container #statuses-modal .status-section-title {
+  color: #8b7355;
+  font-size: 11px;
+}
+
+/* 列表与代码块 */
+.guixu-root-container #statuses-modal .status-attrs-list,
+.guixu-root-container #statuses-modal .status-effects-list {
+  margin: 4px 0 0 16px;
+  color: #e0dcd1;
+  font-size: 12px;
+  list-style: disc;
+}
+
+.guixu-root-container #statuses-modal .status-strong {
+  color: #c9aa71;
+  font-weight: 700;
+}
+
+.guixu-root-container #statuses-modal .status-pre {
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  color: #e0dcd1;
+  font-size: 11px;
+  padding: 4px 8px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+}
+
+/* 保证弹层可见不被裁剪（与 legacy 兼容） */
+.guixu-root-container #statuses-modal .modal-body {
+  overflow: auto;
+}

@@ -1,0 +1,116 @@
+/*!
+ * components/timeline.css — 阶段5：历程/涟漪 时间线组件样式
+ * 作用域：.guixu-root-container #history-modal
+ * 说明：
+ * - 移除了 journey.js/past-lives.js 中的若干内联样式，改为类名驱动
+ * - 仅提供必要的最小样式，避免与 legacy/guixu.css 大范围冲突
+ */
+
+.guixu-root-container #history-modal .modal-placeholder {
+  text-align: center;
+  color: var(--gx-color-brown, #8b7355);
+  font-size: 12px;
+}
+
+/* 时间线容器与轴线（轻量，不侵入旧版外观） */
+.guixu-root-container #history-modal .timeline-container {
+  position: relative;
+  padding: 10px 0;
+}
+.guixu-root-container #history-modal .timeline-line {
+  position: absolute;
+  inset: 0 auto 0 10px;
+  width: 2px;
+  background: linear-gradient(180deg, rgba(201,170,113,0.25), rgba(201,170,113,0.05));
+  pointer-events: none;
+}
+
+/* 单条事件 */
+.guixu-root-container #history-modal .timeline-event {
+  cursor: pointer; /* 替代内联 cursor */
+}
+.guixu-root-container #history-modal .timeline-content {
+  margin-left: 20px;
+}
+
+/* 头部与标签 */
+.guixu-root-container #history-modal .timeline-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.guixu-root-container #history-modal .timeline-date {
+  font-size: 12px;
+  color: var(--gx-color-brown, #8b7355);
+}
+.guixu-root-container #history-modal .timeline-tags {
+  display: inline-flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.guixu-root-container #history-modal .tag-item {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 6px;
+  height: 20px;
+  border: 1px solid rgba(201,170,113,0.45);
+  border-radius: var(--gx-badge-radius, 999px);
+  color: var(--gx-color-cream, #e8e3d6);
+  background: var(--gx-badge-bg, rgba(201,170,113,0.12));
+  font-size: 11px;
+  line-height: 1;
+}
+
+/* 标题与位置/描述 */
+.guixu-root-container #history-modal .timeline-title {
+  font-size: 14px;
+  color: var(--gx-color-cream, #e8e3d6);
+  margin: 4px 0;
+}
+.guixu-root-container #history-modal .timeline-location {
+  font-size: 12px;                 /* 替代内联 font-size */
+  color: var(--gx-color-brown, #8b7355); /* 替代内联颜色 */
+  margin: 5px 0;                   /* 替代内联 margin */
+}
+.guixu-root-container #history-modal .timeline-description {
+  color: var(--gx-color-cream, #e8e3d6);
+}
+
+/* 操作区与批量模式 */
+.guixu-root-container #history-modal .timeline-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+.guixu-root-container #history-modal .batch-select {
+  display: none; /* 默认隐藏，批量模式显示 */
+  align-items: center;
+  gap: 4px;
+}
+.guixu-root-container #history-modal .timeline-container.batch-mode .batch-select {
+  display: inline-flex;
+}
+
+/* 详细信息块（折叠） */
+.guixu-root-container #history-modal .timeline-detailed-info {
+  display: none; /* 替代内联 display: none */
+  margin-top: 15px;                /* 替代内联 margin/padding/border */
+  padding-top: 15px;
+  border-top: 1px solid rgba(201, 170, 113, 0.3);
+}
+.guixu-root-container #history-modal .timeline-detailed-info .detail-section {
+  margin: 6px 0;
+  color: var(--gx-color-cream, #e8e3d6);
+}
+.guixu-root-container #history-modal .timeline-auto-system {
+  white-space: pre-wrap;          /* 替代内联 white-space */
+  font-size: 11px;                /* 替代内联 font-size */
+  color: var(--gx-color-text-muted, #a09c91); /* 替代内联颜色 */
+}
+
+/* 响应式微调（保守） */
+.guixu-root-container.mobile-view #history-modal .timeline-content {
+  margin-left: 14px;
+}

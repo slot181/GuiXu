@@ -1,0 +1,503 @@
+/*!
+ * Relationships Component Styles (阶段5 业务组件拆分)
+ * - 作用域：限制在 .guixu-root-container 范围内，避免污染宿主页面
+ * - 覆盖来源：来自原 guixu.css 与 relationships.js 内联 <style> 的整合
+ * - 变量依赖：使用全局 Design Tokens（variables.css）与通用组件（buttons/forms/progress）
+ */
+
+/* 顶层布局与工具栏 */
+.guixu-root-container #relationships-modal .rel-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* 标签区域：水平滚动 chips */
+.guixu-root-container #relationships-modal .rel-tabs {
+  display: flex;
+  gap: 8px;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  border-bottom: 1px dashed rgba(201,170,113,0.25);
+  scrollbar-width: thin;
+}
+
+/* 统一标签尺寸与视觉 */
+.guixu-root-container #relationships-modal .rel-tab {
+  appearance: none;
+  border: 1px solid rgba(201,170,113,0.35);
+  background: rgba(201,170,113,0.08);
+  color: #c9aa71;
+  border-radius: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 36px;
+  padding: 0 12px;
+  font-size: 13px;
+  line-height: 36px;
+  white-space: nowrap;
+  cursor: pointer;
+  flex: 0 0 auto;
+  min-width: 72px;
+  transition: background 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+.guixu-root-container #relationships-modal .rel-tab:hover {
+  background: rgba(201,170,113,0.12);
+  border-color: rgba(201,170,113,0.5);
+}
+.guixu-root-container #relationships-modal .rel-tab.active {
+  background: linear-gradient(180deg, rgba(201,170,113,0.25), rgba(201,170,113,0.12));
+  box-shadow: 0 0 6px rgba(201,170,113,0.25) inset;
+  border-color: rgba(201,170,113,0.6);
+}
+.guixu-root-container #relationships-modal .rel-tab .rel-tab-label { flex: 1; }
+.guixu-root-container #relationships-modal .rel-tab .rel-tab-count {
+  margin-left: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 20px;
+  min-width: 22px;
+  padding: 0 6px;
+  border-radius: 10px;
+  border: 1px solid rgba(201,170,113,0.35);
+  background: rgba(201,170,113,0.08);
+  color: #e8e3d6;
+  font-size: 11px;
+  line-height: 20px;
+}
+
+.guixu-root-container #relationships-modal .rel-content {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.guixu-root-container #relationships-modal .rel-toolbar {
+  display: flex;
+}
+.guixu-root-container #relationships-modal .rel-settings {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 6px 0 4px;
+  color: #c9aa71;
+  font-size: 12px;
+}
+.guixu-root-container #relationships-modal .rel-settings label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* 移动端：设置区网格化，按钮全宽一致 */
+.guixu-root-container.mobile-view #relationships-modal .rel-settings {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  align-items: center;
+}
+.guixu-root-container.mobile-view #relationships-modal .rel-settings label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.guixu-root-container.mobile-view #relationships-modal #rel-auto-extract-threshold {
+  width: 100%;
+  height: var(--gx-input-height, 32px);
+  box-sizing: border-box;
+}
+.guixu-root-container.mobile-view #relationships-modal #rel-clear-character-entries {
+  grid-column: 1 / -1;
+  width: 100%;
+  min-width: 0;
+  height: 36px;
+  padding: 0 12px;
+  box-sizing: border-box;
+}
+
+/* 关系卡片与头部 */
+.guixu-root-container #relationships-modal .relationship-card {
+  position: relative;
+  border: 1px solid rgba(201,170,113,0.28);
+  border-radius: 12px;
+  padding: 12px;
+  box-shadow: 0 0 8px rgba(201,170,113,0.08) inset;
+  background: rgba(0,0,0,0.2);
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease, background 0.18s ease;
+  will-change: transform;
+}
+.guixu-root-container #relationships-modal .relationship-card:hover {
+  transform: translateY(-2px) scale(1.01);
+  box-shadow: 0 8px 22px rgba(201,170,113,0.16), 0 0 10px rgba(201,170,113,0.18) inset;
+  border-color: rgba(201,170,113,0.45);
+}
+@media (hover: none) {
+  .guixu-root-container #relationships-modal .relationship-card:hover {
+    transform: none;
+    box-shadow: 0 0 8px rgba(201,170,113,0.08) inset;
+  }
+}
+
+.guixu-root-container #relationships-modal .relationship-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 6px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(201,170,113,0.2);
+}
+.guixu-root-container #relationships-modal .relationship-name {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 800;
+  color: #e8e3d6;
+  text-shadow: 0 0 6px rgba(201,170,113,0.15);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.guixu-root-container #relationships-modal .header-title {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.guixu-root-container #relationships-modal .header-sub {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.guixu-root-container #relationships-modal .rel-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(201,170,113,0.35);
+  background: rgba(201,170,113,0.08);
+  color: #c9aa71;
+  font-size: 11px;
+  border-radius: 999px;
+  padding: 2px 8px;
+  white-space: nowrap;
+}
+
+/* 操作区 */
+.guixu-root-container #relationships-modal .rel-actions {
+  display: flex;
+  gap: 6px;
+  flex: 0 0 auto;
+}
+.guixu-root-container #relationships-modal .rel-actions .btn-detail,
+.guixu-root-container #relationships-modal .rel-actions .btn-trade {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 28px;
+  padding: 0 10px;
+  font-size: 12px;
+  border-radius: 4px;
+  border: 1px solid #c9aa71;
+  background: linear-gradient(45deg, #1a1a2e, #2d1b3d);
+  color: #c9aa71;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.guixu-root-container #relationships-modal .rel-actions .btn-detail.primary,
+.guixu-root-container #relationships-modal .rel-actions .btn-trade.primary {
+  background: linear-gradient(45deg, #8b4513, #cd853f);
+  border-color: #daa520;
+  color: #fff;
+}
+.guixu-root-container #relationships-modal .rel-actions .btn-detail[disabled],
+.guixu-root-container #relationships-modal .rel-actions .btn-trade[disabled],
+.guixu-root-container #relationships-modal .rel-actions .btn-detail.is-disabled,
+.guixu-root-container #relationships-modal .rel-actions .btn-trade.is-disabled {
+  opacity: 0.5;
+  filter: grayscale(0.5);
+  cursor: not-allowed;
+}
+/* 提取/标注 */
+.guixu-root-container #relationships-modal .rel-actions .btn-extract,
+.guixu-root-container #relationships-modal .rel-actions .btn-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 28px;
+  padding: 0 10px;
+  font-size: 12px;
+  border-radius: 4px;
+  border: 1px solid #c9aa71;
+  background: linear-gradient(45deg, #1a1a2e, #2d1b3d);
+  color: #c9aa71;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+}
+.guixu-root-container #relationships-modal .rel-actions .btn-extract.primary,
+.guixu-root-container #relationships-modal .rel-actions .btn-mark.primary {
+  background: linear-gradient(45deg, #8b4513, #cd853f);
+  border-color: #daa520;
+  color: #fff;
+}
+.guixu-root-container #relationships-modal .rel-actions .btn-extract:hover,
+.guixu-root-container #relationships-modal .rel-actions .btn-mark:hover {
+  background: linear-gradient(45deg, #2d1b3d, #3d2b4d);
+  border-color: #c9aa71;
+  color: #c9aa71;
+}
+
+/* 删除按钮与背包按钮统一尺寸（防止偏小） */
+.guixu-root-container #relationships-modal .relationship-card .btn-delete-relationship {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  height: 28px !important;
+  padding: 0 10px !important;
+  line-height: 1 !important;
+  box-sizing: border-box !important;
+}
+
+/* 身体与概述 */
+.guixu-root-container #relationships-modal .relationship-body p { margin: 0; }
+.guixu-root-container #relationships-modal .rel-desc {
+  margin: 0;
+  color: #d9d3c5;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.guixu-root-container #relationships-modal .relationship-body .relationship-meta {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 12px;
+  color: #d9d3c5;
+  margin-top: 8px;
+}
+
+/* 好感度条（改用 CSS 变量接管宽度） */
+.guixu-root-container #relationships-modal .rel-favor-label { margin-top: 10px; }
+
+.guixu-root-container #relationships-modal .favorability-bar-container {
+  width: 100%;
+  height: 8px;
+  border-radius: 6px;
+  background: rgba(201,170,113,0.15);
+  border: 1px solid rgba(201,170,113,0.25);
+  overflow: hidden;
+  margin-top: 6px;
+}
+.guixu-root-container #relationships-modal .favorability-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #8bc34a, #ffd93d, #ff6b6b);
+  width: var(--progress, 0%);
+  transition: width 0.35s ease;
+}
+
+/* 过往交集详情 */
+.guixu-root-container #relationships-modal .event-history-details summary {
+  cursor: pointer;
+  color: #c9aa71;
+  margin-top: 8px;
+  list-style: none;
+}
+.guixu-root-container #relationships-modal .event-history-details[open] summary {
+  text-shadow: 0 0 6px rgba(201,170,113,0.25);
+}
+.guixu-root-container #relationships-modal .event-history-list {
+  list-style: none;
+  padding-left: 0;
+  margin: 6px 0 0;
+}
+.guixu-root-container #relationships-modal .event-history-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 8px;
+  border-bottom: 1px dashed rgba(201,170,113,0.2);
+}
+.guixu-root-container #relationships-modal .event-history-item:last-child { border-bottom: none; }
+.guixu-root-container #relationships-modal .event-history-item .event-text {
+  flex: 1 1 auto;
+  color: #d9d3c5;
+  font-size: 12px;
+  word-break: break-word;
+}
+.guixu-root-container #relationships-modal .ev-del-btn {
+  flex: 0 0 auto;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 1px solid #ff6b6b;
+  background: #8b0000;
+  color: #fff;
+  line-height: 18px;
+  text-align: center;
+  font-size: 12px;
+  cursor: pointer;
+}
+.guixu-root-container #relationships-modal .ev-del-btn:hover { background: #a52a2a; }
+
+.guixu-root-container #relationships-modal .event-edit-input {
+  flex: 1 1 auto;
+  min-height: 28px;
+  background: rgba(26,26,46,0.5);
+  color: #e8e3d6;
+  border: 1px solid rgba(201,170,113,0.35);
+  border-radius: 6px;
+  padding: 4px 6px;
+  font-size: 12px;
+  outline: none;
+}
+.guixu-root-container #relationships-modal .event-history-actions {
+  margin-top: 8px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* 关系类型配色（卡片整体底色/边框强调） */
+.guixu-root-container #relationships-modal .relationship-card[data-relationship="ENEMY"],
+.guixu-root-container #relationships-modal .relationship-card--ENEMY {
+  border-color: rgba(255,107,107,0.6) !important;
+  background: rgba(255,107,107,0.08) !important;
+}
+.guixu-root-container #relationships-modal .relationship-card[data-relationship="ALLY"],
+.guixu-root-container #relationships-modal .relationship-card--ALLY {
+  border-color: rgba(60,179,113,0.6) !important;
+  background: rgba(60,179,113,0.08) !important;
+}
+.guixu-root-container #relationships-modal .relationship-card[data-relationship="NEUTRAL"],
+.guixu-root-container #relationships-modal .relationship-card--NEUTRAL {
+  border-color: rgba(160,156,145,0.6) !important;
+  background: rgba(160,156,145,0.08) !important;
+}
+.guixu-root-container #relationships-modal .relationship-card[data-relationship="FRIEND"],
+.guixu-root-container #relationships-modal .relationship-card--FRIEND {
+  border-color: rgba(218,165,32,0.6) !important;
+  background: rgba(218,165,32,0.08) !important;
+}
+.guixu-root-container #relationships-modal .relationship-card[data-relationship="LOVER"],
+.guixu-root-container #relationships-modal .relationship-card--LOVER {
+  border-color: rgba(147,112,219,0.6) !important;
+  background: rgba(147,112,219,0.08) !important;
+}
+
+/* 移动端：头部与操作区换行布局，按钮网格等宽 */
+.guixu-root-container.mobile-view #relationships-modal .relationship-header {
+  flex-direction: column !important;
+  align-items: stretch !important;
+  gap: 8px !important;
+}
+.guixu-root-container.mobile-view #relationships-modal .relationship-header .header-title { width: 100% !important; }
+.guixu-root-container.mobile-view #relationships-modal .relationship-header .rel-actions {
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  grid-auto-rows: minmax(28px, auto) !important;
+  gap: 8px !important;
+  width: 100% !important;
+}
+.guixu-root-container.mobile-view #relationships-modal .relationship-header .rel-actions > button {
+  width: 100% !important;
+  height: 28px !important;
+  padding: 0 10px !important;
+  font-size: 11px !important;
+  line-height: normal !important;
+  min-width: 0 !important;
+  box-sizing: border-box !important;
+}
+
+/* 小屏兜底（<=900px） - 仅在 mobile-view 下 */
+@media (max-width: 900px) {
+  .guixu-root-container.mobile-view #relationships-modal .relationship-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+  .guixu-root-container.mobile-view #relationships-modal .relationship-header .rel-actions {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-auto-rows: minmax(28px, auto);
+    gap: 8px;
+    width: 100%;
+  }
+  .guixu-root-container.mobile-view #relationships-modal .relationship-header .rel-actions > button {
+    width: 100%;
+    height: 28px;
+    padding: 0 10px;
+    font-size: 11px;
+    line-height: normal;
+    min-width: 0;
+    box-sizing: border-box;
+  }
+}
+
+/* 桌面端：人物关系操作按钮紧凑化 */
+@media (min-width: 901px) {
+  .guixu-root-container:not(.mobile-view) #relationships-modal .relationship-header .rel-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .guixu-root-container:not(.mobile-view) #relationships-modal .relationship-header .rel-actions > button,
+  .guixu-root-container:not(.mobile-view) .relationship-card .btn-delete-relationship {
+    height: 26px !important;
+    padding: 0 8px !important;
+    min-width: 0;
+    box-sizing: border-box;
+    flex: 0 0 auto;
+  }
+}
+/* 强制桌面视图下也紧凑 */
+.guixu-root-container.force-desktop #relationships-modal .relationship-header .rel-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.guixu-root-container.force-desktop #relationships-modal .relationship-header .rel-actions > button,
+.guixu-root-container.force-desktop .relationship-card .btn-delete-relationship {
+  height: 26px !important;
+  padding: 0 8px !important;
+  min-width: 0;
+  box-sizing: border-box;
+  flex: 0 0 auto;
+}
+
+/* 全屏 + 移动端：尺寸与按钮收紧 */
+.guixu-root-container:fullscreen.mobile-view #relationships-modal .modal-content,
+.guixu-root-container:-webkit-full-screen.mobile-view #relationships-modal .modal-content {
+  width: 90%;
+  max-width: 800px;
+  height: 90%;
+  max-height: 550px;
+}
+.guixu-root-container:fullscreen.mobile-view #relationships-modal .relationship-header .rel-actions,
+.guixu-root-container:-webkit-full-screen.mobile-view #relationships-modal .relationship-header .rel-actions {
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  grid-auto-rows: minmax(26px, auto) !important;
+  gap: 6px !important;
+  width: 100% !important;
+}
+.guixu-root-container:fullscreen.mobile-view #relationships-modal .relationship-header .rel-actions > button,
+.guixu-root-container:-webkit-full-screen.mobile-view #relationships-modal .relationship-header .rel-actions > button,
+.guixu-root-container:fullscreen.mobile-view .relationship-card .btn-delete-relationship,
+.guixu-root-container:-webkit-full-screen.mobile-view .relationship-card .btn-delete-relationship {
+  height: 26px !important;
+  padding: 0 8px !important;
+  font-size: 11px !important;
+  min-width: 0 !important;
+  box-sizing: border-box !important;
+}
+/* 关系筛选标签在全屏移动端下统一为 32px 高 */
+.guixu-root-container:fullscreen.mobile-view #relationships-modal .rel-tab,
+.guixu-root-container:-webkit-full-screen.mobile-view #relationships-modal .rel-tab {
+  height: 32px !important;
+  padding: 0 10px !important;
+  font-size: 12px !important;
+}

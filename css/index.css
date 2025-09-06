@@ -25,6 +25,15 @@
 @import url("./components/tooltip.css");
 @import url("./components/badge.css");
 @import url("./components/progress.css");
+@import url("./components/relationships.css");
+@import url("./components/inventory.css");
+@import url("./components/statuses.css");
+@import url("./components/trade.css");
+@import url("./components/timeline.css");
+@import url("./components/history.css");
+@import url("./components/command-center.css");
+@import url("./components/save-load.css");
+@import url("./components/world-book.css");
 
 /* 响应式与嵌入修复（阶段3） */
 @import url("./responsive/embed-fixes.css");

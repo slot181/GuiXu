@@ -5,7 +5,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>归墟 - 宿命轮回</title>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/slot181/GuiXu/css/index.css" />
+  <link rel="stylesheet" href="https://edit.stonecoks.vip/css/index.css" />
 </head>
 
 <body>
@@ -120,18 +120,16 @@
         <button id="btn-intro-guide" class="interaction-btn">游玩指南</button>
 
         <!-- 世界书控制 -->
-        <div id="world-book-controls" class="panel-section" style="padding: 8px; margin-top: 10px;">
-          <div class="section-title" style="font-size: 11px; margin-bottom: 6px;">世界书控制</div>
-          <div style="display: flex; flex-direction: column; gap: 8px;">
-            <div style="display: flex; align-items: center; justify-content: space-between;">
-              <label for="unified-index-input" style="font-size: 11px; color: #8b7355;">读写序号:</label>
-              <input type="number" id="unified-index-input" class="gx-input is-compact" value="1" min="1"
-                style="width: 60px;">
+        <div id="world-book-controls" class="panel-section">
+          <div class="world-book-title">世界书控制</div>
+          <div class="world-book-inner">
+            <div class="world-book-row is-justify">
+              <label for="unified-index-input" class="world-book-label">读写序号:</label>
+              <input type="number" id="unified-index-input" class="gx-input is-compact" value="1" min="1">
             </div>
-            <div style="display: flex; align-items: center; gap: 6px;">
-              <input type="checkbox" id="auto-toggle-lorebook-checkbox" style="cursor: pointer;">
-              <label for="auto-toggle-lorebook-checkbox" class="auto-write-label"
-                style="font-size: 11px;">自动开关世界书</label>
+            <div class="world-book-row">
+              <input type="checkbox" id="auto-toggle-lorebook-checkbox">
+              <label for="auto-toggle-lorebook-checkbox" class="auto-write-label world-book-label">自动开关世界书</label>
             </div>
           </div>
         </div>
@@ -186,7 +184,7 @@
       <div class="modal-content">
         <div class="modal-header">
           <h2 id="history-modal-title" class="modal-title">历史回顾</h2>
-          <div id="history-modal-actions" class="u-ml-auto" style="display: flex; align-items: center; gap: 10px;"></div>
+          <div id="history-modal-actions" class="u-ml-auto"></div>
           <button class="modal-close-btn u-ml-15">&times;</button>
         </div>
         <div id="history-modal-body" class="modal-body"><!-- 动态填充 --></div>
@@ -312,8 +310,8 @@
               <input type="checkbox" id="auto-save-checkbox" />
             </div>
           </div>
-          <div id="auto-save-slot-container" style="margin-bottom: 15px;"></div>
-          <h3 style="font-size: 14px; color: #8b7355; margin-top: 20px; margin-bottom: 10px; border-top: 1px solid rgba(201, 170, 113, 0.3); padding-top: 15px;">手动存档</h3>
+          <div id="auto-save-slot-container"></div>
+          <h3 class="manual-save-title">手动存档</h3>
           <div id="save-slots-container"></div>
         </div>
       </div>
@@ -324,20 +322,20 @@
           <h2 class="modal-title">自动化系统修剪</h2>
           <button class="modal-close-btn">&times;</button>
         </div>
-        <div class="modal-body" style="padding: 20px;">
-          <p style="color: #a09c91; font-size: 14px; margin-bottom: 20px;">
+        <div class="modal-body">
+          <p class="history-trim-desc">
             此功能将移除“本世历程”中除最近两个事件外的所有“自动化系统”内容，以优化性能和减少干扰。
           </p>
           <div class="panel-section">
             <div class="section-title">修剪选项</div>
-            <div class="attributes-list" style="padding: 10px;">
+            <div class="attributes-list">
               <div class="attribute-item">
                 <span class="attribute-name">读取/写入序号</span>
-                <input type="number" id="trim-journey-index-input" class="gx-input is-compact" value="1" min="1" style="width: 80px;">
+                <input type="number" id="trim-journey-index-input" class="gx-input is-compact" value="1" min="1">
               </div>
             </div>
           </div>
-          <div class="confirm-modal-buttons" style="margin-top: 20px;">
+          <div class="confirm-modal-buttons">
             <button id="btn-confirm-trim" class="interaction-btn primary-btn">确认修剪</button>
             <button id="btn-cancel-trim" class="interaction-btn">取消</button>
           </div>
@@ -440,38 +438,38 @@
   </div>
 
   <!-- 加载模块化脚本（按依赖顺序） -->
-  <script src="https://cdn.jsdelivr.net/gh/slot181/GuiXu/js/utils/constants.js"></script>
-  <script src="https://cdn.jsdelivr.net/gh/slot181/GuiXu/js/utils/tradeCalculator.js"></script>
-  <script src="https://cdn.jsdelivr.net/gh/slot181/GuiXu/js/utils/dom.js"></script>
-  <script src="https://cdn.jsdelivr.net/gh/slot181/GuiXu/js/utils/helpers.js"></script>
-  <script src="https://cdn.jsdelivr.net/gh/slot181/GuiXu/js/utils/renderers.js"></script>
-  <script src="https://cdn.jsdelivr.net/gh/slot181/GuiXu/js/core/TavernAPI.js"></script>
+  <script src="https://edit.stonecoks.vip/js/utils/constants.js"></script>
+  <script src="https://edit.stonecoks.vip/js/utils/tradeCalculator.js"></script>
+  <script src="https://edit.stonecoks.vip/js/utils/dom.js"></script>
+  <script src="https://edit.stonecoks.vip/js/utils/helpers.js"></script>
+  <script src="https://edit.stonecoks.vip/js/utils/renderers.js"></script>
+  <script src="https://edit.stonecoks.vip/js/core/TavernAPI.js"></script>
   
   <!-- 加载服务层脚本 -->
-  <script src="https://cdn.jsdelivr.net/gh/slot181/GuiXu/js/services/state.js"></script>
-  <script src="https://cdn.jsdelivr.net/gh/slot181/GuiXu/js/services/mvuIO.js"></script>
-  <script src="https://cdn.jsdelivr.net/gh/slot181/GuiXu/js/services/attributes.js"></script>
-  <script src="https://cdn.jsdelivr.net/gh/slot181/GuiXu/js/services/lorebook.js"></script>
-  <script src="https://cdn.jsdelivr.net/gh/slot181/GuiXu/js/services/action.js"></script>
+  <script src="https://edit.stonecoks.vip/js/services/state.js"></script>
+  <script src="https://edit.stonecoks.vip/js/services/mvuIO.js"></script>
+  <script src="https://edit.stonecoks.vip/js/services/attributes.js"></script>
+  <script src="https://edit.stonecoks.vip/js/services/lorebook.js"></script>
+  <script src="https://edit.stonecoks.vip/js/services/action.js"></script>
 
   <!-- 组件脚本（在 UI 协调器之前加载） -->
-  <script src="https://cdn.jsdelivr.net/gh/slot181/GuiXu/js/components/modal.js"></script>
-  <script src="https://cdn.jsdelivr.net/gh/slot181/GuiXu/js/components/settings.js"></script>
-  <script src="https://cdn.jsdelivr.net/gh/slot181/GuiXu/js/components/statuses.js"></script>
-  <script src="https://cdn.jsdelivr.net/gh/slot181/GuiXu/js/components/inventory.js"></script>
-  <script src="https://cdn.jsdelivr.net/gh/slot181/GuiXu/js/components/relationships.js"></script>
-  <script src="https://cdn.jsdelivr.net/gh/slot181/GuiXu/js/components/command-center.js"></script>
-  <script src="https://cdn.jsdelivr.net/gh/slot181/GuiXu/js/components/extracted-content.js"></script>
-  <script src="https://cdn.jsdelivr.net/gh/slot181/GuiXu/js/components/guixu-system.js"></script>
-  <script src="https://cdn.jsdelivr.net/gh/slot181/GuiXu/js/components/journey.js"></script>
-  <script src="https://cdn.jsdelivr.net/gh/slot181/GuiXu/js/components/past-lives.js"></script>
-  <script src="https://cdn.jsdelivr.net/gh/slot181/GuiXu/js/components/cultivation-panel.js"></script>
+  <script src="https://edit.stonecoks.vip/js/components/modal.js"></script>
+  <script src="https://edit.stonecoks.vip/js/components/settings.js"></script>
+  <script src="https://edit.stonecoks.vip/js/components/statuses.js"></script>
+  <script src="https://edit.stonecoks.vip/js/components/inventory.js"></script>
+  <script src="https://edit.stonecoks.vip/js/components/relationships.js"></script>
+  <script src="https://edit.stonecoks.vip/js/components/command-center.js"></script>
+  <script src="https://edit.stonecoks.vip/js/components/extracted-content.js"></script>
+  <script src="https://edit.stonecoks.vip/js/components/guixu-system.js"></script>
+  <script src="https://edit.stonecoks.vip/js/components/journey.js"></script>
+  <script src="https://edit.stonecoks.vip/js/components/past-lives.js"></script>
+  <script src="https://edit.stonecoks.vip/js/components/cultivation-panel.js"></script>
 
-  <script src="https://cdn.jsdelivr.net/gh/slot181/GuiXu/js/components/update-notifier.js"></script>
+  <script src="https://edit.stonecoks.vip/js/components/update-notifier.js"></script>
   <!-- 新增：版本小标签组件 -->
-  <script src="https://cdn.jsdelivr.net/gh/slot181/GuiXu/js/components/version-badge.js"></script>
-  <script src="https://cdn.jsdelivr.net/gh/slot181/GuiXu/js/components/intro-modal.js"></script>
-  <script src="https://cdn.jsdelivr.net/gh/slot181/GuiXu/js/main.js"></script>
+  <script src="https://edit.stonecoks.vip/js/components/version-badge.js"></script>
+  <script src="https://edit.stonecoks.vip/js/components/intro-modal.js"></script>
+  <script src="https://edit.stonecoks.vip/js/main.js"></script>
 </body>
 
 </html>

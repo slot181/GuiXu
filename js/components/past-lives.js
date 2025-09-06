@@ -65,7 +65,7 @@
       const body = $('#history-modal-body');
       if (!body) return;
       body.innerHTML =
-        '<p class="modal-placeholder" style="text-align:center; color:#8b7355; font-size:12px;">正在回溯时光长河...</p>';
+        '<p class="modal-placeholder">正在回溯时光长河...</p>';
 
       try {
         const bookName = window.GuixuConstants.LOREBOOK.NAME;
@@ -96,13 +96,13 @@
         } catch (_) {}
       } catch (error) {
         console.error('[归墟] 读取“往世涟漪”时出错:', error);
-        body.innerHTML = `<p class="modal-placeholder" style="text-align:center; color:#8b7355; font-size:12px;">回溯时光长河时出现错误：${error.message}</p>`;
+        body.innerHTML = `<p class="modal-placeholder">回溯时光长河时出现错误：${error.message}</p>`;
       }
     },
 
     renderPastLives(entry) {
       if (!entry || !entry.content)
-        return '<p style="text-align:center; color:#8b7355; font-size:12px;">未发现任何往世的痕迹。</p>';
+        return '<p class="modal-placeholder">未发现任何往世的痕迹。</p>';
 
       // 1) 首选使用通用解析：按“空行分隔的事件块 + 标签|内容”解析
       let events = window.GuixuHelpers.parseJourneyEntry(entry.content) || [];
@@ -122,7 +122,7 @@
       }
 
       if (!Array.isArray(events) || events.length === 0)
-        return '<p style="text-align:center; color:#8b7355; font-size:12px;">内容格式有误，无法解析往世记录。</p>';
+        return '<p class="modal-placeholder">内容格式有误，无法解析往世记录。</p>';
 
       // 按“第x世”排序（若存在）
       events.sort((a, b) => (parseInt(a['第x世'], 10) || 0) - (parseInt(b['第x世'], 10) || 0));
@@ -169,7 +169,7 @@
         const autoSystem = data['自动化系统'] ? `
           <div class="detail-item">
             <strong>自动化系统:</strong>
-            <pre style="white-space: pre-wrap; font-size: 11px; color: #a09c91;">${String(data['自动化系统'])}</pre>
+            <pre class="timeline-auto-system">${String(data['自动化系统'])}</pre>
           </div>` : '';
 
         html += `

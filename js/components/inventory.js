@@ -141,73 +141,6 @@
       ].join('');
 
       let html = `
-        <style>
-          /* 标签页布局（移动端/桌面端统一，横向滚动） */
-          .inv-tabs {
-            display: flex;
-            gap: 8px;
-            flex-wrap: nowrap;
-            overflow-x: auto;
-            padding: 4px 0 6px;
-            border-bottom: 1px dashed rgba(201,170,113,0.25);
-            scrollbar-width: thin;
-            margin-bottom: 8px;
-          }
-          .inv-tab {
-            appearance: none;
-            border: 1px solid rgba(201,170,113,0.35);
-            background: rgba(201,170,113,0.08);
-            color: #c9aa71;
-            border-radius: 18px;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            height: 32px;
-            padding: 0 12px;
-            font-size: 12px;
-            white-space: nowrap;
-            cursor: pointer;
-            flex: 0 0 auto;
-            transition: background 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
-          }
-          .inv-tab:hover {
-            background: rgba(201,170,113,0.12);
-            border-color: rgba(201,170,113,0.5);
-          }
-          .inv-tab.active {
-            background: linear-gradient(180deg, rgba(201,170,113,0.25), rgba(201,170,113,0.12));
-            box-shadow: 0 0 6px rgba(201,170,113,0.25) inset;
-            border-color: rgba(201,170,113,0.6);
-          }
-          .inv-tab .inv-tab-label { flex: 1; }
-          .inv-tab .inv-tab-count {
-            margin-left: 8px;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            height: 20px;
-            min-width: 22px;
-            padding: 0 6px;
-            border-radius: 10px;
-            border: 1px solid rgba(201,170,113,0.35);
-            background: rgba(201,170,113,0.08);
-            color: #e8e3d6;
-            font-size: 11px;
-            line-height: 20px;
-          }
-          .item-head-right {
-            display: inline-flex;
-            align-items: center;
-            gap: 10px;
-          }
-          .item-value {
-            color: #c9aa71;
-            font-weight: 600;
-          }
-          @media (hover: none) {
-            .inv-tab:hover { background: rgba(201,170,113,0.08); }
-          }
-        </style>
 
         <div class="inv-tabs" id="inv-tabs">
           ${tabsHtml}
@@ -218,8 +151,8 @@
         </div>
 
         <div class="panel-section">
-          <div class="attributes-list" style="padding: 6px 10px;">
-            <div class="attribute-item" style="gap:8px; align-items:center;">
+          <div class="attributes-list">
+            <div class="attribute-item is-compact">
               <span class="attribute-name">灵石</span>
               <span class="attribute-value" id="inventory-stones" data-base="${stonesVal}">${stonesDisplay}</span>
               <select id="inventory-currency-unit" class="gx-select is-compact">
@@ -314,23 +247,23 @@
 
                 if (isEquippedAsMain) {
                   actionButton = `
-                    <span class="item-equipped-flag" style="margin-left: 5px; color: #8b7355; font-size: 12px;">主修(已装备)</span>
-                    <button class="item-equip-btn" data-equip-type="fuxiu" style="margin-left: 5px; opacity: 0.5; cursor: not-allowed;" disabled>辅修</button>
+                    <span class="item-equipped-flag">主修(已装备)</span>
+                    <button class="item-equip-btn" data-equip-type="fuxiu" disabled>辅修</button>
                   `;
                 } else if (isEquippedAsAux) {
                   actionButton = `
-                    <button class="item-equip-btn" data-equip-type="zhuxiu" style="margin-left: 5px; opacity: 0.5; cursor: not-allowed;" disabled>主修</button>
-                    <span class="item-equipped-flag" style="margin-left: 5px; color: #8b7355; font-size: 12px;">辅修(已装备)</span>
+                    <button class="item-equip-btn" data-equip-type="zhuxiu" disabled>主修</button>
+                    <span class="item-equipped-flag">辅修(已装备)</span>
                   `;
                 } else {
                   actionButton = `
-                    <button class="item-equip-btn" data-equip-type="zhuxiu" style="margin-left: 5px;">主修</button>
-                    <button class="item-equip-btn" data-equip-type="fuxiu" style="margin-left: 5px;">辅修</button>
+                    <button class="item-equip-btn" data-equip-type="zhuxiu">主修</button>
+                    <button class="item-equip-btn" data-equip-type="fuxiu">辅修</button>
                   `;
                 }
               } else if (cat.equipable) {
                 if (isEquipped) {
-                  actionButton = `<span class="item-equipped-flag" style="margin-left: 5px; color: #8b7355; font-size: 12px;">已装备</span>`;
+                  actionButton = `<span class="item-equipped-flag">已装备</span>`;
                 } else {
                   actionButton = `<button class="item-equip-btn">装备</button>`;
                 }
@@ -343,8 +276,8 @@
               }
 
               // 所有物品都可丢弃或删除
-              actionButton += `<button class="item-discard-btn" style="margin-left: 5px;">丢弃</button>`;
-              actionButton += `<button class="item-delete-btn" style="margin-left: 5px;">删除</button>`;
+              actionButton += `<button class="item-discard-btn">丢弃</button>`;
+              actionButton += `<button class="item-delete-btn">删除</button>`;
 
               // 细节说明使用通用渲染工具，避免重复实现
               const itemDetailsHtml = (window.GuixuRenderers && typeof window.GuixuRenderers.renderItemDetailsForInventory === 'function')

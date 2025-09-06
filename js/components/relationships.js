@@ -136,9 +136,9 @@
                   <span class="rel-badge">修为：<span style="${tierStyle}">${cultivationDisplay}</span></span>
                 </div>
 
-                <p style="margin-top: 10px;">好感度: ${favorability}</p>
+                <p class="rel-favor-label">好感度: ${favorability}</p>
                 <div class="favorability-bar-container">
-                  <div class="favorability-bar-fill" style="width: ${favorabilityPercent}%;"></div>
+                  <div class="favorability-bar-fill" style="--progress: ${favorabilityPercent}%;"></div>
                 </div>
 
                 ${Array.isArray(eventHistory) && eventHistory.length > 0
@@ -953,6 +953,9 @@
             </div>
           </div>
         `;
+
+        // 移除内联样式块，使用外部 CSS 关系样式文件
+        try { body.querySelectorAll('style').forEach(s => s.remove()); } catch (_) { }
 
         // 绑定筛选逻辑（标签+搜索）
         const tabsEl = document.getElementById('rel-tabs');
@@ -2426,7 +2429,7 @@ try { await this._syncNpcFourDimMaxToMvu(rel, computedMax); } catch (_) {}
           const meta = `品阶:${t} | 数量:${q} | 基础价值:${baseVal} | 买入价:${buyPrice}`;
           return `
             <div class="trade-item" data-item-id="${id}" data-item-data='${JSON.stringify(it).replace(/'/g, "&#39;")}'>
-              <span class="item-name item-clickable" style="${tierStyle}; cursor: pointer;" data-item-id="${id}">${n}</span>
+              <span class="item-name item-clickable" style="${tierStyle}" data-item-id="${id}">${n}</span>
               <span class="item-meta">${meta}</span>
               <button class="interaction-btn is-compact btn-purchase-item" data-item-id="${id}">购买</button>
             </div>
@@ -2456,7 +2459,7 @@ try { await this._syncNpcFourDimMaxToMvu(rel, computedMax); } catch (_) {}
           const meta = `品阶:${t} | 数量:${q} | 基础价值:${baseVal} | 卖出价:${sellPrice}`;
           return `
             <div class="trade-item" data-item-id="${id}" data-item-data='${JSON.stringify(it).replace(/'/g, "&#39;")}'>
-              <span class="item-name item-clickable" style="${tierStyle}; cursor: pointer;" data-item-id="${id}">${n}</span>
+              <span class="item-name item-clickable" style="${tierStyle}" data-item-id="${id}">${n}</span>
               <span class="item-meta">${meta}</span>
               <button class="interaction-btn is-compact btn-sell-item" data-item-id="${id}">出售</button>
             </div>
@@ -2464,9 +2467,6 @@ try { await this._syncNpcFourDimMaxToMvu(rel, computedMax); } catch (_) {}
         };
 
         const bodyHtml = `
-          <style>
-            #trade-modal .trade-toolbar { display: inline-flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-          </style>
           <div class="trade-summary">
             <div class="trade-section">
               <div class="section-title">你的资产</div>
@@ -2496,7 +2496,7 @@ try { await this._syncNpcFourDimMaxToMvu(rel, computedMax); } catch (_) {}
                 <option value="上品灵石" ${currentUnit === '上品灵石' ? 'selected' : ''}>上品灵石</option>
               </select>
             </div>
-            <p id="trade-currency-tip" style="color:#8b7355; font-size:12px; margin: 6px 0;">提示：交易货币基础单位为 下品灵石。当前显示单位：<strong id="trade-currency-current">${currentUnit}</strong></p>
+            <p id="trade-currency-tip">提示：交易货币基础单位为 下品灵石。当前显示单位：<strong id="trade-currency-current">${currentUnit}</strong></p>
             <div class="trade-table-wrapper">
               <table class="trade-table">
                 <thead>
@@ -2513,10 +2513,10 @@ try { await this._syncNpcFourDimMaxToMvu(rel, computedMax); } catch (_) {}
                 <tbody id="trade-table-body"></tbody>
               </table>
             </div>
-            <p style="color:#8b7355; margin-top:8px; font-size:12px;">提示：点击表头可排序；点击名称查看详情；出价越接近推荐价，且好感度越高，成交越稳妥。</p>
-            <div style="text-align: center; margin-top: 15px; padding-top: 10px; border-top: 1px solid rgba(201, 170, 113, 0.3);">
+            <p class="trade-tip">提示：点击表头可排序；点击名称查看详情；出价越接近推荐价，且好感度越高，成交越稳妥。</p>
+            <div class="trade-batch-fix">
               <button id="btn-batch-fix-items" class="interaction-btn is-compact">🔧 批量修复物品分类</button>
-              <p style="color:#8b7355; font-size: 11px; margin-top: 5px;">如遇到物品分类错误，点击此按钮进行修复</p>
+              <p class="trade-tip-sub">如遇到物品分类错误，点击此按钮进行修复</p>
             </div>
           </div>
         `;

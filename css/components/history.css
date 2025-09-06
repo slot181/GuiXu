@@ -1,0 +1,62 @@
+/*!
+ * components/history.css — 阶段5：历史/时间线 头部工具与修剪弹窗
+ * 作用域：.guixu-root-container #history-modal, #trim-journey-modal
+ * 说明：
+ * - 覆盖 index.html 与 journey.js/past-lives.js 中的头部动作区与搜索区样式
+ * - 提供“修剪弹窗”的布局（替代内联样式）
+ */
+
+/* 历史面板头部动作区（替代 index.html 中的 inline style） */
+.guixu-root-container #history-modal #history-modal-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.guixu-root-container #history-modal .history-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.guixu-root-container #history-modal .history-action-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.guixu-root-container #history-modal .history-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+/* 输入框利用 .gx-input，保持紧凑尺寸 */
+.guixu-root-container #history-modal .history-search input[type="text"] {
+  min-width: 180px;
+}
+
+/* 修剪弹窗（替代 index.html #trim-journey-modal 中的内联样式） */
+.guixu-root-container #trim-journey-modal .modal-body {
+  padding: 20px;
+}
+.guixu-root-container #trim-journey-modal .modal-body .history-trim-desc {
+  color: var(--gx-color-text-muted, #a09c91);
+  font-size: 14px;
+  margin-bottom: 20px;
+}
+.guixu-root-container #trim-journey-modal .attributes-list {
+  padding: 10px;
+}
+.guixu-root-container #trim-journey-modal #trim-journey-index-input {
+  width: 80px;
+}
+
+/* 确认按钮区 */
+.guixu-root-container #trim-journey-modal .confirm-modal-buttons {
+  margin-top: 20px;
+  display: flex;
+  gap: 10px;
+}

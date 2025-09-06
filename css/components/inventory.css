@@ -1,0 +1,270 @@
+/*!
+ * Inventory 组件样式（阶段5：业务组件分文件）
+ * 作用域限定：.guixu-root-container #inventory-modal
+ * 目标：
+ * - 移除 inventory.js 内联 <style> 与零散行内样式
+ * - 组件化整合背包面板样式，覆盖 legacy/guixu.css 中旧规则（保持可回滚）
+ */
+
+/* ================== 标签页（Tabs） ================== */
+.guixu-root-container #inventory-modal .inv-tabs {
+  display: flex;
+  gap: 8px;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  padding: 4px 0 6px;
+  border-bottom: 1px dashed rgba(201,170,113,0.25);
+  scrollbar-width: thin;
+  margin-bottom: 8px;
+}
+.guixu-root-container #inventory-modal .inv-tab {
+  appearance: none;
+  border: 1px solid rgba(201,170,113,0.35);
+  background: rgba(201,170,113,0.08);
+  color: #c9aa71;
+  border-radius: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 32px;
+  padding: 0 12px;
+  font-size: 12px;
+  white-space: nowrap;
+  cursor: pointer;
+  flex: 0 0 auto;
+  transition: background 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+.guixu-root-container #inventory-modal .inv-tab:hover {
+  background: rgba(201,170,113,0.12);
+  border-color: rgba(201,170,113,0.5);
+}
+.guixu-root-container #inventory-modal .inv-tab.active {
+  background: linear-gradient(180deg, rgba(201,170,113,0.25), rgba(201,170,113,0.12));
+  box-shadow: 0 0 6px rgba(201,170,113,0.25) inset;
+  border-color: rgba(201,170,113,0.6);
+}
+.guixu-root-container #inventory-modal .inv-tab .inv-tab-label { flex: 1; }
+.guixu-root-container #inventory-modal .inv-tab .inv-tab-count {
+  margin-left: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 20px;
+  min-width: 22px;
+  padding: 0 6px;
+  border-radius: 10px;
+  border: 1px solid rgba(201,170,113,0.35);
+  background: rgba(201,170,113,0.08);
+  color: #e8e3d6;
+  font-size: 11px;
+  line-height: 20px;
+}
+@media (hover: none) {
+  .guixu-root-container #inventory-modal .inv-tab:hover { background: rgba(201,170,113,0.08); }
+}
+
+/* ================== 搜索栏 ================== */
+.guixu-root-container #inventory-modal .inventory-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 12px 0;
+}
+.guixu-root-container #inventory-modal .inventory-search input#inventory-search-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: var(--gx-input-height, 32px);
+  padding: 0 10px;
+  background: var(--gx-input-bg, rgba(26,26,46,0.5));
+  border: 1px solid var(--gx-input-border-color, rgba(201,170,113,0.35));
+  border-radius: var(--gx-input-radius, 8px);
+  color: var(--gx-input-color, #e8e3d6);
+  font-size: 12px;
+  box-sizing: border-box;
+}
+.guixu-root-container #inventory-modal .inventory-search input#inventory-search-input::placeholder {
+  color: var(--gx-placeholder-color, #8b7355);
+}
+.guixu-root-container #inventory-modal .inventory-search #inventory-search-clear {
+  height: 32px;
+  min-width: 70px;
+  padding: 0 10px;
+  box-sizing: border-box;
+}
+
+/* ================== 灵石单位选择（采用表单基类 gx-select；此处仅兜底一致性） ================== */
+.guixu-root-container #inventory-modal #inventory-currency-unit {
+  height: var(--gx-input-height, 32px);
+  padding: 0 8px;
+  background: var(--gx-input-bg, rgba(26,26,46,0.5));
+  border: 1px solid var(--gx-input-border-color, rgba(201,170,113,0.35));
+  border-radius: var(--gx-input-radius, 8px);
+  color: var(--gx-input-color, #e8e3d6);
+  font-size: 12px;
+  outline: none;
+  box-sizing: border-box;
+}
+
+/* ================== 分类与列表容器 ================== */
+.guixu-root-container #inventory-modal .inventory-category {
+  margin-bottom: 15px;
+  border: 1px solid rgba(201, 170, 113, 0.3);
+  border-radius: 5px;
+  background: rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+}
+.guixu-root-container #inventory-modal .inventory-category-title {
+  padding: 10px 15px;
+  font-size: 16px;
+  color: #c9aa71;
+  cursor: pointer;
+  list-style: none;
+  display: block;
+  background: rgba(0, 0, 0, 0.3);
+}
+.guixu-root-container #inventory-modal .inventory-category-title::-webkit-details-marker {
+  display: none;
+}
+.guixu-root-container #inventory-modal .inventory-item-list {
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* ================== 物品卡片与行布局 ================== */
+.guixu-root-container #inventory-modal .inventory-item {
+  background: rgba(26, 26, 46, 0.7);
+  border: 1px solid rgba(201, 170, 113, 0.2);
+  border-radius: 4px;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  position: relative;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease, background 0.18s ease;
+  will-change: transform;
+}
+.guixu-root-container #inventory-modal .inventory-item:hover {
+  transform: translateY(-2px) scale(1.01);
+  box-shadow: 0 8px 22px rgba(201, 170, 113, 0.16), 0 0 10px rgba(201, 170, 113, 0.18) inset;
+  border-color: rgba(201, 170, 113, 0.45);
+  background: rgba(0, 0, 0, 0.28);
+}
+@media (hover: none) {
+  .guixu-root-container #inventory-modal .inventory-item:hover {
+    transform: none;
+    box-shadow: none;
+  }
+}
+
+.guixu-root-container #inventory-modal .inventory-item .item-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.guixu-root-container #inventory-modal .inventory-item .item-row--headline {
+  font-size: 13px;
+  font-weight: 600;
+}
+.guixu-root-container #inventory-modal .inventory-item .item-head-left {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+.guixu-root-container #inventory-modal .inventory-item .item-name {
+  color: #e0dcd1;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.guixu-root-container #inventory-modal .inventory-item .item-tier {
+  color: #c9aa71;
+}
+.guixu-root-container #inventory-modal .inventory-item .item-head-right {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+  color: #8b7355;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+.guixu-root-container #inventory-modal .inventory-item .item-row--desc .item-description {
+  margin: 2px 0 0;
+  line-height: 1.6;
+  color: #a09c91;
+}
+.guixu-root-container #inventory-modal .inventory-item .item-row--actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+.guixu-root-container #inventory-modal .inventory-item .item-row--actions > button {
+  margin-left: 0; /* 使用统一gap，不再依赖左外边距 */
+}
+
+/* 折叠详情 */
+.guixu-root-container #inventory-modal .inventory-item .item-row--details { margin-top: 2px; }
+.guixu-root-container #inventory-modal .inventory-item .item-row--details-summary {
+  cursor: pointer;
+  color: #c9aa71;
+  font-size: 12px;
+  list-style: none;
+}
+.guixu-root-container #inventory-modal .inventory-item .item-row--details summary::-webkit-details-marker { display: none; }
+.guixu-root-container #inventory-modal .inventory-item .item-row--details .item-details {
+  margin-top: 8px;
+  border-top: 1px solid rgba(201, 170, 113, 0.2);
+  padding-top: 8px;
+}
+
+/* 移动端：操作按钮网格 */
+.guixu-root-container.mobile-view #inventory-modal .inventory-item .item-row--headline { flex-wrap: wrap; gap: 6px; }
+.guixu-root-container.mobile-view #inventory-modal .inventory-item .item-row--actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+.guixu-root-container.mobile-view #inventory-modal .inventory-item .item-row--actions > button {
+  width: 100%;
+  height: 32px;
+  min-width: 0;
+  padding: 0 10px;
+  box-sizing: border-box;
+}
+
+/* 桌面端：操作按钮靠右且紧凑 */
+.guixu-root-container:not(.mobile-view) #inventory-modal .inventory-item .item-row--actions {
+  align-self: flex-end;
+  justify-content: flex-end;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+
+/* ================== 文本与标记（配合 JS 模板） ================== */
+.guixu-root-container #inventory-modal .item-name { font-weight: bold; color: #e0dcd1; }
+.guixu-root-container #inventory-modal .item-quantity { font-size: 12px; color: #8b7355; }
+.guixu-root-container #inventory-modal .item-description { font-size: 12px; color: #a09c91; }
+.guixu-root-container #inventory-modal .item-value { color: #c9aa71; font-weight: 600; }
+.guixu-root-container #inventory-modal .item-equipped-flag { margin-left: 5px; color: #8b7355; font-size: 12px; }
+.guixu-root-container #inventory-modal .empty-category-text {
+  color: #8b7355;
+  font-style: italic;
+  padding: 10px;
+  text-align: center;
+}
+
+/* ================== 顶部信息区：灵石行紧凑化 ================== */
+.guixu-root-container #inventory-modal .panel-section > .attributes-list { padding: 6px 10px; }
+.guixu-root-container #inventory-modal .attributes-list .attribute-item.is-compact {
+  gap: 8px;
+  align-items: center;
+}

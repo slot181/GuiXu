@@ -21,7 +21,7 @@
         const body = $('#statuses-modal .modal-body');
         if (!body) return;
 
-        body.innerHTML = '<p class="modal-placeholder" style="text-align:center; color:#8b7355; font-size:12px;">正在读取状态...</p>';
+        body.innerHTML = '<p class="modal-placeholder">正在读取状态...</p>';
 
         const statuses = await this._loadStatuses();
         this._cache.all = statuses;
@@ -46,7 +46,7 @@
         console.error('[归墟][StatusesComponent] show 出错:', e);
         const body = $('#statuses-modal .modal-body');
         if (body) {
-          body.innerHTML = `<p class="modal-placeholder" style="text-align:center; color:#8b7355; font-size:12px;">加载状态失败：${e.message}</p>`;
+          body.innerHTML = `<p class="modal-placeholder">加载状态失败：${e.message}</p>`;
         }
       }
     },
@@ -190,7 +190,7 @@
       if (!body) return;
 
       if (!Array.isArray(list) || list.length === 0) {
-        body.innerHTML = '<p class="modal-placeholder" style="text-align:center; color:#8b7355; font-size:12px;">当前无状态效果。</p>';
+        body.innerHTML = '<p class="modal-placeholder">当前无状态效果。</p>';
         return;
       }
 
@@ -200,36 +200,36 @@
         const durationDisplay = (s.duration || s.duration === 0) ? `${this._esc(s.duration)} 小时` : '';
         // 修复2：移除ID显示
         const headerLine = [
-          `<span style="color:#c9aa71; font-weight:bold;">${this._esc(s.name)}</span>`,
-          s.stacks ? `<span style="color:#a09c91; font-size:11px;">x${this._esc(s.stacks)}</span>` : '',
-          durationDisplay ? `<span style="color:#a09c91; font-size:11px;">${durationDisplay}</span>` : '',
+          `<span class="status-name">${this._esc(s.name)}</span>`,
+          s.stacks ? `<span class="status-stacks">x${this._esc(s.stacks)}</span>` : '',
+          durationDisplay ? `<span class="status-duration">${durationDisplay}</span>` : '',
         ].filter(Boolean).join(' · ');
 
         const detailsBlocks = [];
 
         if (s.description) {
-          detailsBlocks.push(`<p style="margin:6px 0; color:#e0dcd1; font-size:12px;">${this._esc(s.description)}</p>`);
+          detailsBlocks.push(`<p class="status-desc">${this._esc(s.description)}</p>`);
         }
 
         if (s.source) {
-          detailsBlocks.push(`<p style="margin:6px 0; color:#8b7355; font-size:11px;">来源：${this._esc(s.source)}</p>`);
+          detailsBlocks.push(`<p class="status-source">来源：${this._esc(s.source)}</p>`);
         }
         if (s.attributes_bonus && typeof s.attributes_bonus === 'object') {
           const attrs = Object.entries(s.attributes_bonus).map(([k, v]) => {
             let displayHtml;
             const scalar = this._maybeScalarEffect(v);
-            if (scalar !== null) {
-              displayHtml = `<strong style="color:#c9aa71;">${this._esc(this._formatEffectValue(scalar))}</strong>`;
-            } else if (typeof v === 'object' && v !== null) {
-              displayHtml = `<pre style="white-space: pre-wrap; word-wrap: break-word; color: #e0dcd1; font-size: 11px; padding: 4px; background: rgba(0,0,0,0.2); border-radius: 3px; margin-top: 4px;">${this._prettyJson(v)}</pre>`;
-            } else {
-              displayHtml = `<strong style="color:#c9aa71;">${this._esc(String(v))}</strong>`;
-            }
+              if (scalar !== null) {
+                displayHtml = `<strong class="status-strong">${this._esc(this._formatEffectValue(scalar))}</strong>`;
+              } else if (typeof v === 'object' && v !== null) {
+                displayHtml = `<pre class="status-pre">${this._prettyJson(v)}</pre>`;
+              } else {
+                displayHtml = `<strong class="status-strong">${this._esc(String(v))}</strong>`;
+              }
             return `<li>${this._esc(k)}：${displayHtml}</li>`;
           }).join('');
-          detailsBlocks.push(`<div style="margin:6px 0;">
-            <div style="color:#8b7355; font-size:11px;">属性加成：</div>
-            <ul style="margin:4px 0 0 16px; color:#e0dcd1; font-size:12px; list-style:disc;">
+          detailsBlocks.push(`<div class="status-section">
+            <div class="status-section-title">属性加成：</div>
+            <ul class="status-attrs-list">
               ${attrs || '<li>无</li>'}
             </ul>
           </div>`);
@@ -265,20 +265,20 @@
               let displayHtml;
               const scalar = this._maybeScalarEffect(val);
               if (scalar !== null) {
-                displayHtml = `<strong style="color:#c9aa71;">${this._esc(this._formatEffectValue(scalar))}</strong>`;
+                displayHtml = `<strong class="status-strong">${this._esc(this._formatEffectValue(scalar))}</strong>`;
               } else if (typeof val === 'object' && val !== null) {
-                displayHtml = `<pre style="white-space: pre-wrap; word-wrap: break-word; color: #e0dcd1; font-size: 11px; padding: 4px; background: rgba(0,0,0,0.2); border-radius: 3px; margin-top: 4px;">${this._prettyJson(val)}</pre>`;
+                displayHtml = `<pre class="status-pre">${this._prettyJson(val)}</pre>`;
               } else {
-                displayHtml = `<strong style="color:#c9aa71;">${this._esc(this._formatEffectValue(val))}</strong>`;
+                displayHtml = `<strong class="status-strong">${this._esc(this._formatEffectValue(val))}</strong>`;
               }
 
               const labelPrefix = label ? `${this._esc(label)}：` : '';
               return `<li>${labelPrefix}${displayHtml}</li>`;
             }).join('');
 
-            detailsBlocks.push(`<div style="margin:6px 0;">
-              <div style="color:#8b7355; font-size:11px;">词条效果：</div>
-              <ul style="margin:4px 0 0 16px; color:#e0dcd1; font-size:12px; list-style:disc;">
+            detailsBlocks.push(`<div class="status-section">
+              <div class="status-section-title">词条效果：</div>
+              <ul class="status-effects-list">
                 ${effs || '<li>无</li>'}
               </ul>
             </div>`);
@@ -290,50 +290,50 @@
               let displayHtml;
               const scalar = this._maybeScalarEffect(val);
               if (scalar !== null) {
-                displayHtml = `<strong style="color:#c9aa71;">${this._esc(this._formatEffectValue(scalar))}</strong>`;
+                displayHtml = `<strong class="status-strong">${this._esc(this._formatEffectValue(scalar))}</strong>`;
               } else if (typeof val === 'object' && val !== null) {
-                displayHtml = `<pre style="white-space: pre-wrap; word-wrap: break-word; color: #e0dcd1; font-size: 11px; padding: 4px; background: rgba(0,0,0,0.2); border-radius: 3px; margin-top: 4px;">${this._prettyJson(val)}</pre>`;
+                displayHtml = `<pre class="status-pre">${this._prettyJson(val)}</pre>`;
               } else {
-                displayHtml = `<strong style="color:#c9aa71;">${this._esc(this._formatEffectValue(val))}</strong>`;
+                displayHtml = `<strong class="status-strong">${this._esc(this._formatEffectValue(val))}</strong>`;
               }
               return `<li>${this._esc(k)}：${displayHtml}</li>`;
             }).join('');
-            detailsBlocks.push(`<div style="margin:6px 0;">
-              <div style="color:#8b7355; font-size:11px;">词条效果：</div>
-              <ul style="margin:4px 0 0 16px; color:#e0dcd1; font-size:12px; list-style:disc;">
+            detailsBlocks.push(`<div class="status-section">
+              <div class="status-section-title">词条效果：</div>
+              <ul class="status-effects-list">
                 ${effs || '<li>无</li>'}
               </ul>
             </div>`);
           } else {
             const pretty = this._esc(typeof s.effects === 'string' ? s.effects : JSON.stringify(s.effects));
-            detailsBlocks.push(`<div style="margin:6px 0;">
-              <div style="color:#8b7355; font-size:11px;">词条效果：</div>
-              <pre style="white-space: pre-wrap; word-wrap: break-word; color: #e0dcd1; font-size: 11px; padding: 8px; background: rgba(0, 0, 0, 0.2); border-radius: 4px;">${pretty}</pre>
+            detailsBlocks.push(`<div class="status-section">
+              <div class="status-section-title">词条效果：</div>
+              <pre class="status-pre">${pretty}</pre>
             </div>`);
           }
         }
 
         if (s.meta) {
           const pretty = typeof s.meta === 'string' ? this._esc(s.meta) : this._prettyJson(s.meta);
-          detailsBlocks.push(`<div style="margin:6px 0;">
-            <div style="color:#8b7355; font-size:11px;">附加信息：</div>
-            <pre style="white-space: pre-wrap; word-wrap: break-word; color: #e0dcd1; font-size: 11px; padding: 8px; background: rgba(0, 0, 0, 0.2); border-radius: 4px;">${pretty}</pre>
+          detailsBlocks.push(`<div class="status-section">
+            <div class="status-section-title">附加信息：</div>
+            <pre class="status-pre">${pretty}</pre>
           </div>`);
         }
 
         if (!s.description && !s.source && !s.duration && !s.stacks && !s.effects && !s.meta && s.raw) {
           const rawPretty = typeof s.raw === 'string' ? this._esc(s.raw) : this._prettyJson(s.raw);
-          detailsBlocks.push(`<pre style="white-space: pre-wrap; word-wrap: break-word; color: #e0dcd1; font-size: 11px; padding: 8px; background: rgba(0, 0, 0, 0.2); border-radius: 4px;">${rawPretty}</pre>`);
+          detailsBlocks.push(`<pre class="status-pre">${rawPretty}</pre>`);
         }
 
         html += `
           <div class="status-card-wrapper">
-            <details class="status-card" data-index="${idx}" data-status-type="${(s.statusType || 'NEUTRAL').toString().toUpperCase()}" style="background: rgba(0,0,0,0.2); border: 1px solid rgba(201,170,113,0.3); border-radius: 5px; padding: 10px;">
-              <summary style="cursor:pointer; list-style:none; display:flex; justify-content:space-between; align-items:center;">
+            <details class="status-card" data-index="${idx}" data-status-type="${(s.statusType || 'NEUTRAL').toString().toUpperCase()}">
+              <summary class="status-summary">
                 <span>${headerLine}</span>
-                <span style="color:#8b7355; font-size:11px;">详情</span>
+                <span class="status-summary-text">详情</span>
               </summary>
-              <div class="status-details" style="margin-top:8px; border-top: 1px solid rgba(201,170,113,0.2); padding-top: 8px;">
+              <div class="status-details">
                 ${detailsBlocks.join('')}
               </div>
             </details>
