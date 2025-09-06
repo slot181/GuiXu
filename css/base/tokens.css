@@ -1,0 +1,31 @@
+/* Phase 1 - tokens.css
+   主题变量与字体族（Google Fonts 已在 HTML <head> 中通过 <link> 引入；此处不再使用 @import）
+   作用域：限制在 .guixu-root-container，避免污染宿主页面 */
+.guixu-root-container {
+  /* 字体族：使用正确的字体名称（空格而非加号） */
+  font-family: 'ZCOOL KuaiLe', 'Ma Shan Zheng', serif;
+
+  /* 故事文本字号（设置中心可调） */
+  --guixu-story-font-size: 14px;
+
+  /* 背景遮罩与背景展示控制 */
+  --guixu-bg-mask: 0.7;
+  --guixu-bg-size: cover;
+  --guixu-bg-repeat: no-repeat;
+  --guixu-bg-position: center;
+
+  /* 统一输入控件变量（跨模态/面板/搜索栏） */
+  --gx-input-bg: rgba(26, 26, 46, 0.5);
+  --gx-input-border-color: rgba(201, 170, 113, 0.35);
+  --gx-input-color: #e8e3d6;
+  --gx-placeholder-color: #8b7355;
+  --gx-input-radius: 8px;
+  --gx-input-height: 32px;
+
+  /* 交互态（hover/focus） */
+  --gx-input-bg-hover: rgba(26, 26, 46, 0.6);
+  --gx-input-bg-focus: rgba(26, 26, 46, 0.65);
+  --gx-input-border-color-hover: rgba(201, 170, 113, 0.45);
+  --gx-input-border-color-focus: rgba(201, 170, 113, 0.65);
+  --gx-input-shadow-focus: 0 0 0 2px rgba(201, 170, 113, 0.12);
+}

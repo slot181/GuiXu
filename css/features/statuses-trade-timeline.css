@@ -1,0 +1,7 @@
+/* Phase 1 - features/statuses-trade-timeline.css
+   状态/交易/时间线通用样式占位（阶段一仅建立结构，不做聚合 @import）
+   后续迁移范围（阶段二开始）：
+   - .statuses-*（状态面板/卡片/浮层等）
+   - #trade-modal*（交易表格/工具栏/粘性表头/列宽与对齐策略等）
+   - .timeline-*（时间线暗色皮肤/标签/悬浮详情等）
+*/

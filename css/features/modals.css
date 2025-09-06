@@ -1,0 +1,7 @@
+/* Phase 1 - features/modals.css
+   模态系统通用样式占位（阶段一仅建立结构，不做聚合 @import）
+   后续迁移范围（阶段二开始）：
+   - .modal-overlay / .modal-content / .modal-header / .modal-title / .modal-close-btn
+   - 各业务模态共性：intro / settings / save-load / history / command-center 等
+   - 内嵌搜索栏等通用控件风格（尽量复用 components/common-ui.css 的变量与基元）
+*/

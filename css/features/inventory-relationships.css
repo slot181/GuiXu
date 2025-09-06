@@ -1,0 +1,7 @@
+/* Phase 1 - features/inventory-relationships.css
+   背包与人物关系通用样式占位（阶段一仅建立结构，不做聚合 @import）
+   后续迁移范围（阶段二开始）：
+   - .inventory-*（背包列表/卡片/按钮栅格/搜索栏等）
+   - .relationship-*（关系卡片/操作区/筛选标签/网格布局等）
+   - 共用按钮尺寸统一与移动端网格适配（与 views/states 作用域相互配合）
+*/

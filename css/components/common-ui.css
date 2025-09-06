@@ -1,0 +1,119 @@
+/* Phase 1 - components/common-ui.css
+   通用 UI 基元（按钮、输入、panel/section 标题等）
+   注意：仅放“通用样式”，不要放视图/状态特定覆盖 */
+
+/* 按钮基元 */
+.interaction-btn {
+  padding: 10px 8px;
+  background: linear-gradient(45deg, #1a1a2e, #2d1b3d);
+  border: 1px solid #c9aa71;
+  border-radius: 5px;
+  color: #c9aa71;
+  font-size: 12px;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.3s ease;
+}
+.interaction-btn:hover {
+  background: linear-gradient(45deg, #2d1b3d, #3d2b4d);
+}
+
+.primary-btn {
+  background: linear-gradient(45deg, #8b4513, #cd853f);
+  border-color: #daa520;
+  color: #fff;
+}
+.primary-btn:hover {
+  background: linear-gradient(45deg, #cd853f, #daa520);
+}
+
+/* 统一危险按钮基元（与整体UI一致） */
+.danger-btn {
+  background: #8b0000;
+  border: 1px solid #ff6b6b;
+  color: #fff;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+.danger-btn:hover {
+  background: #a52a2a;
+}
+
+/* 面板与标题 */
+.panel-section {
+  margin-bottom: 15px;
+  padding: 8px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 5px;
+  border: 1px solid rgba(201, 170, 113, 0.3);
+}
+.section-title {
+  font-size: 13px;
+  color: #c9aa71;
+  margin-bottom: 8px;
+  text-align: center;
+  border-bottom: 1px solid rgba(201, 170, 113, 0.3);
+  padding-bottom: 4px;
+}
+
+/* 统一输入与选择控件视觉（变量由 base/tokens.css 提供） */
+.gx-input {
+  height: var(--gx-input-height, 32px);
+  padding: 0 10px;
+  background: var(--gx-input-bg, rgba(26,26,46,0.5));
+  border: 1px solid var(--gx-input-border-color, rgba(201,170,113,0.35));
+  border-radius: var(--gx-input-radius, 8px);
+  color: var(--gx-input-color, #e8e3d6);
+  font-size: 12px;
+  outline: none;
+  box-sizing: border-box;
+}
+.gx-input::placeholder {
+  color: var(--gx-placeholder-color, #8b7355);
+}
+.gx-input:hover {
+  background: var(--gx-input-bg-hover, rgba(26,26,46,0.6));
+  border-color: var(--gx-input-border-color-hover, rgba(201,170,113,0.45));
+}
+.gx-input:focus {
+  background: var(--gx-input-bg-focus, rgba(26,26,46,0.65));
+  border-color: var(--gx-input-border-color-focus, rgba(201,170,113,0.65));
+  box-shadow: var(--gx-input-shadow-focus, 0 0 0 2px rgba(201,170,113,0.12));
+  outline: none;
+}
+
+.gx-select {
+  height: var(--gx-input-height, 32px);
+  padding: 0 8px;
+  background: var(--gx-input-bg, rgba(26,26,46,0.5));
+  border: 1px solid var(--gx-input-border-color, rgba(201,170,113,0.35));
+  border-radius: var(--gx-input-radius, 8px);
+  color: var(--gx-input-color, #e8e3d6);
+  font-size: 12px;
+  outline: none;
+  box-sizing: border-box;
+}
+.gx-select:hover {
+  background: var(--gx-input-bg-hover, rgba(26,26,46,0.6));
+  border-color: var(--gx-input-border-color-hover, rgba(201,170,113,0.45));
+}
+.gx-select:focus {
+  background: var(--gx-input-bg-focus, rgba(26,26,46,0.65));
+  border-color: var(--gx-input-border-color-focus, rgba(201,170,113,0.65));
+  box-shadow: var(--gx-input-shadow-focus, 0 0 0 2px rgba(201,170,113,0.12));
+  outline: none;
+}
+
+/* 统一下拉选择控件箭头与内边距（确保与搜索框像素级一致） */
+.gx-select,
+.guixu-root-container #settings-modal select,
+.guixu-root-container #statuses-modal select,
+.guixu-root-container #inventory-modal #inventory-currency-unit {
+  -webkit-appearance: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23c9aa71' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  padding-right: 28px !important; /* 给箭头留出空间，保持高度与左右内边距一致 */
+}
