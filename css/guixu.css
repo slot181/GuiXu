@@ -71,68 +71,7 @@ body { margin: 0; }
   position: relative;
 }
 
-/* 版本小标签：紧贴底部栏右下角（桌面与移动端一致） */
-.version-badge {
-  position: absolute;
-  right: 8px;
-  bottom: 6px;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 2px 6px;                 /* 更小更精致 */
-  background: rgba(15, 15, 35, 0.4); /* 去掉外框，仅半透明底色 */
-  border: none;                      /* 不要外框 */
-  border-radius: 999px;
-  color: #c9aa71;
-  font-size: 10px;                   /* 比原来更小 */
-  text-decoration: none;
-  z-index: 100;
-  line-height: 1;
-  white-space: nowrap;
-}
-.version-badge .vb-text { color: #c9aa71; }
-.version-badge .vb-pill {
-  padding: 1px 5px;                  /* 小胶囊更小 */
-  border: 1px solid #daa520;         /* 仅“可更新”胶囊保留强调边框 */
-  border-radius: 999px;
-  background: linear-gradient(45deg, #8b4513, #cd853f);
-  color: #fff;
-  font-size: 9px;
-  line-height: 1;
-}
-.version-badge.is-update {
-  box-shadow: none;                  /* 去掉外发光，避免显得厚重 */
-}
 
-/* 移动端：同样固定在右下角，略微再收紧 */
-.guixu-root-container.mobile-view .version-badge {
-  right: 8px;
-  bottom: 6px;
-  padding: 2px 5px;
-  font-size: 9px;
-}
-.guixu-root-container.mobile-view .version-badge .vb-pill {
-  padding: 1px 4px;
-  font-size: 8.5px;
-}
-
-.status-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-}
-
-.status-label {
-  font-size: 11px;
-  color: #8b7355;
-}
-
-.status-value {
-  font-size: 14px;
-  color: #c9aa71;
-  font-weight: bold;
-}
 
 .progress-bar {
   width: 70px;
@@ -437,24 +376,6 @@ body { margin: 0; }
   font-size: 12px;
 }
 
-.status-effect {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  padding: 4px 8px;
-  background: rgba(0, 0, 0, 0.3);
-  border-radius: 15px;
-  border: 1px solid rgba(201, 170, 113, 0.3);
-  white-space: nowrap;
-  font-size: 10px;
-}
-
-.effect-icon {
-  width: 14px;
-  height: 14px;
-  background: #c9aa71;
-  border-radius: 50%;
-}
 
 /* --- 中央内容区 --- */
 .main-content {
@@ -489,67 +410,6 @@ body { margin: 0; }
   /* 淡绿色 */
 }
 
-/* --- 模态窗口 (Modal) 样式 --- */
-.modal-overlay {
-  display: none;
-  /* 默认隐藏 */
-  position: absolute;
-  /* 相对于 .guixu-root-container 定位 */
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.8);
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-}
-
-.modal-content {
-  background: rgba(26, 26, 46, 0.95);
-  border: 1px solid #c9aa71;
-  border-radius: 8px;
-  padding: 20px;
-  width: 90%;
-  max-width: 800px;
-  height: 90%;
-  max-height: 550px;
-  display: flex;
-  flex-direction: column;
-  box-shadow: 0 0 20px rgba(201, 170, 113, 0.3);
-}
-
-.modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  border-bottom: 1px solid rgba(201, 170, 113, 0.5);
-  padding-bottom: 10px;
-  margin-bottom: 15px;
-}
-
-.modal-title {
-  font-size: 18px;
-  color: #c9aa71;
-}
-
-.modal-close-btn {
-  font-size: 24px;
-  color: #8b7355;
-  cursor: pointer;
-  background: none;
-  border: none;
-}
-
-.modal-close-btn:hover {
-  color: #c9aa71;
-}
-
-.modal-body {
-  flex-grow: 1;
-  overflow-y: auto;
-  position: relative; /* 供 #trade-tooltip 等浮窗进行相对定位 */
-}
 
 /* Intro 引导浮窗：有序列表与链接色，尺寸与 .modal-content 保持一致 */
 #intro-modal a, #intro-modal a:visited { color:#3b82f6 !important; text-decoration: underline; }
@@ -575,121 +435,6 @@ body { margin: 0; }
   font-size: 12px;
 }
 
-/* --- 大事记时间线样式 (参考 修仙之路) --- */
-.timeline-container {
-  position: relative;
-  padding: 20px 0;
-  margin-left: 20px;
-}
-
-.timeline-line {
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 2px;
-  background: #e0e0e0;
-  /* 改为浅灰色 */
-}
-
-.timeline-event {
-  position: relative;
-  margin-bottom: 30px;
-  padding-left: 30px;
-  transition: all 0.3s ease;
-}
-
-.timeline-event:hover {
-  transform: translateX(5px);
-}
-
-.timeline-event::before {
-  content: '';
-  position: absolute;
-  left: -5px;
-  top: 5px;
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  background: #ffffff;
-  /* 改为白色 */
-  border: 2px solid #cccccc;
-  /* 改为灰色边框 */
-}
-
-.timeline-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 8px;
-}
-
-.timeline-date {
-  font-size: 12px;
-  color: #757575;
-  /* 深灰色 */
-  font-style: italic;
-}
-
-.timeline-tags {
-  display: flex;
-  gap: 5px;
-}
-
-.tag-item {
-  background-color: #eeeeee;
-  /* 浅灰色背景 */
-  border: 1px solid #e0e0e0;
-  color: #616161;
-  /* 深灰色文字 */
-  padding: 2px 8px;
-  border-radius: 4px;
-  font-size: 10px;
-  white-space: nowrap;
-  font-style: italic;
-}
-
-.timeline-content {
-  background: #ffffff;
-  /* 改为白色背景 */
-  padding: 15px;
-  border-radius: 5px;
-  border: 1px solid #000000;
-  /* 黑色边框 */
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
-
-.timeline-title {
-  font-weight: bold;
-  margin-bottom: 8px;
-  color: #212121;
-  /* 近黑色 */
-  font-style: italic;
-}
-
-.timeline-description {
-  font-size: 13px;
-  color: #424242;
-  /* 深灰色 */
-  line-height: 1.7;
-}
-
-.past-life-details {
-  margin-top: 10px;
-  font-size: 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  color: #424242;
-  /* 深灰色 */
-}
-
-.detail-item>strong {
-  color: #212121;
-  /* 近黑色 */
-  margin-right: 5px;
-  font-style: italic;
-}
 
 /* 已迁移到 css/utilities/scrollbar-tooltips.css: 滚动条样式 */
 
@@ -1867,14 +1612,6 @@ body { margin: 0; }
   /* 调整位置 */
 }
 
-/* 调整字体大小 */
-.mobile-view .status-value {
-  font-size: 12px;
-}
-
-.mobile-view .status-label {
-  font-size: 10px;
-}
 
 .mobile-view .section-title {
   font-size: 12px;
@@ -2342,100 +2079,13 @@ body { margin: 0; }
 
 /* 已迁移到 css/states/fullscreen.css: 移动端横屏全屏固定底部栏与安全区适配（去重） */
 
-/* --- 状态类型配色（底部快捷状态与模态统一） --- */
-.status-effect--BUFF {
-  background: rgba(60, 179, 113, 0.2);
-  border-color: rgba(60, 179, 113, 0.5);
-}
-.status-effect--BUFF .effect-icon {
-  background: #3cb371;
-}
 
-.status-effect--DEBUFF {
-  background: rgba(255, 107, 107, 0.2);
-  border-color: rgba(255, 107, 107, 0.5);
-}
-.status-effect--DEBUFF .effect-icon {
-  background: #ff6b6b;
-}
 
-.status-effect--NEUTRAL {
-  background: rgba(160, 156, 145, 0.2);
-  border-color: rgba(160, 156, 145, 0.4);
-}
-.status-effect--NEUTRAL .effect-icon {
-  background: #a09c91;
-}
 
-.status-effect--AURA {
-  background: rgba(147, 112, 219, 0.2);
-  border-color: rgba(147, 112, 219, 0.5);
-}
-.status-effect--AURA .effect-icon {
-  background: #9370db;
-}
 
-.status-effect--TERRAIN {
-  background: rgba(218, 165, 32, 0.2);
-  border-color: rgba(218, 165, 32, 0.5);
-}
-.status-effect--TERRAIN .effect-icon {
-  background: #daa520;
-}
 
-/* 模态内状态卡片边框强调 */
-.status-card[data-status-type="BUFF"] { border-color: rgba(60,179,113,0.6) !important; }
-.status-card[data-status-type="DEBUFF"] { border-color: rgba(255,107,107,0.6) !important; }
-.status-card[data-status-type="NEUTRAL"] { border-color: rgba(160,156,145,0.6) !important; }
-.status-card[data-status-type="AURA"] { border-color: rgba(147,112,219,0.6) !important; }
-.status-card[data-status-type="TERRAIN"] { border-color: rgba(218,165,32,0.6) !important; }
 
-/* 状态卡片网格布局：稳定不跳列，展开只向下扩展 */
-.statuses-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 10px;
-  align-items: start;
-}
 
-.status-card-wrapper {
-  display: block;
-  /* grid 下不需要 column-break 控制，避免不必要的重排 */
-}
-
-/* 状态一览：将详情改为浮层显示，避免展开时整体重排“挤来挤去” */
-#statuses-modal .statuses-grid { position: relative; overflow: visible; }
-#statuses-modal .status-card { position: relative; overflow: visible; }
-
-/* 浮层详情：相对卡片定位，向下展开为弹出层，不占据网格高度 */
-#statuses-modal .status-card .status-details {
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: calc(100% + 6px);
-  background: rgba(26, 26, 46, 0.95);
-  border: 1px solid rgba(201, 170, 113, 0.4);
-  border-radius: 6px;
-  padding: 10px;
-  z-index: 20;
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5);
-  max-height: 280px;
-  overflow-y: auto;
-}
-
-/* summary 区域保持紧凑，点击仅弹出浮层 */
-#statuses-modal .status-card > summary {
-  cursor: pointer;
-  list-style: none;
-}
-
-/* 保证弹层可见不被裁剪 */
-#statuses-modal .modal-body { overflow: auto; }
-
-.status-details {
-  border-top: 1px solid rgba(201, 170, 113, 0.2);
-  padding-top: 8px;
-}
 
 /* 背景预览框样式 */
 .bg-preview {
@@ -2721,32 +2371,6 @@ body { margin: 0; }
   }
 }
 
-/* 新增：状态浮窗按钮与布局调整 */
-#status-effects-wrapper { display: none !important; } /* 隐藏底部状态筹码滚动条 */
-#btn-view-statuses { display: none !important; }     /* 移除“查看状态”按钮 */
-#btn-quick-commands { display: none !important; }    /* 隐藏底部“当前指令”按钮 */
-
-.status-pop-btn {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  padding: 4px 10px;
-  background: rgba(0, 0, 0, 0.3);
-  border-radius: 15px;
-  border: 1px solid rgba(201, 170, 113, 0.3);
-  color: #c9aa71;
-  font-size: 12px;
-  cursor: pointer;
-}
-.status-pop-btn:hover {
-  background-color: rgba(201, 170, 113, 0.1);
-}
-.status-pop-btn .effect-icon {
-  width: 14px;
-  height: 14px;
-  background: #c9aa71;
-  border-radius: 50%;
-}
 
 /* 轻微调整快速发送容器的间距（保持居中时的视觉间隔） */
 .quick-send-container { margin: 0 10px; }
@@ -2891,79 +2515,12 @@ body { margin: 0; }
 }
 
 /* --- 历史面板搜索栏样式（与背包搜索一致风格） --- */
-#history-modal .history-search {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-left: 10px;
-}
-#history-modal .history-search input#history-search-input {
-  height: var(--gx-input-height, 32px);
-  min-width: 180px;
-  padding: 0 10px;
-  background: var(--gx-input-bg, rgba(26,26,46,0.5));
-  border: 1px solid var(--gx-input-border-color, rgba(201,170,113,0.35));
-  border-radius: var(--gx-input-radius, 8px);
-  color: var(--gx-input-color, #e8e3d6);
-  font-size: 12px;
-  box-sizing: border-box;
-}
-#history-modal .history-search input#history-search-input::placeholder {
-  color: var(--gx-placeholder-color, #8b7355);
-}
-#history-modal .history-search #history-search-clear {
-  height: 32px;
-  padding: 0 10px;
-}
 
 /* 桌面端：历史面板头部改为两行布局，防止动作按钮与搜索栏挤在一行导致变形 */
-.guixu-root-container:not(.mobile-view) #history-modal .modal-header {
-  flex-wrap: wrap !important;
-  gap: 8px !important;            /* 与移动端保持一致的间距 */
-  align-items: center !important;
-}
 /* 新增：桌面端历史面板动作工具栏横排（支持自动换行，避免溢出到面板外） */
-.guixu-root-container:not(.mobile-view) #history-modal .history-toolbar {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;              /* 窄宽度下允许换行，防止溢出到面板外 */
-  width: 100%;
-  max-width: 100%;
-}
 /* 历史面板内的按钮不拉满宽度；清除按钮不占据搜索栏可用空间 */
-.guixu-root-container:not(.mobile-view) #history-modal .history-toolbar .interaction-btn,
-.guixu-root-container:not(.mobile-view) #history-modal .history-search .interaction-btn {
-  width: auto !important;
-  flex: 0 0 auto !important;
-}
 /* 将动作区置于第二行并允许换行；覆盖 inline 的 margin-left:auto */
-.guixu-root-container:not(.mobile-view) #history-modal #history-modal-actions {
-  order: 2 !important;
-  flex: 1 1 100% !important;
-  display: flex !important;
-  flex-wrap: wrap !important;
-  gap: 8px !important;
-  margin-left: 0 !important;      /* 取消被推到最右侧，避免撑出面板 */
-  align-items: center !important;
-}
 /* 搜索区域自适应占位：不足时换行，充足时在同一行靠右展开 */
-.guixu-root-container:not(.mobile-view) #history-modal .history-search {
-  flex: 1 1 100% !important;      /* 桌面端采用与移动端一致的全宽单行搜索区 */
-  width: 100% !important;
-  min-width: 0 !important;
-  margin-left: 0 !important;      /* 覆盖基础的 margin-left:10px，防止被挤出 */
-  margin-top: 6px;
-}
-.guixu-root-container:not(.mobile-view) #history-modal .history-search input#history-search-input {
-  flex: 1 1 auto !important;      /* 输入框随容器伸缩，跟随移动端布局 */
-  width: auto !important;
-  min-width: 0 !important;        /* 取消基础最小宽度限制，避免与清除按钮一起溢出 */
-}
-.guixu-root-container:not(.mobile-view) #history-modal .history-search #history-search-clear {
-  flex: 0 0 auto !important;
-  min-width: 72px !important;
-}
 
 /* 动作按钮维持紧凑尺寸且允许换行，不被强制拉伸 */
 .guixu-root-container:not(.mobile-view) #history-modal .interaction-btn.btn-compact,
@@ -2974,12 +2531,6 @@ body { margin: 0; }
 }
 
 /* 历史面板：动作区与时间线动作区（收敛内联样式） */
-#history-modal .history-action-group {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-#history-modal #auto-trim-checkbox { cursor: pointer; }
 
 /* 桌面端：紧凑按钮尺寸（覆盖全局32px统一规则） */
 .guixu-root-container:not(.mobile-view) #history-modal .interaction-btn.btn-compact,
@@ -2992,62 +2543,8 @@ body { margin: 0; }
   box-sizing: border-box;
 }
 
-/* 时间线条目动作区与批量选择开关 */
-.timeline-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 8px;
-}
-.timeline-actions .batch-select {
-  display: none;
-  align-items: center;
-  gap: 4px;
-  font-size: 12px;
-}
-/* 当容器进入批量模式时显示复选框 */
-.timeline-container.batch-mode .batch-select {
-  display: inline-flex;
-}
 
-/* 将事件卡片设为可点击（去除行内 cursor 需求） */
-.timeline-event { cursor: pointer; }
 
-/* --- 历程/涟漪 时间线卡片美化（覆盖默认白底） --- */
-.timeline-line {
-  background: linear-gradient(180deg, rgba(201,170,113,0.65), rgba(201,170,113,0.2));
-}
-.timeline-event::before {
-  background: radial-gradient(circle, #ffd57a 0%, #daa520 60%, rgba(218,165,32,0.2) 100%);
-  border: 2px solid #c9aa71;
-  box-shadow: 0 0 8px rgba(201,170,113,0.7), 0 0 2px rgba(201,170,113,0.9) inset;
-}
-.timeline-content {
-  background: radial-gradient(120% 120% at 20% 0%, rgba(45,27,61,0.85) 0%, rgba(15,15,35,0.92) 60%);
-  border: 1px solid rgba(201,170,113,0.55);
-  box-shadow: 0 6px 18px rgba(0,0,0,0.35), inset 0 0 18px rgba(201,170,113,0.08);
-}
-.timeline-title {
-  color: #c9aa71;
-}
-.timeline-description {
-  color: #a09c91;
-}
-.timeline-date {
-  color: #8b7355;
-}
-.timeline-tags .tag-item {
-  background: rgba(201,170,113,0.12);
-  border: 1px solid rgba(201,170,113,0.35);
-  color: #e0dcd1;
-}
-/* 暗色时间线卡片下的往世详细文字颜色优化 */
-.timeline-content .past-life-details { 
-  color: #e0dcd1; 
-}
-.timeline-content .detail-item>strong { 
-  color: #c9aa71; 
-}
 
 
 /* --- 移动端：历史面板头部换行与搜索栏自适应，防止“清除”溢出 --- */
@@ -3078,41 +2575,7 @@ body { margin: 0; }
   min-width: 72px !important;
 }
 
-/* --- 时间线标签在小屏换行且不挤压布局 --- */
-.timeline-header { align-items: flex-start; }
-.timeline-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  row-gap: 4px;
-  justify-content: flex-end;
-  max-width: 60%;
-}
-.timeline-tags .tag-item {
-  max-width: 120px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-@media (max-width: 900px) {
-  .timeline-tags {
-    max-width: 100%;
-    justify-content: flex-start;
-  }
-  .timeline-tags .tag-item { max-width: 90px; }
-}
 
-/* 移动端：时间线日期与标签分行显示，标签独占一行 */
-.guixu-root-container.mobile-view .timeline-header {
-  flex-direction: column !important;
-  align-items: flex-start !important;
-  gap: 6px !important;
-}
-.guixu-root-container.mobile-view .timeline-tags {
-  max-width: 100% !important;
-  width: 100% !important;
-  justify-content: flex-start !important;
-}
 
 /* ================= 合并“核心属性 + 修为详情”模块样式（进度条展示 + 点击浮窗） ================= */
 /* 使属性说明浮窗可相对角色面板定位 */

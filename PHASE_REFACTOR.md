@@ -173,10 +173,35 @@ scripts/
 - 风险控制：引入顺序固定为 base → components → features → utilities → views → states；views/states 不使用裸选择器，全部带作用域前缀。
 - 回滚：阶段 1 始终保留 `css/guixu.css` 在最后；若出现偏差先在新文件中补齐，再逐步从 `guixu.css` 移除片段；最终回归通过后再删除 `guixu.css` 链接。
 
-## 阶段 2（预告）
+## 阶段 2（进行中）
 
-- 继续细分 features：inventory.css / relationships.css / statuses.css / trade.css / timeline.css / version-badge.css …
-- 若追求极致性能：使用 JS 动态增删 link（视图切换与 `fullscreenchange`），降低解析字节；需处理切换时机与贴边布局抖动。
+- 已完成
+  - 新建并引入细粒度 features 文件（全部以独立 link，从域名 https://edit.stonecoks.vip 加载）：
+    - css/features/version-badge.css
+    - css/features/inventory.css
+    - css/features/relationships.css
+    - css/features/trade.css
+    - css/features/timeline.css
+    - css/features/statuses.css
+  - 充实 css/features/modals.css：补齐通用 .modal-overlay/.modal-content/.modal-header/.modal-title/.modal-close-btn/.modal-body 共性规则
+  - 更新 index.html 功能域引入：保留聚合占位（inventory-relationships.css、statuses-trade-timeline.css）以便回滚，并在其后并行引入细粒度文件，保证新文件覆盖旧聚合；整体顺序仍为 base → components → features → utilities → views → states；视图与状态文件同时静态引入
+  - 从 css/guixu.css 精准剔除并迁移：
+    - 状态域：顶部状态条 .status-*、状态筹码 .status-effect*、状态一览 #statuses-modal 相关（迁至 features/statuses.css）
+    - 模态通用 .modal-*（迁至 features/modals.css）
+    - 时间线暗色美化与相关块、历史面板搜索/工具栏/动作区等共性（迁至 features/timeline.css）
+    - 版本徽标（已迁至 features/version-badge.css，先前阶段已完成）
+  - 嵌入式（酒馆楼层 iframe）场景：viewport/root-container 定位、自适应高度与可滚动性已在 base/layout.css、states/windowed.css 与 guixu.css 生效；移动端兜底媒体查询存在，非全屏时允许内容自撑高并可滚动
+
+- 待办
+  - 持续从 css/guixu.css 剔除 inventory/relationships/trade 零散重复段，并在对应 features 文件补齐必要个性化
+  - modals.css 后续继续收敛 intro/settings/save-load/history/command-center 等“通用模态”细节（共性保留在 modals.css，个性化留在各自 features）
+  - 四象限回归验证：桌面/移动 × 全屏/窗口化；关键区域（顶部栏/正文/左右侧栏/底栏/模态/表格/列表/按钮）不回退、不重排
+  - 回归通过后，移除 index.html 中聚合占位样式；最终移除 guixu.css 兜底 link
+
+- 验证项
+  - 全站无 @import（仅文档注释中存在“@import”字样说明，不影响加载）
+  - Google Fonts 仅在 HTML 中以 link 引入
+  - 嵌入式场景非全屏滚动与 min-height 行为满足预期
 
 ---
 

@@ -1,0 +1,214 @@
+/* Phase 2 - features/statuses.css
+   迁移范围：
+   - 顶部状态条基础（.status-item/.status-label/.status-value + 移动端字号）
+   - 状态效果筹码（.status-effect/.effect-icon 及类型配色）
+   - 状态一览（#statuses-modal）网格/浮层详情/输入控件统一视觉
+   - 状态浮窗入口按钮（.status-pop-btn）与旧入口隐藏
+   说明：
+   - 保持与 guixu.css 一致的选择器与属性，降低回归风险
+   - 与 views/states 同时静态引入，依靠选择器作用域避免互踩
+*/
+
+/* 顶部状态条基础 */
+.status-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.status-label {
+  font-size: 11px;
+  color: #8b7355;
+}
+
+.status-value {
+  font-size: 14px;
+  color: #c9aa71;
+  font-weight: bold;
+}
+
+/* 底部快捷状态筹码 */
+.status-effect {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 8px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 15px;
+  border: 1px solid rgba(201, 170, 113, 0.3);
+  white-space: nowrap;
+  font-size: 10px;
+}
+
+.effect-icon {
+  width: 14px;
+  height: 14px;
+  background: #c9aa71;
+  border-radius: 50%;
+}
+
+/* --- 状态类型配色（底部快捷状态与模态统一） --- */
+.status-effect--BUFF {
+  background: rgba(60, 179, 113, 0.2);
+  border-color: rgba(60, 179, 113, 0.5);
+}
+.status-effect--BUFF .effect-icon {
+  background: #3cb371;
+}
+
+.status-effect--DEBUFF {
+  background: rgba(255, 107, 107, 0.2);
+  border-color: rgba(255, 107, 107, 0.5);
+}
+.status-effect--DEBUFF .effect-icon {
+  background: #ff6b6b;
+}
+
+.status-effect--NEUTRAL {
+  background: rgba(160, 156, 145, 0.2);
+  border-color: rgba(160, 156, 145, 0.4);
+}
+.status-effect--NEUTRAL .effect-icon {
+  background: #a09c91;
+}
+
+.status-effect--AURA {
+  background: rgba(147, 112, 219, 0.2);
+  border-color: rgba(147, 112, 219, 0.5);
+}
+.status-effect--AURA .effect-icon {
+  background: #9370db;
+}
+
+.status-effect--TERRAIN {
+  background: rgba(218, 165, 32, 0.2);
+  border-color: rgba(218, 165, 32, 0.5);
+}
+.status-effect--TERRAIN .effect-icon {
+  background: #daa520;
+}
+
+/* 模态内状态卡片边框强调 */
+.status-card[data-status-type="BUFF"] { border-color: rgba(60,179,113,0.6) !important; }
+.status-card[data-status-type="DEBUFF"] { border-color: rgba(255,107,107,0.6) !important; }
+.status-card[data-status-type="NEUTRAL"] { border-color: rgba(160,156,145,0.6) !important; }
+.status-card[data-status-type="AURA"] { border-color: rgba(147,112,219,0.6) !important; }
+.status-card[data-status-type="TERRAIN"] { border-color: rgba(218,165,32,0.6) !important; }
+
+/* 状态卡片网格布局：稳定不跳列，展开只向下扩展 */
+.statuses-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 10px;
+  align-items: start;
+}
+
+.status-card-wrapper {
+  display: block;
+  /* grid 下不需要 column-break 控制，避免不必要的重排 */
+}
+
+/* 状态一览：将详情改为浮层显示，避免展开时整体重排“挤来挤去” */
+#statuses-modal .statuses-grid { position: relative; overflow: visible; }
+#statuses-modal .status-card { position: relative; overflow: visible; }
+
+/* 浮层详情：相对卡片定位，向下展开为弹出层，不占据网格高度 */
+#statuses-modal .status-card .status-details {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(100% + 6px);
+  background: rgba(26, 26, 46, 0.95);
+  border: 1px solid rgba(201, 170, 113, 0.4);
+  border-radius: 6px;
+  padding: 10px;
+  z-index: 20;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5);
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+/* summary 区域保持紧凑，点击仅弹出浮层 */
+#statuses-modal .status-card > summary {
+  cursor: pointer;
+  list-style: none;
+}
+
+/* 保证弹层可见不被裁剪 */
+#statuses-modal .modal-body { overflow: auto; }
+
+.status-details {
+  border-top: 1px solid rgba(201, 170, 113, 0.2);
+  padding-top: 8px;
+}
+
+/* 新增：状态浮窗按钮与布局调整 */
+#status-effects-wrapper { display: none !important; } /* 隐藏底部状态筹码滚动条 */
+#btn-view-statuses { display: none !important; }     /* 移除“查看状态”按钮 */
+#btn-quick-commands { display: none !important; }    /* 隐藏底部“当前指令”按钮 */
+
+.status-pop-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 15px;
+  border: 1px solid rgba(201, 170, 113, 0.3);
+  color: #c9aa71;
+  font-size: 12px;
+  cursor: pointer;
+}
+.status-pop-btn:hover {
+  background-color: rgba(201, 170, 113, 0.1);
+}
+.status-pop-btn .effect-icon {
+  width: 14px;
+  height: 14px;
+  background: #c9aa71;
+  border-radius: 50%;
+}
+
+/* 状态一览面板：输入与选择统一视觉（如有过滤/搜索控件时生效） */
+.guixu-root-container #statuses-modal input[type="text"],
+.guixu-root-container #statuses-modal input[type="number"],
+.guixu-root-container #statuses-modal input[type="search"],
+.guixu-root-container #statuses-modal select {
+  height: var(--gx-input-height, 32px) !important;
+  padding: 0 10px !important;
+  background: var(--gx-input-bg, rgba(26,26,46,0.5)) !important;
+  border: 1px solid var(--gx-input-border-color, rgba(201,170,113,0.35)) !important;
+  border-radius: var(--gx-input-radius, 8px) !important;
+  color: var(--gx-input-color, #e8e3d6) !important;
+  font-size: 12px !important;
+  outline: none !important;
+  box-sizing: border-box !important;
+}
+.guixu-root-container #statuses-modal input::placeholder {
+  color: var(--gx-placeholder-color, #8b7355);
+}
+.guixu-root-container #statuses-modal input[type="text"]:hover,
+.guixu-root-container #statuses-modal input[type="number"]:hover,
+.guixu-root-container #statuses-modal input[type="search"]:hover,
+.guixu-root-container #statuses-modal select:hover {
+  background: var(--gx-input-bg-hover, rgba(26,26,46,0.6));
+  border-color: var(--gx-input-border-color-hover, rgba(201,170,113,0.45));
+}
+.guixu-root-container #statuses-modal input[type="text"]:focus,
+.guixu-root-container #statuses-modal input[type="number"]:focus,
+.guixu-root-container #statuses-modal input[type="search"]:focus,
+.guixu-root-container #statuses-modal select:focus {
+  background: var(--gx-input-bg-focus, rgba(26,26,46,0.65));
+  border-color: var(--gx-input-border-color-focus, rgba(201,170,113,0.65));
+  box-shadow: var(--gx-input-shadow-focus, 0 0 0 2px rgba(201,170,113,0.12));
+  outline: none;
+}
+
+/* 移动端：调整顶部状态条字号 */
+.mobile-view .status-value {
+  font-size: 12px;
+}
+.mobile-view .status-label {
+  font-size: 10px;
+}

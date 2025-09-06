@@ -1,7 +1,65 @@
-/* Phase 1 - features/modals.css
-   模态系统通用样式占位（阶段一仅建立结构，不做聚合 @import）
-   后续迁移范围（阶段二开始）：
-   - .modal-overlay / .modal-content / .modal-header / .modal-title / .modal-close-btn
-   - 各业务模态共性：intro / settings / save-load / history / command-center 等
-   - 内嵌搜索栏等通用控件风格（尽量复用 components/common-ui.css 的变量与基元）
+/* Phase 2 - features/modals.css
+   模态系统通用样式（共性）
+   范围：.modal-overlay / .modal-content / .modal-header / .modal-title / .modal-close-btn / .modal-body
+   说明：各业务个性化规则保留在对应 features/*.css（如 intro/settings/save-load/history/command-center 等）
 */
+
+/* 遮罩与容器基础 */
+.modal-overlay {
+  display: none;                /* 默认隐藏，JS 控制显隐 */
+  position: absolute;           /* 相对 .guixu-root-container 定位 */
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.8);
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: rgba(26, 26, 46, 0.95);
+  border: 1px solid #c9aa71;
+  border-radius: 8px;
+  padding: 20px;
+  width: 90%;
+  max-width: 800px;
+  height: 90%;
+  max-height: 550px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 0 20px rgba(201, 170, 113, 0.3);
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid rgba(201, 170, 113, 0.5);
+  padding-bottom: 10px;
+  margin-bottom: 15px;
+}
+
+.modal-title {
+  font-size: 18px;
+  color: #c9aa71;
+}
+
+.modal-close-btn {
+  font-size: 24px;
+  color: #8b7355;
+  cursor: pointer;
+  background: none;
+  border: none;
+}
+
+.modal-close-btn:hover {
+  color: #c9aa71;
+}
+
+.modal-body {
+  flex-grow: 1;
+  overflow-y: auto;
+  position: relative; /* 供内部浮层（如 tooltip）相对定位 */
+}
