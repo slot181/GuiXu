@@ -1,7 +1,7 @@
 /*!
  * GuiXu CSS 入口 (阶段0/1)
  * - 作用域要求：尽量在 .guixu-root-container 下定义全局规则，避免污染宿主页面
- * - 渐进式迁移：当前仍通过 legacy 引入现有 guixu.css，确保无回归
+ * - 阶段8：已移除 legacy 引入；如需临时回滚可恢复 css/legacy/guixu.legacy.css
  */
 
 /* 基础设计层（Phase 1：Design Tokens 与基础层抽取） */
@@ -10,8 +10,7 @@
 @import url("./base/typography.css");
 @import url("./base/utilities.css");
 
-/* 迁移过渡层：保留旧选择器，逐步从 guixu.css 削减 */
-@import url("./legacy/guixu.legacy.css");
+/* legacy 已移除（Phase 8 收尾） */
 
 /* 布局层（阶段3）：基础布局与顶部/底部栏 */
 @import url("./layout/layout-core.css");

@@ -1,0 +1,5 @@
+# 忽略 legacy 与常见产物目录
+css/legacy/**
+**/dist/**
+**/build/**
+**/node_modules/**

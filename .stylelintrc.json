@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json.schemastore.org/stylelintrc",
+  "ignoreFiles": [
+    "css/legacy/**/*.css",
+    "**/dist/**",
+    "**/build/**",
+    "**/node_modules/**"
+  ],
+  "overrides": [
+    {
+      "files": ["**/*.css"]
+    }
+  ],
+  "rules": {
+    "at-rule-no-unknown": [
+      true,
+      {
+        "ignoreAtRules": ["layer", "tailwind", "apply"]
+      }
+    ],
+    "no-descending-specificity": null,
+    "declaration-no-important": true,
+    "selector-max-id": 0,
+    "selector-max-universal": 0,
+    "selector-max-attribute": 1,
+    "selector-max-type": 2,
+    "color-named": "never",
+    "alpha-value-notation": "number",
+    "custom-property-pattern": "^--[a-z0-9\\-]+$",
+    "selector-class-pattern": [
+      "^(guixu|gx|u|modal|tooltip|badge|inventory|relationships|statuses|trade|timeline|history|command-center|save-load|world-book|top-status|bottom-status|game-container|guixu-viewport|guixu-root-container)(?:[a-z0-9\\-]*)(?:__(?:[a-z0-9\\-]+))?(?:--(?:[a-z0-9\\-]+))?$",
+      {
+        "resolveNestedSelectors": true,
+        "message": "类名需采用 BEM 并使用统一前缀（gx- / guixu- / u- 等）"
+      }
+    ],
+    "selector-pseudo-class-no-unknown": [
+      true,
+      {
+        "ignorePseudoClasses": ["global"]
+      }
+    ]
+  }
+}

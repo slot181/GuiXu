@@ -362,3 +362,59 @@ HTML/JS 内联 → 类/变量 映射：
 - 修改：css/components/relationships.css（删除“全屏 + 移动端”段，改由 fullscreen.css 接管）
 - 修改：css/responsive/fullscreen.css（补入横屏全屏 two-btn 间距与正文底色过渡）
 - 验证：css/guixu.css（确认无 :fullscreen/-webkit-full-screen 尺寸/布局覆盖残留）
+
+--------------------------------------------------------------------------------
+
+## 14) 阶段8 增量清单（收尾与治理）
+
+目标与范围：
+- 移除 legacy 入口、建立样式规范与检查脚本；不进行大规模视觉调整，仅输出“残留内联映射建议与统计基线”，为后续小步替换提供依据。
+
+改动摘要：
+- css/index.css：移除 `@import "./legacy/guixu.legacy.css"`；头部注释标注回滚方式。
+- css/legacy/guixu.legacy.css：清空为兼容空壳（仅注释，默认不再引入 guixu.css）。
+- 新增根目录配置：
+  - .stylelintrc.json：BEM 前缀校验（gx-/guixu-/u- 等）、禁用 id、禁用 `!important`（工具类必要处除外）、忽略未知 @layer/tailwind/apply。
+  - .stylelintignore：忽略 css/legacy/**、dist/build/node_modules。
+- 新增检查脚本：scripts/check-style.sh
+  - 统计 HTML/JS 残留内联 style（允许 `style="--progress: xx%"` 作为临时例外）
+  - 统计 JS 主动写入 style API（建议改类/变量；定位/显隐可白名单保留）
+  - 检查 CSS 未作用域选择器（启发式，仅提示；guixu.css 未被入口加载，可忽略其提示）
+  - 检查 :fullscreen 归位（忽略 `:not(:fullscreen)` 的互斥条件；真正 fullscreen 规则应集中于 css/responsive/fullscreen.css）
+
+基线统计（来自脚本本次输出）：
+- 内联 style 总计：27
+  - 允许模式（--progress）：1
+  - 需整改（严格）：26
+- JS 写 style 次数：219（包含 display/position/尺寸/背景/边框 等）
+- 可能的未作用域选择器：主要来自 css/guixu.css（未被入口加载）
+- fullscreen 归位：真正 :fullscreen 规则集中于 css/responsive/fullscreen.css（已过滤 :not(:fullscreen)）
+
+残留内联映射建议（优先级从易到难）：
+- index.html
+  - `<span style="font-size:10px; color:#8b7355">…</span>` → `.u-text-12` + 在父容器或 utilities 中提供 `.u-color-brown { color: var(--gx-color-brown) }`
+  - `style="width:0%"`（进度）→ `style="--progress: 0%"`，并在 progress.css/对应条形类中使用 `width: var(--progress)`
+  - `style="margin-top:8px"` → `.u-mt-8`
+  - `style="display:flex; gap:10px; justify-content:center"` → `.u-flex .u-gap-10 .u-center`
+  - `style="display:flex; gap:8px; overflow-x:auto"` → `.u-flex .u-gap-8 .u-scroll-x`
+  - `<input type="file" style="display:none">` → `hidden` 属性或 `.u-hidden`
+- js/services/attributes.js / js/components/relationships.js
+  - `style="width:XX%"` → `style="--progress: XX%"` + 统一条形类（progress.css）
+  - 文本说明类行内（font-size/color/margin）→ `.u-text-12/.u-mb-8/.u-color-brown` 或组件局部语义类
+- js/components/guixu-system.js
+  - `style="margin-top: 15px"` → `.u-mt-15`
+  - `style="width: 80%"`（按钮）→ `.is-full` 或在容器栅格中用 `.u-flex-1`
+  - 渐变背景迁移至 progress.css 或以变量暴露（如 `--gx-progress-fill`）
+- js/services/action.js
+  - 错误提示块行内 → 统一 `.alert-error` 或复用 `.modal-placeholder` 风格
+
+落地方式（建议按 PR 小步推进）：
+1) 添加 utilities 颜色类（如 `.u-color-brown`），避免重复写色值。
+2) 逐个面板替换 index.html 中简单行内（margin/显示/布局/文件 input）。
+3) 将 JS 模板中的 `width:%` 统一替换为 `--progress` 变量。
+4) 将渐变/背景/边框/圆角等视觉属性从 JS 写入迁至 CSS 类或变量。
+5) 记录每次替换的映射于本文件，直至“除必要定位/显隐外内联≈0”。
+
+回滚与验证：
+- 回滚：按 Phase8-Task.md 第 3 节恢复 legacy 入口或在 legacy 空壳中临时引入 guixu.css。
+- 验证：执行 `bash scripts/check-style.sh` 获取最新统计；Stylelint 校验 BEM/作用域命名。

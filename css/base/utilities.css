@@ -159,3 +159,4 @@
 /* 字号与颜色工具（用于替换行内样式） */
 .guixu-root-container .u-text-12 { font-size: 12px !important; }
 .guixu-root-container .u-color-default { color: var(--guixu-story-color, #e0dcd1) !important; }
+.guixu-root-container .u-color-brown { color: var(--gx-color-brown) !important; }

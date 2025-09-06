@@ -1,6 +1,6 @@
 /*!
- * GuiXu Legacy Bridge (阶段0)
- * - 过渡期间保留旧样式，以避免视觉回归
- * - 后续阶段将逐步从 guixu.css 迁出到分层文件
+ * Phase 8: legacy 已下线
+ * - 此文件为兼容性空壳，不再导入 guixu.css
+ * - 如需临时回滚：可在 css/index.css 恢复 @import "./legacy/guixu.legacy.css"
+ *   或在此处临时加入 @import url("../guixu.css");
  */
-@import url("../guixu.css");
