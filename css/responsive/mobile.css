@@ -175,13 +175,13 @@
 /* 小屏兜底（<=900px）：在 JS 尚未注入 .mobile-view 之前，确保嵌入式环境也可见且可滚动 */
 @media (max-width: 900px) {
   /* 视口容器参与文档流，按内容自适应高度，允许滚动 */
-  .guixu-viewport {
+  .guixu-viewport:not(.force-desktop) {
     width: 100% !important;
     height: auto !important;
     overflow: auto !important;
   }
   /* 根容器不可用绝对定位，否则父容器高度会被误判为 0 导致整块不可见 */
-  .guixu-viewport .guixu-root-container {
+  .guixu-viewport:not(.force-desktop) .guixu-root-container:not(.force-desktop) {
     position: static !important;
     left: auto !important;
     top: auto !important;
@@ -189,31 +189,37 @@
     height: auto !important;
   }
   /* 覆盖桌面端固定尺寸的默认值 */
-  .guixu-root-container {
+  .guixu-root-container:not(.force-desktop) {
     width: 100% !important;
     height: auto !important;
   }
   /* 在 CSS 层面直接启用“移动端纵向布局”，即使 JS 还未给 .mobile-view 类 */
-  .game-container {
+  .guixu-root-container:not(.force-desktop) .game-container,
+  .guixu-viewport:not(.force-desktop) .game-container {
     display: flex !important;
     flex-direction: column !important;
     height: auto !important;
     min-height: 0 !important;
     gap: 0 !important;
   }
-  .main-content {
+  .guixu-root-container:not(.force-desktop) .main-content {
     order: 2;
     flex: 1 1 auto;
     min-height: 0;
     overflow-y: auto;
   }
-  .bottom-status {
+  .guixu-root-container:not(.force-desktop) .bottom-status {
     order: 5;
     flex: 0 0 auto;
   }
   /* 小屏默认隐藏左右侧栏（仅在移动端视图且未打开浮层时隐藏） */
   .guixu-root-container.mobile-view:not(.show-character-panel) .character-panel,
   .guixu-root-container.mobile-view:not(.show-interaction-panel) .interaction-panel {
+    display: none !important;
+  }
+  /* 小屏兜底：在未显式 .mobile-view 但也未强制桌面时，同步隐藏左右侧栏，避免“只有角色面板” */
+  .guixu-root-container:not(.force-desktop):not(.show-character-panel) .character-panel,
+  .guixu-root-container:not(.force-desktop):not(.show-interaction-panel) .interaction-panel {
     display: none !important;
   }
 }

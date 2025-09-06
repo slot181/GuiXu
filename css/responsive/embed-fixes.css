@@ -16,8 +16,8 @@
   height: auto;
 }
 
-/* 视口容器同样给出最小高度，确保根容器可撑开（使用动态视口单位以适配移动端地址栏） */
-.guixu-viewport {
+/* 视口容器同样给出最小高度（仅桌面端，移动端由 mobile.css 管），确保根容器可撑开（使用动态视口单位以适配移动端地址栏） */
+.guixu-viewport:not(.mobile-view) {
   min-height: 100vh;
   min-height: 100svh;
   min-height: 100dvh;
