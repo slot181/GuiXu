@@ -169,8 +169,19 @@
   color: #c9aa71;
 }
 
-/* 人物关系：删除按钮统一尺寸（与背包一致） */
+/* 人物关系删除按钮（危险样式 + 尺寸统一） */
 .relationship-card .btn-delete-relationship {
+  /* 危险基色（等同背包 .item-delete-btn） */
+  font-size: 12px;
+  background: #8b0000;
+  border: 1px solid #ff6b6b;
+  color: #fff;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.3s;
+  margin-left: 5px;
+
+  /* 尺寸统一（与背包保持一致） */
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
@@ -179,6 +190,7 @@
   line-height: 1 !important;
   box-sizing: border-box !important;
 }
+.relationship-card .btn-delete-relationship:hover { background: #a52a2a; }
 
 /* --- 移动端布局（modal 内） --- */
 .guixu-root-container.mobile-view #relationships-modal .relationship-header {
