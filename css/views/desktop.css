@@ -4,7 +4,7 @@
 */
 
 /* 桌面端通用按钮统一尺寸（不影响移动端），一次性修复“大小不一/四字拥挤/被行内样式压缩”等问题 */
-.guixu-root-container:not(.mobile-view) .interaction-btn:not(.worldline-btn),
+.guixu-root-container:not(.mobile-view) .interaction-btn:not(.worldline-btn):not(.action-guideline-btn),
 .guixu-root-container:not(.mobile-view) .primary-btn:not(.worldline-btn),
 .guixu-root-container:not(.mobile-view) .danger-btn:not(.worldline-btn),
 .guixu-root-container:not(.mobile-view) .clear-saves-btn {

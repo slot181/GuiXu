@@ -49,6 +49,16 @@
   outline: 2px solid rgba(218, 165, 32, 0.55);
   outline-offset: 2px;
 }
+
+/* 桌面端正文行动选项：长文本自适应换行与高度（避免文字溢出按钮） */
+.guixu-root-container:not(.mobile-view) #guixu-action-guidelines .action-guideline-btn {
+  height: auto !important;        /* 覆盖桌面端统一按钮高度 */
+  min-height: 32px;               /* 基础触达高度 */
+  white-space: normal !important; /* 允许换行 */
+  overflow-wrap: anywhere;        /* 超长英文/无空格字符串也可断行 */
+  word-break: break-word;         /* 兼容性兜底 */
+  box-sizing: border-box;         /* 包含内边距 */
+}
 /* 降低动画：尊重系统“减少动态效果”偏好 */
 @media (prefers-reduced-motion: reduce) {
   #guixu-action-guidelines .action-guideline-btn {
