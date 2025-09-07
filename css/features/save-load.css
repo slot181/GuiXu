@@ -1,0 +1,197 @@
+/* Phase 2 - features/save-load.css
+   存档管理面板（#save-load-modal）与存档条目（.save-slot*）专属样式
+   从 css/guixu.css 迁移，保持选择器与声明一致以避免特异性变化
+*/
+
+/* 移动端-存档管理 浮窗与每条存档布局优化（不影响桌面） */
+.guixu-root-container.mobile-view #save-load-modal .modal-content {
+  width: 96vw;
+  max-width: 96vw;
+  height: auto;
+  max-height: 90vh;
+  overflow-x: hidden;
+}
+.guixu-root-container.mobile-view #save-load-modal .modal-body {
+  overflow-y: auto;
+}
+.guixu-root-container.mobile-view #save-load-modal .modal-header {
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.guixu-root-container.mobile-view #save-slots-container .save-slot {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+}
+.guixu-root-container.mobile-view #save-slots-container .save-slot-info {
+  width: 100%;
+}
+.guixu-root-container.mobile-view #save-slots-container .save-slot-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  width: 100%;
+  justify-content: stretch;
+}
+.guixu-root-container.mobile-view #save-slots-container .save-slot-actions > button {
+  height: 36px;
+  padding: 0 10px;
+  min-width: 0;
+  box-sizing: border-box;
+}
+.clear-saves-btn {
+  background: #8b0000;
+  color: #fff;
+  border: 1px solid #ff6b6b;
+  padding: 4px 10px;
+  font-size: 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.3s;
+  margin-left: auto;
+  /* 将按钮推到右边 */
+}
+.clear-saves-btn:hover {
+  background: #a52a2a;
+}
+
+/* 移动端-自动存档列表：与手动存档一致的纵向布局与按钮网格 */
+.guixu-root-container.mobile-view #auto-save-slot-container > .save-slot,
+.guixu-root-container.mobile-view #auto-save-slot-container > .auto-save-slot {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
+  gap: 10px !important;
+}
+.guixu-root-container.mobile-view #auto-save-slot-container .save-slot-info,
+.guixu-root-container.mobile-view #auto-save-slot-container .slot-info {
+  width: 100% !important;
+}
+.guixu-root-container.mobile-view #auto-save-slot-container .save-slot-actions,
+.guixu-root-container.mobile-view #auto-save-slot-container .slot-actions {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 8px !important;
+  width: 100% !important;
+  justify-content: stretch !important;
+}
+.guixu-root-container.mobile-view #auto-save-slot-container button {
+  height: 36px !important;
+  padding: 0 10px !important;
+  min-width: 0 !important;
+  box-sizing: border-box !important;
+}
+
+/* 存档列表与条目（通用） */
+#save-slots-container {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+.save-slot {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(201, 170, 113, 0.3);
+  border-radius: 5px;
+  padding: 15px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.save-slot-info {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.save-slot-info .slot-name {
+  font-size: 16px;
+  color: #e0dcd1;
+}
+.save-slot-info .slot-time {
+  font-size: 12px;
+  color: #8b7355;
+  margin-top: 5px;
+}
+.save-slot-info .slot-summary {
+  font-size: 11px;
+  color: #a09c91;
+  margin-top: 8px;
+  font-style: italic;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex-grow: 1;
+  min-width: 0;
+}
+.save-slot-actions {
+  display: flex;
+  gap: 8px;
+  /* 减小间距以容纳更多按钮 */
+  flex-shrink: 0;
+  /* 防止按钮被压缩 */
+}
+
+/* 自动存档区域 */
+.auto-save-section {
+  padding: 15px;
+  margin-bottom: 15px;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(201, 170, 113, 0.3);
+  border-radius: 5px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.auto-save-title {
+  font-size: 16px;
+  color: #c9aa71;
+}
+.auto-save-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+.auto-save-toggle label {
+  font-size: 14px;
+  color: #a09c91;
+  cursor: pointer;
+}
+.auto-save-toggle input[type="checkbox"] {
+  cursor: pointer;
+  width: 18px;
+  height: 18px;
+}
+
+/* 全屏（移动端）下的存档面板收紧与尺寸恢复 */
+.guixu-root-container:fullscreen.mobile-view #save-load-modal .modal-content,
+.guixu-root-container:-webkit-full-screen.mobile-view #save-load-modal .modal-content {
+  width: 90%;
+  max-width: 800px;
+  height: 90%;
+  max-height: 550px;
+}
+.guixu-root-container:fullscreen.mobile-view #save-load-modal .modal-body,
+.guixu-root-container:-webkit-full-screen.mobile-view #save-load-modal .modal-body {
+  overflow-y: auto;
+}
+/* 按钮紧凑尺寸：覆盖移动端放大规则，仅限存档管理面板 */
+.guixu-root-container:fullscreen.mobile-view #save-load-modal .save-slot-actions > button,
+.guixu-root-container:-webkit-full-screen.mobile-view #save-load-modal .save-slot-actions > button,
+.guixu-root-container:fullscreen.mobile-view #save-load-modal .slot-actions > button,
+.guixu-root-container:-webkit-full-screen.mobile-view #save-load-modal .slot-actions > button,
+.guixu-root-container:fullscreen.mobile-view #save-load-modal .interaction-btn,
+.guixu-root-container:-webkit-full-screen.mobile-view #save-load-modal .interaction-btn,
+.guixu-root-container:fullscreen.mobile-view #save-load-modal .clear-saves-btn,
+.guixu-root-container:-webkit-full-screen.mobile-view #save-load-modal .clear-saves-btn {
+  height: 32px !important;
+  padding: 0 12px !important;
+  font-size: 12px !important;
+  min-width: 0;
+  box-sizing: border-box;
+}
+/* 存档项间距微调，避免“过于疏松” */
+.guixu-root-container:fullscreen.mobile-view #save-load-modal .save-slot,
+.guixu-root-container:-webkit-full-screen.mobile-view #save-load-modal .save-slot {
+  gap: 10px;
+}

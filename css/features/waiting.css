@@ -1,0 +1,56 @@
+/* Phase 2 - features/waiting.css
+   等待悬浮窗（.waiting-popup, .waiting-spinner）专属样式
+   从 css/guixu.css 迁移，保持选择器与声明一致，避免特异性变化
+*/
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes god-tier-animation {
+  0% {
+    background-position: -200% center;
+  }
+
+  100% {
+    background-position: 200% center;
+  }
+}
+
+.waiting-spinner {
+  width: 24px;
+  height: 24px;
+  border: 3px solid rgba(201, 170, 113, 0.3);
+  border-top-color: #c9aa71;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  flex-shrink: 0;
+}
+
+.waiting-popup {
+  position: absolute;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(15, 15, 35, 0.8);
+  color: #c9aa71;
+  padding: 15px 25px;
+  border-radius: 8px;
+  border: 1px solid #c9aa71;
+  z-index: 9999;
+  font-size: 16px;
+  box-shadow: 0 5px 25px rgba(0, 0, 0, 0.7);
+  line-height: 1.6;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  width: 450px;
+  /* 拉长悬浮框 */
+  max-width: 90%;
+}

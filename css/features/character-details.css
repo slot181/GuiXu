@@ -1,0 +1,48 @@
+/* Phase 2 - features/character-details.css
+   角色详情模态框（#character-details-modal）专属样式
+   从 css/guixu.css 迁移，保持原选择器与声明，避免特异性变化
+*/
+
+/* --- 角色详情模态框美化 --- */
+#character-details-modal .modal-content {
+  background: radial-gradient(circle, rgba(45, 27, 61, 0.9) 0%, rgba(15, 15, 35, 0.95) 100%);
+  border: 1px solid #8b7355;
+  box-shadow: 0 0 25px rgba(201, 170, 113, 0.3);
+}
+
+#character-details-modal .section-title {
+  font-family: var(--guixu-font-family, inherit);
+  font-size: 16px;
+  letter-spacing: 1px;
+}
+
+#character-details-modal .attributes-list {
+  gap: 0;
+  /* 移除gap，使用边框分隔 */
+}
+
+#character-details-modal .attribute-item {
+  padding: 8px 4px;
+  border-bottom: 1px solid rgba(201, 170, 113, 0.1);
+  transition: background-color 0.3s;
+}
+
+#character-details-modal .attribute-item:hover {
+  background-color: rgba(201, 170, 113, 0.05);
+}
+
+#character-details-modal .attribute-item:last-child {
+  border-bottom: none;
+}
+
+/* 角色详情面板内的列表紧凑化 */
+#character-details-modal .detail-group {
+  margin-bottom: 12px;
+}
+#character-details-modal .kv-list {
+  display: grid;
+  grid-template-columns: 100px 1fr;
+  gap: 6px 10px;
+  font-size: 12px;
+  color: #a09c91;
+}

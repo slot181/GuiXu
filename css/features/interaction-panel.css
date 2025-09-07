@@ -1,0 +1,105 @@
+/* Phase 2 - features/interaction-panel.css
+   右侧交互面板（.interaction-panel）及其在不同视图下的专属样式
+   来源：从 css/guixu.css 迁移，保持原选择器与注释，避免特异性变化
+*/
+
+/* 右侧交互面板壳（桌面默认） */
+.interaction-panel {
+  background: rgba(45, 27, 61, 0.5);
+  border-left: 1px solid #c9aa71;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow-y: auto;
+  /* 新增：允许交互面板在内容过多时滚动 */
+}
+
+/* 强制桌面视图：右侧功能按钮固定尺寸布局（Flex） */
+.guixu-root-container.force-desktop .interaction-panel {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 8px;
+  align-content: stretch !important;
+  justify-content: flex-start !important;
+  overflow-y: auto !important;
+}
+/* 仅限制“右侧功能面板”内的按钮拉满宽度，避免影响各模态框按钮（例如历史面板） */
+.guixu-root-container.force-desktop .interaction-panel .interaction-btn {
+  width: 100% !important;
+  flex: 0 0 40px !important;
+  height: 40px !important;          /* 固定按钮高度 */
+  display: flex;
+  align-items: center;
+  justify-content: center;          /* 文本居中 */
+  white-space: nowrap;              /* 单行显示 */
+  overflow: hidden;                 /* 超出隐藏 */
+  text-overflow: ellipsis;          /* 省略号 */
+  padding: 0 10px;
+  box-sizing: border-box;
+  letter-spacing: normal;           /* 修复部分环境中文字间距异常 */
+  word-break: keep-all;             /* 不拆分中文，避免拥挤/换行 */
+  min-width: 0;                     /* 允许 Flex 子项在窄栏中正确收缩 */
+}
+/* 将世界书等底部区固定在面板底部，不与按钮挤在一起 */
+.guixu-root-container.force-desktop .world-line-section {
+  margin-top: auto !important;
+  border-top: 1px solid rgba(201, 170, 113, 0.5);
+  padding-top: 10px;
+}
+/* 强制桌面视图下，右侧面板对按钮的统一尺寸不影响世界线回顾两键 */
+.guixu-root-container.force-desktop .world-line-section .worldline-btn {
+  width: auto !important;
+  height: 34px !important;
+  flex: 1 1 0 !important;
+  box-sizing: border-box;
+}
+
+/* 移动端浮窗（功能面板）布局增强：采用网格，避免按钮挤成一坨 */
+.mobile-view.show-interaction-panel .interaction-panel {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(100px, 1fr)); /* 更小的列最小宽，减轻拥挤 */
+  grid-auto-rows: minmax(40px, auto);                  /* 每行最小高度，避免挤压变形 */
+  gap: 10px !important;
+  padding: 12px !important;
+}
+/* 功能按钮：两列排布，统一高度 */
+.mobile-view.show-interaction-panel .interaction-panel .interaction-btn {
+  height: 40px;
+  min-width: 0;
+  padding: 0 10px;
+  white-space: nowrap;
+  box-sizing: border-box;
+}
+/* 功能区内的模块区块（世界书控制、世界线回顾等）占满整行，避免被按钮挤压 */
+.mobile-view.show-interaction-panel .interaction-panel .panel-section {
+  grid-column: 1 / -1;
+}
+/* 世界线回顾区块：占整行并重置为块级，避免父级 flex 规则干扰导致挤压/变形 */
+.mobile-view.show-interaction-panel .interaction-panel .world-line-section {
+  display: block !important;     /* 覆盖 .mobile-view .world-line-section 的 flex 设置 */
+  width: 100%;
+  margin-top: 12px;
+  grid-column: 1 / -1;           /* 在两列栅格中占满整行，确保居中对称 */
+}
+/* 世界线回顾区域：内部两键等分排布，间距合理 */
+.mobile-view.show-interaction-panel .interaction-panel .world-line-section > div:not(.world-line-title) {
+  display: grid !important;
+  grid-template-columns: 1fr 1fr !important;
+  gap: 10px !important;
+  width: 100% !important;
+  justify-content: stretch !important; /* 覆盖原内联的居中，避免右侧留白 */
+  align-items: stretch !important;
+}
+.mobile-view.show-interaction-panel .interaction-panel .world-line-section .worldline-btn {
+  height: 40px;
+  min-width: 0;
+  width: 100%;
+  padding: 0 12px;
+  font-size: 13px;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;              /* 防止文本溢出按钮 */
+  text-overflow: ellipsis;       /* 宽度不足时省略号 */
+  box-sizing: border-box;
+}

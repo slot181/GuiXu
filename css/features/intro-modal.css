@@ -1,0 +1,32 @@
+/* Phase 2 - features/intro-modal.css
+   引导/教程模态（#intro-modal）专属样式；从 css/guixu.css 迁移
+   仅承载 intro-modal 个性化样式，通用模态结构在 features/modals.css
+*/
+
+/* 链接与基础块 */
+#intro-modal a, #intro-modal a:visited { color:#3b82f6 !important; text-decoration: underline; }
+#intro-modal a:hover { color:#2563eb !important; }
+#intro-modal .panel-section { margin-bottom: 10px; }
+#intro-modal .section-title { font-size: 14px; margin-bottom: 6px; }
+
+/* 引导有序列表 */
+#intro-modal .intro-ol {
+  list-style: decimal;
+  margin: 0 0 0 1.25em;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  color: #e0dcd1;
+  font-size: 12px;
+}
+#intro-modal .intro-ol li { line-height: 1.6; }
+
+/* “不再显示”行 */
+#intro-modal .intro-dont-show {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  color: #8b7355;
+  font-size: 12px;
+}

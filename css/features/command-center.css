@@ -1,0 +1,84 @@
+/* Phase 1 - features/command-center.css
+   指令中心与快速指令弹出菜单（通用样式）
+   从 css/guixu.css 迁移：仅包含通用基础规则；视图/状态特化放在 views/states */
+
+/* --- 快速指令弹出菜单 --- */
+#quick-command-popup {
+  display: none;
+  position: absolute;
+  bottom: 65px;
+  /* 增加bottom值，将菜单上移 */
+  right: 175px;
+  /* 大致对齐到快速发送区域 */
+  background: rgba(15, 15, 35, 0.98);
+  border: 1px solid #c9aa71;
+  border-radius: 6px;
+  z-index: 1002;
+  width: 280px;
+  max-height: 200px;
+  overflow-y: auto;
+  box-shadow: 0 -4px 15px rgba(0, 0, 0, 0.5);
+}
+.quick-command-list {
+  list-style: none;
+  padding: 5px;
+  margin: 0;
+}
+.quick-command-item {
+  padding: 8px 12px;
+  color: #a09c91;
+  font-size: 12px;
+  /* cursor: pointer; */
+  /* 移除指针手势 */
+  border-bottom: 1px solid rgba(201, 170, 113, 0.1);
+  transition: background-color 0.2s;
+}
+.quick-command-item:last-child {
+  border-bottom: none;
+}
+.quick-command-item:hover {
+  background-color: rgba(201, 170, 113, 0.15);
+  color: #e0dcd1;
+}
+.quick-command-empty {
+  padding: 15px;
+  text-align: center;
+  color: #8b7355;
+  font-style: italic;
+  font-size: 12px;
+}
+
+/* --- 指令中心列表与页脚 --- */
+.command-center-actions {
+  list-style-type: none;
+  padding: 0;
+  margin-bottom: 20px;
+}
+.command-center-action-item {
+  background: rgba(0, 0, 0, 0.3);
+  padding: 8px 12px;
+  border-radius: 4px;
+  margin-bottom: 8px;
+  font-size: 14px;
+}
+.command-center-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-top: auto;
+  /* 推到底部 */
+  padding-top: 15px;
+  border-top: 1px solid rgba(201, 170, 113, 0.5);
+  /* 修复“应用/保存并关闭”错位换行问题 */
+  flex-wrap: nowrap;
+}
+.command-center-footer > div {
+  display: inline-flex;
+  gap: 10px;
+  align-items: center;
+  flex-shrink: 0;
+}
+.command-center-footer button {
+  white-space: nowrap;
+}

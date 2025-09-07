@@ -1,0 +1,52 @@
+/* Phase 2 - features/history.css
+   历史回顾模态（#history-modal）专属样式
+   从 css/guixu.css 迁移，保持选择器与声明一致，避免特异性变化
+*/
+
+/* --- 桌面端：紧凑按钮与布局 --- */
+/* 动作按钮维持紧凑尺寸且允许换行，不被强制拉伸 */
+.guixu-root-container:not(.mobile-view) #history-modal .interaction-btn.btn-compact,
+.guixu-root-container:not(.mobile-view) #history-modal .danger-btn.btn-compact,
+.guixu-root-container:not(.mobile-view) #history-modal .primary-btn.btn-compact {
+  min-width: 0 !important;
+  flex: 0 0 auto !important;
+}
+
+/* 桌面端：紧凑按钮尺寸（覆盖全局32px统一规则） */
+.guixu-root-container:not(.mobile-view) #history-modal .interaction-btn.btn-compact,
+.guixu-root-container:not(.mobile-view) #history-modal .danger-btn.btn-compact,
+.guixu-root-container:not(.mobile-view) #history-modal .primary-btn.btn-compact {
+  height: 28px !important;
+  padding: 0 10px !important;
+  font-size: 12px !important;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+/* --- 移动端：头部换行与搜索栏自适应，防止“清除”溢出 --- */
+.guixu-root-container.mobile-view #history-modal .modal-header {
+  flex-wrap: wrap !important;
+  gap: 8px !important;
+}
+.guixu-root-container.mobile-view #history-modal #history-modal-actions {
+  order: 2 !important;
+  flex: 1 1 100% !important;
+  display: flex !important;
+  gap: 8px !important;
+  flex-wrap: wrap !important; /* 允许换行，避免溢出 */
+  margin-left: 0 !important;  /* 覆盖内联 margin-left:auto，防止动作区被推到面板外 */
+}
+.guixu-root-container.mobile-view #history-modal .history-search {
+  flex: 1 1 100% !important;    /* 独占一行 */
+  min-width: 0 !important;
+  margin-left: 0 !important;    /* 移除左侧间距，防止被挤出 */
+}
+.guixu-root-container.mobile-view #history-modal .history-search input#history-search-input {
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+  width: auto !important;
+}
+.guixu-root-container.mobile-view #history-modal .history-search #history-search-clear {
+  flex: 0 0 auto !important;
+  min-width: 72px !important;
+}

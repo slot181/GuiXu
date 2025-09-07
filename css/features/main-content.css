@@ -1,0 +1,11 @@
+/* Phase 2 - features/main-content.css
+   中央内容区（.main-content）容器样式
+   来源：从 css/guixu.css 迁移，保持原选择器与声明，避免特异性变化
+*/
+
+/* --- 中央内容区 --- */
+.main-content {
+  padding: 20px;
+  overflow-y: auto;
+  background: rgba(0, 0, 0, 0.2);
+}

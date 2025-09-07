@@ -1,0 +1,358 @@
+/* Phase 2 - features/relationships.css
+   人物关系（Relationships）相关样式，精准从 css/guixu.css 迁移
+*/
+
+/* --- 人物关系卡片与基础布局 --- */
+.relationship-card {
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(201, 170, 113, 0.3);
+  border-radius: 5px;
+  padding: 15px;
+  margin-bottom: 15px;
+}
+
+.relationship-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(201, 170, 113, 0.2);
+}
+
+.relationship-name {
+  font-size: 18px;
+  font-weight: bold;
+}
+
+.relationship-relation {
+  font-size: 14px;
+  color: #a09c91;
+  font-style: italic;
+}
+
+.relationship-body {
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.relationship-body p { margin-bottom: 8px; }
+
+.relationship-meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: #a09c91;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(201, 170, 113, 0.2);
+}
+
+.favorability-bar-container {
+  width: 100%;
+  height: 8px;
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 4px;
+  margin-top: 4px;
+  border: 1px solid #8b7355;
+}
+
+.favorability-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #8b4513, #cd853f);
+  border-radius: 3px;
+}
+
+.event-history-details { margin-top: 15px; }
+.event-history-summary {
+  cursor: pointer;
+  color: #c9aa71;
+  font-style: italic;
+}
+.event-history-list {
+  list-style-type: disc;
+  padding-left: 20px;
+  margin-top: 8px;
+  color: #a09c91;
+}
+
+/* --- 人物关系：关系类型配色 --- */
+.relationship-card[data-relationship="ENEMY"],
+.relationship-card--ENEMY {
+  border-color: rgba(255,107,107,0.6) !important;
+  background: rgba(255,107,107,0.08) !important;
+}
+.relationship-card[data-relationship="ALLY"],
+.relationship-card--ALLY {
+  border-color: rgba(60,179,113,0.6) !important;
+  background: rgba(60,179,113,0.08) !important;
+}
+.relationship-card[data-relationship="NEUTRAL"],
+.relationship-card--NEUTRAL {
+  border-color: rgba(160,156,145,0.6) !important;
+  background: rgba(160,156,145,0.08) !important;
+}
+.relationship-card[data-relationship="FRIEND"],
+.relationship-card--FRIEND {
+  border-color: rgba(218,165,32,0.6) !important;
+  background: rgba(218,165,32,0.08) !important;
+}
+.relationship-card[data-relationship="LOVER"],
+.relationship-card--LOVER {
+  border-color: rgba(147,112,219,0.6) !important;
+  background: rgba(147,112,219,0.08) !important;
+}
+
+/* --- 顶部右上角操作区 --- */
+.relationship-header .rel-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.rel-actions .btn-detail,
+.rel-actions .btn-trade {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 28px;
+  padding: 0 10px;
+  font-size: 12px;
+  border-radius: 4px;
+  border: 1px solid #c9aa71;
+  background: linear-gradient(45deg, #1a1a2e, #2d1b3d);
+  color: #c9aa71;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.rel-actions .btn-detail.primary,
+.rel-actions .btn-trade.primary {
+  background: linear-gradient(45deg, #8b4513, #cd853f);
+  border-color: #daa520;
+  color: #fff;
+}
+.rel-actions .btn-detail[disabled],
+.rel-actions .btn-trade[disabled],
+.rel-actions .btn-detail.is-disabled,
+.rel-actions .btn-trade.is-disabled {
+  opacity: 0.5;
+  filter: grayscale(0.5);
+  cursor: not-allowed;
+}
+
+/* 统一提取/标注按钮与详细/交易的尺寸与风格 */
+.rel-actions .btn-extract,
+.rel-actions .btn-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 28px;
+  padding: 0 10px;
+  font-size: 12px;
+  border-radius: 4px;
+  border: 1px solid #c9aa71;
+  background: linear-gradient(45deg, #1a1a2e, #2d1b3d);
+  color: #c9aa71;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+}
+.rel-actions .btn-extract.primary,
+.rel-actions .btn-mark.primary {
+  background: linear-gradient(45deg, #8b4513, #cd853f);
+  border-color: #daa520;
+  color: #fff;
+}
+.rel-actions .btn-extract:hover,
+.rel-actions .btn-mark:hover {
+  background: linear-gradient(45deg, #2d1b3d, #3d2b4d);
+  border-color: #c9aa71;
+  color: #c9aa71;
+}
+
+/* 人物关系删除按钮（危险样式 + 尺寸统一） */
+.relationship-card .btn-delete-relationship {
+  /* 危险基色（等同背包 .item-delete-btn） */
+  font-size: 12px;
+  background: #8b0000;
+  border: 1px solid #ff6b6b;
+  color: #fff;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.3s;
+  margin-left: 5px;
+
+  /* 尺寸统一（与背包保持一致） */
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  height: 28px !important;
+  padding: 0 10px !important;
+  line-height: 1 !important;
+  box-sizing: border-box !important;
+}
+.relationship-card .btn-delete-relationship:hover { background: #a52a2a; }
+
+/* --- 移动端布局（modal 内） --- */
+.guixu-root-container.mobile-view #relationships-modal .relationship-header {
+  flex-direction: column !important;
+  align-items: stretch !important;
+  gap: 8px !important;
+}
+.guixu-root-container.mobile-view #relationships-modal .relationship-header .header-title {
+  width: 100% !important;
+}
+.guixu-root-container.mobile-view #relationships-modal .relationship-header .rel-actions {
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  grid-auto-rows: minmax(28px, auto) !important;
+  gap: 8px !important;
+  width: 100% !important;
+}
+.guixu-root-container.mobile-view #relationships-modal .relationship-header .rel-actions > button {
+  width: 100% !important;
+  height: 28px !important;
+  padding: 0 10px !important;
+  font-size: 11px !important;
+  line-height: normal !important;
+  min-width: 0 !important;
+  box-sizing: border-box !important;
+}
+
+/* --- 全屏 + 移动端：尺寸收紧 --- */
+.guixu-root-container:fullscreen.mobile-view #relationships-modal .modal-content,
+.guixu-root-container:-webkit-full-screen.mobile-view #relationships-modal .modal-content {
+  width: 90%;
+  max-width: 800px;
+  height: 90%;
+  max-height: 550px;
+}
+.guixu-root-container:fullscreen.mobile-view #relationships-modal .relationship-header .rel-actions,
+.guixu-root-container:-webkit-full-screen.mobile-view #relationships-modal .relationship-header .rel-actions {
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  grid-auto-rows: minmax(26px, auto) !important;
+  gap: 6px !important;
+  width: 100% !important;
+}
+.guixu-root-container:fullscreen.mobile-view #relationships-modal .relationship-header .rel-actions > button,
+.guixu-root-container:-webkit-full-screen.mobile-view #relationships-modal .relationship-header .rel-actions > button,
+.guixu-root-container:fullscreen.mobile-view .relationship-card .btn-delete-relationship,
+.guixu-root-container:-webkit-full-screen.mobile-view .relationship-card .btn-delete-relationship {
+  height: 26px !important;
+  padding: 0 8px !important;
+  font-size: 11px !important;
+  min-width: 0 !important;
+  box-sizing: border-box !important;
+}
+/* 关系筛选标签尺寸 */
+.guixu-root-container:fullscreen.mobile-view #relationships-modal .rel-tab,
+.guixu-root-container:-webkit-full-screen.mobile-view #relationships-modal .rel-tab {
+  height: 32px !important;
+  padding: 0 10px !important;
+  font-size: 12px !important;
+}
+
+/* --- 小屏兜底（限定在 mobile-view） --- */
+@media (max-width: 900px) {
+  .guixu-root-container.mobile-view #relationships-modal .relationship-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+  .guixu-root-container.mobile-view #relationships-modal .relationship-header .rel-actions {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-auto-rows: minmax(28px, auto);
+    gap: 8px;
+    width: 100%;
+  }
+  .guixu-root-container.mobile-view #relationships-modal .relationship-header .rel-actions > button {
+    width: 100%;
+    height: 28px;
+    padding: 0 10px;
+    font-size: 11px;
+    line-height: normal;
+    min-width: 0;
+    box-sizing: border-box;
+  }
+}
+
+/* --- 桌面端紧凑化与强制桌面 --- */
+@media (min-width: 901px) {
+  .guixu-root-container:not(.mobile-view) #relationships-modal .relationship-header .rel-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .guixu-root-container:not(.mobile-view) #relationships-modal .relationship-header .rel-actions > button,
+  .guixu-root-container:not(.mobile-view) .relationship-card .btn-delete-relationship {
+    height: 26px !important;
+    padding: 0 8px !important;
+    min-width: 0;
+    box-sizing: border-box;
+    flex: 0 0 auto;
+  }
+}
+.guixu-root-container.force-desktop #relationships-modal .relationship-header .rel-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.guixu-root-container.force-desktop #relationships-modal .relationship-header .rel-actions > button,
+.guixu-root-container.force-desktop .relationship-card .btn-delete-relationship {
+  height: 26px !important;
+  padding: 0 8px !important;
+  min-width: 0;
+  box-sizing: border-box;
+  flex: 0 0 auto;
+}
+
+/* --- 搜索与设置区输入（rel-search + 数字输入） --- */
+/* 关系搜索输入框：与 trade/inventory 风格一致，使用 CSS 变量统一尺寸与状态 */
+.guixu-root-container #relationships-modal #rel-search-input {
+  height: var(--gx-input-height, 32px);
+  padding: 0 10px;
+  background: var(--gx-input-bg, rgba(26,26,46,0.5));
+  border: 1px solid var(--gx-input-border-color, rgba(201,170,113,0.35));
+  border-radius: var(--gx-input-radius, 8px);
+  color: var(--gx-input-color, #e8e3d6);
+  font-size: 12px;
+  outline: none;
+  box-sizing: border-box;
+}
+.guixu-root-container #relationships-modal #rel-search-input::placeholder {
+  color: var(--gx-placeholder-color, #8b7355);
+}
+.guixu-root-container #relationships-modal #rel-search-input:hover {
+  background: var(--gx-input-bg-hover, rgba(26,26,46,0.6));
+  border-color: var(--gx-input-border-color-hover, rgba(201,170,113,0.45));
+}
+.guixu-root-container #relationships-modal #rel-search-input:focus {
+  background: var(--gx-input-bg-focus, rgba(26,26,46,0.65));
+  border-color: var(--gx-input-border-color-focus, rgba(201,170,113,0.65));
+  box-shadow: var(--gx-input-shadow-focus, 0 0 0 2px rgba(201,170,113,0.12));
+  outline: none;
+}
+
+/* 人物关系设置区数字输入统一（从 guixu.css 迁移） */
+.guixu-root-container #relationships-modal .rel-settings input[type="number"] {
+  height: var(--gx-input-height, 32px);
+  padding: 0 8px;
+  background: var(--gx-input-bg, rgba(26,26,46,0.5));
+  border: 1px solid var(--gx-input-border-color, rgba(201,170,113,0.35));
+  border-radius: var(--gx-input-radius, 8px);
+  color: var(--gx-input-color, #e8e3d6);
+  font-size: 12px;
+  outline: none;
+  box-sizing: border-box;
+}
+.guixu-root-container #relationships-modal .rel-settings input[type="number"]:hover {
+  background: var(--gx-input-bg-hover, rgba(26,26,46,0.6));
+  border-color: var(--gx-input-border-color-hover, rgba(201,170,113,0.45));
+}
+.guixu-root-container #relationships-modal .rel-settings input[type="number"]:focus {
+  background: var(--gx-input-bg-focus, rgba(26,26,46,0.65));
+  border-color: var(--gx-input-border-color-focus, rgba(201,170,113,0.65));
+  box-shadow: var(--gx-input-shadow-focus, 0 0 0 2px rgba(201,170,113,0.12));
+  outline: none;
+}

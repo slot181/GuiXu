@@ -1,0 +1,150 @@
+/* =========================================
+   GuiXu - Utilities: Scrollbar & Tooltips
+   Phase 1 Migration (from css/guixu.css)
+   - Scoped WebKit scrollbars (container-only)
+   - Tooltip UIs: equipment, attributes, trade
+   - Keep selectors unchanged to avoid specificity drift
+   ========================================= */
+
+/* -----------------------------
+   Tooltip: Equipment
+   ----------------------------- */
+#equipment-tooltip {
+  display: none;
+  position: absolute;
+  /* 跟随鼠标 */
+  background: rgba(15, 15, 35, 0.95);
+  border: 1px solid #c9aa71;
+  border-radius: 6px;
+  padding: 15px;
+  color: #e0dcd1;
+  font-size: 12px;
+  z-index: 1001;
+  width: auto;
+  max-width: 300px;
+  pointer-events: none;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+}
+
+/* Equipment tooltip shared blocks */
+.tooltip-title {
+  font-size: 16px;
+  font-weight: bold;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(201, 170, 113, 0.4);
+}
+
+.tooltip-section {
+  margin-top: 10px;
+}
+
+.tooltip-section-title {
+  color: #8b7355;
+  font-style: italic;
+  margin-bottom: 5px;
+}
+
+.tooltip-attributes p {
+  margin: 3px 0;
+}
+
+.tooltip-attributes strong {
+  color: #c9aa71;
+  margin-right: 5px;
+}
+
+/* -----------------------------
+   Tooltip: Trade (item details)
+   ----------------------------- */
+#trade-tooltip {
+  display: none;
+  position: absolute;
+  background: rgba(15, 15, 35, 0.95);
+  border: 1px solid #c9aa71;
+  border-radius: 6px;
+  padding: 12px;
+  color: #e0dcd1;
+  font-size: 12px;
+  z-index: 1001;
+  width: auto;
+  max-width: 360px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+}
+
+/* -----------------------------
+   Tooltip: Attribute breakdown
+   ----------------------------- */
+.attr-tooltip {
+  position: absolute;
+  background: rgba(15, 15, 35, 0.95);
+  border: 1px solid #c9aa71;
+  border-radius: 8px;
+  padding: 10px;
+  color: #e0dcd1;
+  font-size: 12px;
+  z-index: 1002;
+  width: auto;
+  max-width: 360px;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.45);
+}
+.attr-tip-title {
+  font-size: 14px;
+  font-weight: 800;
+  color: #e8e3d6;
+  margin-bottom: 6px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(201,170,113,0.2);
+}
+.attr-breakline {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 4px 0;
+}
+.attr-break-k { color: #8b7355; }
+.attr-break-v { color: #c9aa71; font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; }
+
+.attr-break-group { margin-top: 8px; }
+.attr-break-title {
+  color: #c9aa71;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+.attr-break-items { display: flex; flex-direction: column; gap: 4px; }
+.attr-break-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  border-bottom: 1px dashed rgba(201,170,113,0.15);
+  padding-bottom: 4px;
+}
+.attr-break-item:last-child { border-bottom: none; }
+.attr-break-name { color: #e0dcd1; max-width: 60%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.attr-break-val { color: #c9aa71; }
+
+/* -----------------------------
+   Scoped Scrollbars (WebKit only)
+   Notes:
+   - Scoped to descendants of .guixu-root-container to avoid host page pollution
+   - Safe defaults; adjust palette via CSS variables in tokens if needed
+   ----------------------------- */
+.guixu-root-container ::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.guixu-root-container ::-webkit-scrollbar-thumb {
+  background: rgba(201, 170, 113, 0.35);
+  border-radius: 6px;
+  border: 1px solid rgba(201, 170, 113, 0.25);
+}
+.guixu-root-container ::-webkit-scrollbar-thumb:hover {
+  background: rgba(201, 170, 113, 0.5);
+}
+.guixu-root-container ::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 6px;
+}
+.guixu-root-container ::-webkit-scrollbar-corner {
+  background: transparent;
+}

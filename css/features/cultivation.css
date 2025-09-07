@@ -1,0 +1,208 @@
+/* Phase 2 - features/cultivation.css
+   左侧角色面板（属性/修为/气运/装备格）与相关通用项
+   从 css/guixu.css 迁移，保持选择器不变以避免特异性变化 */
+
+/* 左侧角色面板容器 */
+.character-panel {
+  background: rgba(26, 26, 46, 0.5);
+  border-right: 1px solid #c9aa71;
+  padding: 10px;
+  position: relative; /* 使属性说明浮窗相对角色面板定位（从 guixu.css 精准迁移） */
+  overflow-y: auto;
+}
+
+/* 装备网格与槽位 */
+.equipment-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+.equipment-slot {
+  aspect-ratio: 1;
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px dashed rgba(201, 170, 113, 0.5);
+  border-radius: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  color: #8b7355;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+.equipment-slot.equipped {
+  border-style: solid;
+  color: #e0dcd1;
+  font-size: 12px;
+}
+.equipment-slot:hover {
+  background: rgba(201, 170, 113, 0.1);
+}
+
+/* 属性列表与条目 */
+.attributes-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.attribute-item {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+}
+.attribute-name { color: #8b7355; }
+.attribute-value {
+  color: #c9aa71;
+  font-weight: bold;
+}
+
+/* 详情折叠区（用于说明/展开项） */
+.details-container { margin-bottom: 5px; }
+.details-container summary {
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  list-style: none; /* 隐藏默认箭头 */
+}
+.details-container summary::-webkit-details-marker { display: none; /* 隐藏默认箭头 */ }
+.details-content {
+  padding: 8px;
+  margin-top: 4px;
+  font-size: 11px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+  border-top: 1px solid rgba(201, 170, 113, 0.2);
+  color: #a09c91;
+}
+.details-content p { margin-bottom: 4px; }
+
+/* 进度条（用于修为详情等） */
+.details-progress-bar {
+  width: 100%;
+  height: 8px;
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 4px;
+  overflow: hidden;
+  border: 1px solid #8b7355;
+  margin-top: 8px;
+}
+.details-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #6a11cb, #2575fc);
+  border-radius: 3px;
+  transition: width 0.5s ease-in-out;
+}
+
+/* 属性/修为组合卡片 */
+#attr-cultivation-panel .section-title {
+  font-size: 13px;
+  color: #c9aa71;
+  text-align: center;
+  border-bottom: 1px solid rgba(201,170,113,0.3);
+  padding-bottom: 4px;
+  margin-bottom: 8px;
+}
+.attr-card {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.attr-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 6px 6px;
+  border: 1px solid rgba(201,170,113,0.18);
+  border-radius: 6px;
+  background: rgba(0,0,0,0.15);
+  cursor: pointer;
+  outline: none;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.attr-row:hover, .attr-row:focus-visible {
+  background: rgba(201,170,113,0.1);
+  border-color: rgba(201,170,113,0.35);
+}
+.attr-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12px;
+}
+.attr-name { color: #e0dcd1; font-weight: 700; letter-spacing: .5px; }
+.attr-values { color: #c9aa71; font-weight: 600; font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; }
+
+/* 通用属性条 */
+.attr-bar {
+  height: 12px;
+  border-radius: 8px;
+  background: linear-gradient(180deg, rgba(201,170,113,0.12), rgba(201,170,113,0.05));
+  border: 1px solid rgba(201,170,113,0.25);
+  overflow: hidden;
+}
+.attr-bar .attr-bar-fill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, #4caf50, #ffd700);
+  box-shadow: 0 0 10px rgba(255, 215, 0, 0.35);
+  transition: width 300ms ease;
+}
+
+/* 修为进度条与瓶颈行 */
+.attr-cultivation-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 6px;
+  border: 1px solid rgba(201,170,113,0.18);
+  border-radius: 6px;
+  background: rgba(0,0,0,0.15);
+}
+.attr-bar--cultivation .attr-bar-fill {
+  background: linear-gradient(90deg, #6a11cb, #2575fc);
+}
+.attr-bottleneck {
+  margin-top: 4px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+}
+.attr-bottleneck-label { color: #8b7355; }
+.attr-bottleneck-value { color: #e0dcd1; }
+
+/* 气运徽章（角色面板） */
+.qiyun-row {
+  display: flex;
+  justify-content: center;
+  margin: 4px 0 10px;
+}
+.qiyun-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 3px 20px;
+  min-width: 128px;
+  border-radius: 999px;
+  border: 1px solid rgba(201,170,113,0.55);
+  background: linear-gradient(180deg, rgba(201,170,113,0.28), rgba(201,170,113,0.12));
+  box-shadow: 0 0 10px rgba(218,165,32,0.25) inset, 0 2px 8px rgba(0,0,0,0.25);
+  color: #e8e3d6;
+}
+.qiyun-badge .label {
+  color: #c9aa71;
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: .5px;
+}
+.qiyun-badge .value {
+  color: #ffd700;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+  text-shadow: 0 0 6px rgba(255,215,0,0.45);
+}

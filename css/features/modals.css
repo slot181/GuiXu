@@ -1,0 +1,72 @@
+/* Phase 2 - features/modals.css
+   模态系统通用样式（共性）
+   范围：.modal-overlay / .modal-content / .modal-header / .modal-title / .modal-close-btn / .modal-body
+   说明：各业务个性化规则保留在对应 features/*.css（如 intro/settings/save-load/history/command-center 等）
+*/
+
+/* 遮罩与容器基础 */
+/* 提升特异性并改为固定定位，解决：
+   1) 嵌入式/小屏下高度误判导致“底部栏下方漏出内容”
+   2) 宿主页面同名 .modal-overlay 规则覆盖造成的默认可见或交互异常
+   3) 被底部栏/FAB 挡住（层级过低）导致点击无效
+*/
+.guixu-root-container .modal-overlay {
+  display: none;                       /* 默认隐藏，JS 控制显隐（允许内联 display:flex 覆盖） */
+  position: fixed !important;         /* 覆盖整个可视区，避开父容器高度限制 */
+  inset: 0 !important;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.8);
+  justify-content: center;
+  align-items: center;
+  z-index: 10080 !important;           /* 高于移动端横屏底栏(10010)与FAB(10060)，并覆盖内联较低层级 */
+  pointer-events: auto;
+}
+/* 兼容：若个别运行时把模态挂到 body（非预期），也确保默认隐藏 */
+.modal-overlay { display: none; }
+
+.modal-content {
+  background: rgba(26, 26, 46, 0.95);
+  border: 1px solid #c9aa71;
+  border-radius: 8px;
+  padding: 20px;
+  width: 90%;
+  max-width: 800px;
+  height: 90%;
+  max-height: 550px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 0 20px rgba(201, 170, 113, 0.3);
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid rgba(201, 170, 113, 0.5);
+  padding-bottom: 10px;
+  margin-bottom: 15px;
+}
+
+.modal-title {
+  font-size: 18px;
+  color: #c9aa71;
+}
+
+.modal-close-btn {
+  font-size: 24px;
+  color: #8b7355;
+  cursor: pointer;
+  background: none;
+  border: none;
+}
+
+.modal-close-btn:hover {
+  color: #c9aa71;
+}
+
+.modal-body {
+  flex-grow: 1;
+  overflow-y: auto;
+  position: relative; /* 供内部浮层（如 tooltip）相对定位 */
+}

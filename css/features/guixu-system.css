@@ -1,0 +1,23 @@
+/* Phase 2 - features/guixu-system.css
+   归墟系统模态（#guixu-system-modal）专属样式
+   从 css/guixu.css 迁移，保持选择器与声明一致，避免特异性变化
+*/
+
+/* --- 归墟系统模态框美化 --- */
+#guixu-system-modal .modal-content {
+  background: radial-gradient(circle, rgba(45, 27, 61, 0.9) 0%, rgba(15, 15, 35, 0.95) 100%);
+  border: 1px solid #8b7355;
+  box-shadow: 0 0 25px rgba(201, 170, 113, 0.3);
+}
+
+#guixu-system-modal .attribute-item {
+  padding: 10px 4px;
+  /* 增加垂直内边距 */
+  font-size: 13px;
+  /* 放大字体 */
+  border-bottom: 1px solid rgba(201, 170, 113, 0.1);
+}
+
+#guixu-system-modal .attribute-item:last-child {
+  border-bottom: none;
+}

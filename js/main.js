@@ -249,6 +249,7 @@
       this.ensureQuickSendLayout();
       this.ensureRefreshButton();
       this.ensureRerollButton();
+      this.ensureAllModalsClosed();
 
       // 启动服务轮询改为在门禁评估后再启动
 
@@ -529,6 +530,17 @@ if (!document.getElementById('guixu-gate-style')) {
   document.head.appendChild(s3);
 }
         }
+      } catch (_) {}
+    },
+
+    // 启动时兜底：确保所有模态默认关闭，避免残留遮罩拦截点击
+    ensureAllModalsClosed() {
+      try {
+        document.querySelectorAll('.modal-overlay').forEach(el => {
+          if (el && getComputedStyle(el).display !== 'none') {
+            el.style.display = 'none';
+          }
+        });
       } catch (_) {}
     },
 

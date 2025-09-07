@@ -1,0 +1,28 @@
+/* Phase 2 - features/confirm-modal.css
+   自定义确认模态（#custom-confirm-modal .confirm-modal-*）专属样式
+   从 css/guixu.css 迁移，保持选择器与声明一致，避免特异性变化
+*/
+
+/* --- 自定义确认模态框 --- */
+.confirm-modal-content {
+  width: auto;
+  max-width: 400px;
+  height: auto;
+  max-height: none;
+  text-align: center;
+  padding: 30px;
+}
+
+.confirm-modal-message {
+  font-size: 16px;
+  color: #ff6b6b;
+  /* 红色警告 */
+  margin-bottom: 25px;
+  line-height: 1.6;
+}
+
+.confirm-modal-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+}

@@ -1,0 +1,52 @@
+/* Phase 1 - states/windowed.css
+   非全屏覆盖：:not(:fullscreen) 下的兜底（含嵌入式 iframe 高度修复等）
+   仅针对“非全屏”状态的通用规则，避免与 fullscreen.css/视图样式互踩。 */
+
+/* 桌面端 非全屏 嵌入修复：
+   - 在酒馆楼层(iframe)里，祖先高度链路可能不完整，导致网格的 1fr 行过小。
+   - 仅针对“桌面端 + 非全屏”启用，移动端与全屏不受影响。 */
+.guixu-root-container:not(.mobile-view):not(:fullscreen) {
+  /* 以视口高度兜底，避免被父容器的 auto 高度链路压扁 */
+  min-height: 100vh;
+  min-height: 100svh;
+  min-height: 100dvh;
+  /* 嵌入式(酒馆楼层)外层未定高时，使用绝对像素下限保证视窗不至于过小 */
+  min-height: 640px;
+  height: auto;
+}
+
+.guixu-viewport {
+  /* 视口容器同样给出最小高度，确保根容器可撑开（使用动态视口单位以适配移动端地址栏） */
+  min-height: 100vh;
+  min-height: 100svh;
+  min-height: 100dvh;
+  /* 嵌入式下的像素级下限，促使宿主容器按内容自增高 */
+  min-height: 640px;
+}
+
+.guixu-root-container:not(.mobile-view):not(:fullscreen) .game-container {
+  /* 网格容器在桌面非全屏下至少占满视口高度（去除祖先链影响）；使用多种视口单位兜底 */
+  min-height: calc(100vh - 0px);
+  min-height: calc(100svh - 0px);
+  min-height: calc(100dvh - 0px);
+  /* 嵌入式外层未定高时的硬下限，保证主体区域不被压扁 */
+  min-height: 640px;
+  height: auto;
+}
+
+.guixu-root-container:not(.mobile-view):not(:fullscreen) .main-content {
+  /* Grid 子项需要 min-height:0 才能正确分配剩余空间并滚动 */
+  min-height: 0;
+  overflow-y: auto;
+}
+
+/* 统一：非全屏时让根容器与主容器采用 Flex 链路，避免百分比高度失效问题 */
+.guixu-root-container:not(:fullscreen) {
+  display: flex;
+  flex-direction: column;
+}
+.guixu-root-container:not(:fullscreen) .game-container {
+  min-height: 100%;
+  height: auto;
+  flex: 1 1 auto; /* 作为 Flex 子项填满剩余空间，保证底部栏贴边 */
+}

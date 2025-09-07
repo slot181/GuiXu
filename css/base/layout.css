@@ -1,0 +1,111 @@
+/* Phase 1 - layout.css
+   基础布局与重置（不包含移动/桌面或全屏/非全屏的分支逻辑）
+   注：主题变量与字体族见 base/tokens.css；这里仅保留结构与布局样式 */
+
+/* 基础尺寸：避免在嵌入式 iframe 中锁死文档高度，允许内容自撑高 */
+html, body { height: auto; min-height: 100%; }
+body { margin: 0; }
+
+/* 视口容器基础（嵌入式环境中采用自适应高度与滚动） */
+.guixu-viewport {
+  position: relative;
+  width: 100%;
+  height: auto;
+  margin: 0 auto;
+  overflow: auto;
+}
+
+/* 根容器基础（不含任何视图/状态分支；视觉色值与边框保持原有风格以防回退时突变） */
+.guixu-root-container {
+  background-size: var(--guixu-bg-size, cover);
+  background-position: var(--guixu-bg-position, center);
+  background-repeat: var(--guixu-bg-repeat, no-repeat);
+
+  color: #c9aa71;
+  border: 1px solid #c9aa71;
+  border-radius: 8px;
+
+  overflow: hidden;
+  max-width: 100%;
+  margin: auto;
+  box-shadow: 0 0 15px rgba(201, 170, 113, 0.2);
+
+  position: relative;
+  width: 100%;
+  height: auto;
+  max-width: none;
+}
+
+/* 遮罩层：使用 tokens 中的 --guixu-bg-mask */
+.guixu-root-container::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 15, 35, var(--guixu-bg-mask, 0.7));
+  z-index: 1;
+}
+
+/* 游戏主容器（基础网格；具体视图/状态的覆盖在 views/ 与 states/ 中进行） */
+.game-container {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  grid-template-rows: 65px 1fr auto;   /* 顶部栏 / 正文 / 底部栏 */
+  grid-template-columns: 220px 1fr 160px; /* 左侧栏 / 正文 / 右侧栏 */
+  width: 100%;
+  gap: 1px;
+  height: 100%;
+}
+
+/* 基础重置（仅在归墟根容器作用域内，不污染宿主页面） */
+.guixu-root-container * {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* 小屏(<=900px)兜底：在嵌入式 iframe 中即使 JS 未完成初始化，也能保证可见与可滚动 */
+@media (max-width: 900px) {
+  /* 视口容器参与文档流，按内容自适应高度，允许滚动 */
+  .guixu-viewport {
+    width: 100% !important;
+    height: auto !important;
+    overflow: auto !important;
+  }
+  /* 根容器不可用绝对定位，否则父容器高度会被误判为 0 导致整块不可见 */
+  .guixu-viewport .guixu-root-container {
+    position: static !important;
+    left: auto !important;
+    top: auto !important;
+    width: 100% !important;
+    height: auto !important;
+  }
+  /* 覆盖桌面端固定 900x600 的默认值 */
+  .guixu-root-container {
+    width: 100% !important;
+    height: auto !important;
+  }
+  /* 在 CSS 层面直接启用“移动端纵向布局”，即使 JS 还未给 .mobile-view 类 */
+  .game-container {
+    display: flex !important;
+    flex-direction: column !important;
+    height: auto !important;
+    min-height: 0 !important;
+    gap: 0 !important;
+  }
+  .main-content {
+    order: 2;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+  }
+  .bottom-status {
+    order: 5;
+    flex: 0 0 auto;
+  }
+  /* 小屏默认隐藏左右侧栏（仅在移动端视图且未打开浮层时隐藏） */
+  .guixu-root-container.mobile-view:not(.show-character-panel) .character-panel,
+  .guixu-root-container.mobile-view:not(.show-interaction-panel) .interaction-panel {
+    display: none !important;
+  }
+}

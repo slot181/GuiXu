@@ -1,0 +1,103 @@
+/* Phase 1 - features/statusbar.css
+   顶部/底部状态栏与快速发送区域
+   从 css/guixu.css 迁移，保持选择器与特异性一致以避免回归抖动 */
+
+/* 顶部状态栏 */
+.top-status {
+  grid-column: 1 / -1;
+  background: linear-gradient(90deg,
+      rgba(26, 26, 46, 0.8) 0%,
+      rgba(45, 27, 61, 0.8) 50%,
+      rgba(26, 26, 46, 0.8) 100%);
+  border-bottom: 1px solid #c9aa71;
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  padding: 0 10px;
+  box-shadow: 0 1px 8px rgba(201, 170, 113, 0.15);
+  position: relative;
+}
+
+/* 通用进度条（小条形） */
+.progress-bar {
+  width: 70px;
+  height: 5px;
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 3px;
+  overflow: hidden;
+  border: 1px solid #c9aa71;
+}
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #ff6b6b, #ffd93d);
+  border-radius: 2px;
+}
+
+/* 归墟充能条 */
+.guixu-charge {
+  width: 100px;
+  height: 6px;
+  background: rgba(0, 0, 0, 0.7);
+  border-radius: 4px;
+  border: 1px solid #8b4513;
+  overflow: hidden;
+}
+.guixu-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #dc143c, #ff6b6b, #ffd700);
+  width: var(--guixu-charge, 0%);
+  border-radius: 3px;
+}
+
+/* 底部状态栏 */
+.bottom-status {
+  grid-column: 1 / -1;
+  background: linear-gradient(90deg,
+      rgba(45, 27, 61, 0.8) 0%,
+      rgba(26, 26, 46, 0.8) 50%,
+      rgba(45, 27, 61, 0.8) 100%);
+  border-top: 1px solid #c9aa71;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 15px;
+  padding: 0 15px;
+  transition: height 0.2s ease-in-out;
+  position: relative; /* 作为版本徽标绝对定位的参照 */
+}
+
+/* 快速发送区域（居中） */
+.quick-send-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+/* 网格对齐：左侧按钮靠左，输入区居中 */
+#btn-status-pop { justify-self: start; }
+.bottom-status .quick-send-container { justify-self: center; }
+
+/* 快速发送输入框 */
+.quick-send-input {
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid #8b7355;
+  border-radius: 4px;
+  color: #e0dcd1;
+  padding: 5px 10px;
+  font-size: 12px;
+  width: 250px;   /* 初始宽度 */
+  height: 44px;   /* 固定高度，避免底部栏抖动 */
+  resize: none;
+  line-height: 1.5;
+  font-family: inherit;
+  overflow-y: auto;
+  transition: none;
+}
+.quick-send-input:focus {
+  height: 44px; /* 保持固定，防止焦点时高度变化引发布局抖动 */
+}
+.quick-send-input::placeholder {
+  color: #8b7355;
+}
+
+/* 轻微调整快速发送容器的间距（保持居中时的视觉间隔） */
+.quick-send-container { margin: 0 10px; }

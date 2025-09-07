@@ -1,0 +1,290 @@
+/* Phase 2 - features/inventory.css
+   背包（Inventory）相关样式，精准从 css/guixu.css 迁移
+*/
+
+/* --- 背包模态框样式 --- */
+.inventory-category {
+  margin-bottom: 15px;
+  border: 1px solid rgba(201, 170, 113, 0.3);
+  border-radius: 5px;
+  background: rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+}
+
+.inventory-category-title {
+  padding: 10px 15px;
+  font-size: 16px;
+  color: #c9aa71;
+  cursor: pointer;
+  list-style: none;
+  display: block;
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.inventory-category-title::-webkit-details-marker {
+  display: none;
+}
+
+.inventory-item-list {
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* 背包-搜索栏 */
+#inventory-modal .inventory-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 12px 0;
+}
+#inventory-modal .inventory-search input#inventory-search-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: var(--gx-input-height, 32px);
+  padding: 0 10px;
+  background: var(--gx-input-bg, rgba(26,26,46,0.5));
+  border: 1px solid var(--gx-input-border-color, rgba(201,170,113,0.35));
+  border-radius: var(--gx-input-radius, 8px);
+  color: var(--gx-input-color, #e8e3d6);
+  font-size: 12px;
+  box-sizing: border-box;
+}
+#inventory-modal .inventory-search input#inventory-search-input::placeholder {
+  color: var(--gx-placeholder-color, #8b7355);
+}
+/* 补齐 hover/focus，确保从 guixu.css 剪除统一段后无回退 */
+#inventory-modal .inventory-search input#inventory-search-input:hover {
+  background: var(--gx-input-bg-hover, rgba(26,26,46,0.6));
+  border-color: var(--gx-input-border-color-hover, rgba(201,170,113,0.45));
+}
+#inventory-modal .inventory-search input#inventory-search-input:focus {
+  background: var(--gx-input-bg-focus, rgba(26,26,46,0.65));
+  border-color: var(--gx-input-border-color-focus, rgba(201,170,113,0.65));
+  box-shadow: var(--gx-input-shadow-focus, 0 0 0 2px rgba(201,170,113,0.12));
+  outline: none;
+}
+#inventory-modal .inventory-search #inventory-search-clear {
+  height: 32px;
+  min-width: 70px;
+  padding: 0 10px;
+  box-sizing: border-box;
+}
+
+/* 背包-货币单位下拉（覆盖行内样式） */
+.guixu-root-container #inventory-modal #inventory-currency-unit {
+  height: var(--gx-input-height, 32px) !important;
+  padding: 0 8px !important;
+  background: var(--gx-input-bg, rgba(26,26,46,0.5)) !important;
+  border: 1px solid var(--gx-input-border-color, rgba(201,170,113,0.35)) !important;
+  border-radius: var(--gx-input-radius, 8px) !important;
+  color: var(--gx-input-color, #e8e3d6) !important;
+  font-size: 12px !important;
+  outline: none !important;
+  box-sizing: border-box !important;
+}
+.guixu-root-container #inventory-modal #inventory-currency-unit:hover {
+  background: var(--gx-input-bg-hover, rgba(26,26,46,0.6)) !important;
+  border-color: var(--gx-input-border-color-hover, rgba(201,170,113,0.45)) !important;
+}
+.guixu-root-container #inventory-modal #inventory-currency-unit:focus {
+  background: var(--gx-input-bg-focus, rgba(26,26,46,0.65)) !important;
+  border-color: var(--gx-input-border-color-focus, rgba(201,170,113,0.65)) !important;
+  box-shadow: var(--gx-input-shadow-focus, 0 0 0 2px rgba(201,170,113,0.12)) !important;
+  outline: none !important;
+}
+
+/* --- 背包卡片与内容 --- */
+.inventory-item {
+  background: rgba(26, 26, 46, 0.7);
+  border: 1px solid rgba(201, 170, 113, 0.2);
+  border-radius: 4px;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  position: relative;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease, background 0.18s ease;
+  will-change: transform;
+}
+.inventory-item:hover {
+  transform: translateY(-2px) scale(1.01);
+  box-shadow: 0 8px 22px rgba(201, 170, 113, 0.16), 0 0 10px rgba(201, 170, 113, 0.18) inset;
+  border-color: rgba(201, 170, 113, 0.45);
+  background: rgba(0, 0, 0, 0.28);
+}
+@media (hover: none) {
+  .inventory-item:hover {
+    transform: none;
+    box-shadow: none;
+  }
+}
+
+.item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start; /* 顶部对齐 */
+  margin-bottom: 8px;
+}
+
+.item-details {
+  margin-top: 10px;
+  font-size: 12px;
+  border-top: 1px solid rgba(201, 170, 113, 0.2);
+  padding-top: 8px;
+}
+
+/* 背包-新布局：按行分组（标题/描述/操作/折叠详情），桌面与移动端统一风格 */
+.inventory-item .item-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.inventory-item .item-row--headline { font-size: 13px; font-weight: 600; }
+.inventory-item .item-head-left {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+.inventory-item .item-name {
+  color: #e0dcd1;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.inventory-item .item-tier { color: #c9aa71; }
+.inventory-item .item-head-right {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+  color: #8b7355;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+.inventory-item .item-row--desc .item-description {
+  margin: 2px 0 0;
+  line-height: 1.6;
+  color: #a09c91;
+}
+.inventory-item .item-row--actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+.inventory-item .item-row--actions > button { margin-left: 0 !important; }
+
+/* 折叠详情 */
+.inventory-item .item-row--details { margin-top: 2px; }
+.inventory-item .item-row--details-summary {
+  cursor: pointer;
+  color: #c9aa71;
+  font-size: 12px;
+  list-style: none;
+}
+.inventory-item .item-row--details summary::-webkit-details-marker { display: none; }
+.inventory-item .item-row--details .item-details {
+  margin-top: 8px;
+  border-top: 1px solid rgba(201, 170, 113, 0.2);
+  padding-top: 8px;
+}
+
+/* 移动端背包：操作按钮两列网格，避免溢出与误触 */
+.guixu-root-container.mobile-view .inventory-item .item-row--headline { flex-wrap: wrap; gap: 6px; }
+.guixu-root-container.mobile-view .inventory-item .item-row--actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+.guixu-root-container.mobile-view .inventory-item .item-row--actions > button {
+  width: 100%;
+  height: 32px;
+  min-width: 0;
+  padding: 0 10px !important;
+  box-sizing: border-box;
+}
+
+/* 桌面端背包：操作按钮靠右下并紧凑排列 */
+.guixu-root-container:not(.mobile-view) .inventory-item .item-row--actions {
+  align-self: flex-end;      /* 靠右 */
+  justify-content: flex-end; /* 靠右 */
+  gap: 6px;                  /* 缩小按钮间距 */
+  flex-wrap: wrap;           /* 空间不足时折行，但保持靠右 */
+  margin-top: 4px;           /* 与上方分隔略小 */
+}
+
+.item-name { font-weight: bold; color: #e0dcd1; }
+.item-quantity { font-size: 12px; color: #8b7355; }
+.item-description { font-size: 12px; color: #a09c91; }
+
+.empty-category-text {
+  color: #8b7355;
+  font-style: italic;
+  padding: 10px;
+  text-align: center;
+}
+
+/* --- 装备/使用/丢弃 按钮 --- */
+.item-equip-btn,
+.item-unequip-btn {
+  padding: 4px 10px;
+  font-size: 12px;
+  background: linear-gradient(45deg, #8b4513, #cd853f);
+  border: 1px solid #daa520;
+  color: #fff;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.3s;
+  margin-left: 15px;
+}
+.item-equip-btn:hover,
+.item-unequip-btn:hover {
+  background: linear-gradient(45deg, #cd853f, #daa520);
+}
+
+.item-use-btn {
+  padding: 4px 10px;
+  font-size: 12px;
+  background: linear-gradient(45deg, #8b4513, #cd853f);
+  border: 1px solid #daa520;
+  color: #fff;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.3s;
+  margin-left: 15px;
+}
+.item-use-btn:hover { background: linear-gradient(45deg, #cd853f, #daa520); }
+
+.item-discard-btn,
+.item-delete-btn {
+  padding: 4px 10px;
+  font-size: 12px;
+  background: #8b0000;
+  border: 1px solid #ff6b6b;
+  color: #fff;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.3s;
+  margin-left: 5px;
+}
+.item-discard-btn:hover,
+.item-delete-btn:hover { background: #a52a2a; }
+
+/* 背包：统一“丢弃/删除”按钮尺寸（与人物关系拆分定义对应） */
+.inventory-item .item-discard-btn,
+.inventory-item .item-delete-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  height: 28px !important;
+  padding: 0 10px !important;
+  line-height: 1 !important;
+  box-sizing: border-box !important;
+}

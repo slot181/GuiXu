@@ -1,0 +1,72 @@
+/* Phase 2 - features/controls.css
+   顶部角落控制按钮（设置 / 视图切换 / 全屏）
+   从 css/guixu.css 迁移，保持选择器不变以避免特异性变化 */
+
+/* 视图切换按钮 */
+.view-toggle-btn {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  width: 35px;
+  height: 35px;
+  background: rgba(15, 15, 35, 0.8);
+  border: 1px solid #c9aa71;
+  color: #c9aa71;
+  border-radius: 50%;
+  cursor: pointer;
+  z-index: 100;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.3s;
+}
+.view-toggle-btn:hover {
+  background-color: rgba(45, 27, 61, 0.9);
+}
+
+/* 全屏按钮（右上角，靠左一点） */
+.fullscreen-btn {
+  position: absolute;
+  top: 15px;
+  right: 60px; /* 位于视图切换按钮左侧 */
+  width: 35px;
+  height: 35px;
+  background: rgba(15, 15, 35, 0.8);
+  border: 1px solid #c9aa71;
+  color: #c9aa71;
+  border-radius: 50%;
+  cursor: pointer;
+  z-index: 100;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.3s;
+}
+.fullscreen-btn:hover {
+  background-color: rgba(45, 27, 61, 0.9);
+}
+
+/* 设置按钮（左上角，与视图按钮风格统一） */
+.settings-btn {
+  position: absolute;
+  top: 15px;
+  left: 15px;
+  width: 35px;
+  height: 35px;
+  background: rgba(15, 15, 35, 0.8);
+  border: 1px solid #c9aa71;
+  color: #c9aa71;
+  border-radius: 50%;
+  cursor: pointer;
+  z-index: 100;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.3s;
+}
+.settings-btn:hover {
+  background-color: rgba(45, 27, 61, 0.9);
+}

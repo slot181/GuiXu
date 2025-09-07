@@ -1,0 +1,171 @@
+/* Phase 2 - features/trade.css
+   交易面板（Trade）相关样式，精准从 css/guixu.css 迁移
+*/
+
+/* 交易面板内的布局 */
+#trade-modal .trade-summary {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+#trade-modal .inventory-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+#trade-modal .trade-section {
+  border: 1px solid rgba(201,170,113,0.3);
+  border-radius: 6px;
+  padding: 10px;
+  background: rgba(0,0,0,0.2);
+}
+#trade-modal .trade-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 0;
+  border-bottom: 1px dashed rgba(201,170,113,0.2);
+}
+#trade-modal .trade-item:last-child {
+  border-bottom: none;
+}
+#trade-modal .trade-item .item-name {
+  color: #e0dcd1;
+}
+#trade-modal .trade-item .item-meta {
+  color: #8b7355;
+  font-size: 12px;
+  white-space: nowrap;
+}
+#trade-modal .btn-purchase-item,
+#trade-modal .btn-sell-item {
+  height: 26px;
+  padding: 0 10px;
+  border: 1px solid #daa520;
+  border-radius: 4px;
+  background: linear-gradient(45deg, #8b4513, #cd853f);
+  color: #fff;
+  cursor: pointer;
+}
+
+/* ================= 交易面板：单列表表格与工具栏（防换行/省略号/滚动） ================= */
+#trade-modal .trade-toolbar {
+  display: inline-flex;
+  gap: 8px;
+  margin: 6px 0 10px;
+  flex-wrap: wrap;
+}
+#trade-modal .trade-toolbar .interaction-btn.active {
+  background: linear-gradient(45deg, #8b4513, #cd853f);
+  border-color: #daa520;
+  color: #fff;
+}
+#trade-modal .trade-table-wrapper {
+  position: relative;
+  overflow-x: auto;
+  overflow-y: hidden;
+  border: 1px solid rgba(201,170,113,0.2);
+  border-radius: 6px;
+  background: rgba(0,0,0,0.15);
+}
+#trade-modal .trade-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;     /* 固定列宽，避免因内容过长挤压布局 */
+  min-width: 720px;        /* 小屏允许横向滚动 */
+}
+#trade-modal .trade-table thead th,
+#trade-modal .trade-table tbody td {
+  padding: 6px 8px;
+  border-bottom: 1px solid rgba(201,170,113,0.15);
+  font-size: 12px;
+  white-space: nowrap;     /* 禁止换行，避免“挤下一列” */
+  vertical-align: middle;  /* 垂直居中，避免视觉错位 */
+}
+#trade-modal .trade-table thead th {
+  position: sticky;
+  top: 0;
+  background: rgba(26,26,46,0.9);
+  color: #c9aa71;
+  cursor: pointer;
+}
+#trade-modal .trade-table thead th:last-child { cursor: default; } /* 操作列不排序 */
+#trade-modal .trade-table tbody tr:hover {
+  background: rgba(201,170,113,0.06);
+}
+/* 列宽与对齐：名称列省略号，数值列右对齐 */
+#trade-modal .trade-table td:nth-child(1) { max-width: 200px; overflow: hidden; text-overflow: ellipsis; }
+#trade-modal .trade-table td:nth-child(2) { width: 72px; }
+#trade-modal .trade-table td:nth-child(3) { width: 64px; text-align: right; }
+#trade-modal .trade-table td:nth-child(4),
+#trade-modal .trade-table td:nth-child(5),
+#trade-modal .trade-table td:nth-child(6) { width: 100px; text-align: right; }
+
+/* 操作列（购买/出售）统一宽度并居中对齐（表头与单元格一致） */
+#trade-modal .trade-table td:nth-child(7),
+#trade-modal .trade-table th:nth-child(7) { width: 88px; text-align: center; }
+
+/* 表头与单元格左右对齐策略与列宽匹配，保证“上下一致对齐” */
+#trade-modal .trade-table thead th:nth-child(1),
+#trade-modal .trade-table thead th:nth-child(2) { text-align: left; }
+#trade-modal .trade-table thead th:nth-child(3),
+#trade-modal .trade-table thead th:nth-child(4),
+#trade-modal .trade-table thead th:nth-child(5),
+#trade-modal .trade-table thead th:nth-child(6) { text-align: right; }
+#trade-modal .trade-table thead th:nth-child(7) { text-align: center; }
+
+#trade-modal .trade-table tbody td:nth-child(1),
+#trade-modal .trade-table tbody td:nth-child(2) { text-align: left; }
+#trade-modal .trade-table tbody td:nth-child(3),
+#trade-modal .trade-table tbody td:nth-child(4),
+#trade-modal .trade-table tbody td:nth-child(5),
+#trade-modal .trade-table tbody td:nth-child(6) { text-align: right; }
+#trade-modal .trade-table tbody td:nth-child(7) { text-align: center; }
+
+#trade-modal .trade-table .item-name {
+  color: #e0dcd1;
+  display: inline-block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: middle;
+}
+#trade-modal .trade-table .btn-purchase-item,
+#trade-modal .trade-table .btn-sell-item {
+  height: 24px;
+  padding: 0 8px;
+}
+
+/* 移动端兜底：缩小名称列，允许横向滚动 */
+@media (max-width: 900px) {
+  #trade-modal .trade-table { min-width: 680px; }
+  #trade-modal .trade-table td:nth-child(1) { max-width: 140px; }
+}
+
+/* 交易-搜索输入（从 guixu.css 迁移，确保移除兜底前等效） */
+.guixu-root-container #trade-modal #trade-search-input {
+  height: var(--gx-input-height, 32px);
+  padding: 0 10px;
+  background: var(--gx-input-bg, rgba(26,26,46,0.5));
+  border: 1px solid var(--gx-input-border-color, rgba(201,170,113,0.35));
+  border-radius: var(--gx-input-radius, 8px);
+  color: var(--gx-input-color, #e8e3d6);
+  font-size: 12px;
+  outline: none;
+  box-sizing: border-box;
+}
+.guixu-root-container #trade-modal #trade-search-input::placeholder {
+  color: var(--gx-placeholder-color, #8b7355);
+}
+.guixu-root-container #trade-modal #trade-search-input:hover {
+  background: var(--gx-input-bg-hover, rgba(26,26,46,0.6));
+  border-color: var(--gx-input-border-color-hover, rgba(201,170,113,0.45));
+}
+.guixu-root-container #trade-modal #trade-search-input:focus {
+  background: var(--gx-input-bg-focus, rgba(26,26,46,0.65));
+  border-color: var(--gx-input-border-color-focus, rgba(201,170,113,0.65));
+  box-shadow: var(--gx-input-shadow-focus, 0 0 0 2px rgba(201,170,113,0.12));
+  outline: none;
+}

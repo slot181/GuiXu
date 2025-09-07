@@ -1,0 +1,26 @@
+/* Phase 2 - features/extracted-content.css
+   “最后一次提取的AI内容”模态（#extracted-content-modal）内的自动写入相关样式
+   从 css/guixu.css 迁移，保持选择器与声明一致，避免特异性变化
+*/
+
+.auto-write-section {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 15px;
+  /* 与上方内容隔开 */
+  padding-top: 15px;
+  /* 与上方内容隔开 */
+  border-top: 1px solid rgba(201, 170, 113, 0.3);
+  /* 分割线 */
+}
+
+.auto-write-label {
+  font-size: 12px;
+  color: #8b7355;
+  cursor: pointer;
+}
+
+#auto-write-checkbox {
+  cursor: pointer;
+}
