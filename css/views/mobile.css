@@ -110,28 +110,31 @@
 }
 
 .mobile-view .bottom-status {
+  display: flex;               /* 覆盖桌面的 grid，移动端改为垂直堆叠 */
   flex-direction: column;
-  /* 垂直堆叠 */
+  align-items: stretch;
   height: auto;
-  padding: 8px;
+  gap: 10px;
+  padding: 10px 14px;  /* 增加左右内边距，避免子项贴边 */
+  box-sizing: border-box;
 }
 
 .guixu-root-container.mobile-view .quick-send-container {
-  display: flex;
+  display: flex !important; /* 覆盖 JS 动态注入的 grid，移动端改为纵向布局 */
   flex-direction: column;
   width: 100%;
   gap: 8px;
 }
 /* 移动端：刷新 + 重掷 两键等宽、左右分布（仅当 .qs-left 打上 .qs-left--two-btn 时生效） */
 .guixu-root-container.mobile-view .quick-send-container .qs-left.qs-left--two-btn {
-  display: flex;
-  justify-content: space-between;
-  gap: 8px;
+  display: grid;
+  grid-template-columns: 1fr 1fr; /* 两列等分，刚好铺满一行 */
+  gap: 10px; /* 与外层间距保持一致 */
 }
 .guixu-root-container.mobile-view #btn-first-run-refresh,
 .guixu-root-container.mobile-view #btn-reroll-last {
-  flex: 0 0 calc(50% - 4px);
-  width: calc(50% - 4px);
+  flex: 1 1 auto;
+  width: 100%;          /* 在两列网格下占满各自列 */
   height: 34px;
   min-width: 0;
   box-sizing: border-box;
@@ -140,6 +143,39 @@
 /* 让输入区在移动端占满宽度 */
 .mobile-view .quick-send-input {
   width: 100%;
+}
+
+/* 发送按钮与输入同宽，左右铺满 */
+.guixu-root-container.mobile-view .quick-send-container .qs-right #btn-quick-send {
+  width: 100%;
+  height: 36px;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+/* 三段式子区块在移动端拉伸到整行宽度 */
+.guixu-root-container.mobile-view .quick-send-container .qs-left,
+.guixu-root-container.mobile-view .quick-send-container .qs-center,
+.guixu-root-container.mobile-view .quick-send-container .qs-right {
+  width: 100%;
+}
+
+/* 状态一览按钮单独一行，且与下方内容同一最大宽度区域居中 */
+.guixu-root-container.mobile-view #btn-status-pop {
+  align-self: center;
+  margin: 0 auto 2px auto; /* 水平居中，稍微与下一行留缝 */
+  max-width: 680px;
+  width: auto; /* 保持芯片宽度，不再拉满整行 */
+}
+
+/* 非全屏的移动端：为底部栏内容设置统一最大宽度，避免贴边并与“状态一览”对齐 */
+.guixu-root-container.mobile-view:not(.mobile-landscape-fullscreen) .bottom-status .quick-send-container,
+.guixu-root-container.mobile-view:not(.mobile-landscape-fullscreen) .bottom-status .qs-left,
+.guixu-root-container.mobile-view:not(.mobile-landscape-fullscreen) .bottom-status .qs-center,
+.guixu-root-container.mobile-view:not(.mobile-landscape-fullscreen) .bottom-status .qs-right {
+  max-width: 680px;
+  width: 100%;
+  margin: 0 auto;
 }
 
 /* 移动端快速指令弹窗宽度适配 */
