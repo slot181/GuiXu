@@ -21,7 +21,9 @@
     customFontDataUrl: '',
     // 背景压缩设置
     bgCompressQuality: 0.9, // 0.6 - 1.0
-    bgKeepSize: false       // 保留原始尺寸（不缩放）
+    bgKeepSize: false,      // 保留原始尺寸（不缩放）
+    // 新增：功能面板按钮隐藏配置（key 为按钮ID，true 表示隐藏）
+    hiddenFunctionButtons: {}
   });
 
   function clamp(num, min, max) {
@@ -31,7 +33,17 @@
   }
 
   const BG_PREFIX = String(window.GuixuConstants?.BACKGROUND?.PREFIX || '归墟背景/');
-
+  // 新增：功能面板按钮清单（右侧交互面板）。不包含“设置中心”，避免误隐藏导致无法再打开设置。
+  const FUNC_BUTTONS = Object.freeze([
+    { id: 'btn-inventory', label: '背包' },
+    { id: 'btn-relationships', label: '人物关系' },
+    { id: 'btn-command-center', label: '指令中心' },
+    { id: 'btn-guixu-system', label: '归墟系统' },
+    { id: 'btn-show-extracted', label: '查看提取内容' },
+    { id: 'btn-save-load-manager', label: '存档/读档' },
+    { id: 'btn-intro-guide', label: '游玩指南' },
+  ]);
+  
   const SettingsComponent = {
     _bound: false,
     _bgEntriesCache: [],
@@ -459,6 +471,61 @@
         }
       } catch (_) {}
 
+      // 新增：功能面板按钮隐藏设置面板（移动/桌面通用）
+      try {
+        const modalBody = overlay?.querySelector('.modal-body');
+        if (modalBody && !document.getElementById('panel-function-buttons')) {
+          const panel = document.createElement('div');
+          panel.className = 'panel-section';
+          panel.id = 'panel-function-buttons';
+
+          const title = document.createElement('div');
+          title.className = 'section-title';
+          title.textContent = '功能面板按钮';
+
+          const list = document.createElement('div');
+          list.className = 'attributes-list';
+          list.style.padding = '10px';
+
+          // 生成复选框：勾选表示“隐藏该按钮”
+          FUNC_BUTTONS.forEach(btn => {
+            const row = document.createElement('div');
+            row.className = 'attribute-item';
+            row.style.cssText = 'gap:10px; align-items:center;';
+
+            const input = document.createElement('input');
+            input.type = 'checkbox';
+            input.id = `pref-hide-${btn.id}`;
+
+            const label = document.createElement('label');
+            label.className = 'auto-write-label';
+            label.setAttribute('for', input.id);
+            label.textContent = `隐藏「${btn.label}」按钮`;
+
+            // 变更即预览
+            input.addEventListener('change', () => this.applyPreview(this.readValues()));
+
+            row.appendChild(input);
+            row.appendChild(label);
+            list.appendChild(row);
+          });
+
+          panel.appendChild(title);
+          panel.appendChild(list);
+
+          // 插入在“流式请求”面板之后更合理
+          const streamPanel = document.getElementById('panel-streaming-toggle');
+          if (streamPanel && streamPanel.parentElement === modalBody) {
+            if (streamPanel.nextSibling) modalBody.insertBefore(panel, streamPanel.nextSibling);
+            else modalBody.appendChild(panel);
+          } else {
+            modalBody.appendChild(panel);
+          }
+
+          try { attachInfoIcon(title, '勾选后将从右侧功能面板隐藏对应按钮（移动端与桌面端均生效）。'); } catch (_) {}
+        }
+      } catch (_) {}
+
       // 初始化预览容器样式兜底（若CSS未定义）
       if (previewEl && !previewEl.style.minHeight) {
         previewEl.style.minHeight = '120px';
@@ -571,13 +638,22 @@
 
 
       // 流式输出开关回显
-      try {
-        const streamingCheckbox = document.getElementById('pref-streaming-enabled');
-        if (streamingCheckbox) {
-          const st = window.GuixuState?.getState?.();
-          streamingCheckbox.checked = !!(st && st.isStreamingEnabled);
-        }
-      } catch (_) {}
+     try {
+       const streamingCheckbox = document.getElementById('pref-streaming-enabled');
+       if (streamingCheckbox) {
+         const st = window.GuixuState?.getState?.();
+         streamingCheckbox.checked = !!(st && st.isStreamingEnabled);
+       }
+     } catch (_) {}
+
+     // 新增：功能面板按钮隐藏复选框回显
+     try {
+       const hiddenMap = (prefs && prefs.hiddenFunctionButtons) ? prefs.hiddenFunctionButtons : {};
+       FUNC_BUTTONS.forEach(b => {
+         const cb = document.getElementById(`pref-hide-${b.id}`);
+         if (cb) cb.checked = !!hiddenMap[b.id];
+       });
+     } catch (_) {}
     },
 
     readValues() {
@@ -603,7 +679,16 @@
       const bgCompressQuality = Math.min(1, Math.max(0.6, Number($('#pref-bg-quality')?.value ?? DEFAULTS.bgCompressQuality)));
       const bgKeepSize = !!($('#pref-bg-keep-size')?.checked);
 
-      return { backgroundUrl, bgMaskOpacity, storyFontSize, storyFontColor, storyDefaultColor, storyQuoteColor, thinkingTextColor, thinkingBgOpacity, guidelineTextColor, guidelineBgOpacity, bgFitMode, customFontName, customFontDataUrl, bgCompressQuality, bgKeepSize };
+      // 新增：功能面板按钮隐藏配置（勾选表示隐藏）
+      const hiddenFunctionButtons = {};
+      try {
+        FUNC_BUTTONS.forEach(b => {
+          const el = document.getElementById(`pref-hide-${b.id}`);
+          if (el && el.checked) hiddenFunctionButtons[b.id] = true;
+        });
+      } catch (_) {}
+
+      return { backgroundUrl, bgMaskOpacity, storyFontSize, storyFontColor, storyDefaultColor, storyQuoteColor, thinkingTextColor, thinkingBgOpacity, guidelineTextColor, guidelineBgOpacity, bgFitMode, customFontName, customFontDataUrl, bgCompressQuality, bgKeepSize, hiddenFunctionButtons };
     },
 
     applyPreview(prefs) {

@@ -2474,7 +2474,8 @@ if (!document.getElementById('guixu-gate-style')) {
         const container = document.querySelector('.guixu-root-container');
         if (!container) return;
         const state = window.GuixuState?.getState?.();
-        const defaults = { backgroundUrl: '', bgMaskOpacity: 0.7, storyFontSize: 14, storyFontColor: '#e0dcd1', storyDefaultColor: '#e0dcd1', storyQuoteColor: '#ff4d4f', thinkingTextColor: '#e0dcd1', thinkingBgOpacity: 0.85, guidelineTextColor: '#e0dcd1', guidelineBgOpacity: 0.6, bgFitMode: 'cover', customFontName: '', customFontDataUrl: '' };
+        // 新增 hiddenFunctionButtons 默认值
+        const defaults = { backgroundUrl: '', bgMaskOpacity: 0.7, storyFontSize: 14, storyFontColor: '#e0dcd1', storyDefaultColor: '#e0dcd1', storyQuoteColor: '#ff4d4f', thinkingTextColor: '#e0dcd1', thinkingBgOpacity: 0.85, guidelineTextColor: '#e0dcd1', guidelineBgOpacity: 0.6, bgFitMode: 'cover', customFontName: '', customFontDataUrl: '', hiddenFunctionButtons: {} };
         const prefs = Object.assign({}, defaults, (prefsOverride || state?.userPreferences || {}));
 
         // 遮罩透明度（0~0.8）
@@ -2580,6 +2581,10 @@ container.style.fontFamily = `"Microsoft YaHei", "Noto Sans SC", "PingFang SC", 
 
         // 应用非全屏分辨率与等比缩放
         this._applyViewportSizing(prefs);
+
+        // 新增：根据用户偏好隐藏右侧功能面板按钮，并在移动端保证每行最多两个按钮/单按钮独占一行
+        this._applyFunctionButtonsVisibility(prefs.hiddenFunctionButtons || {});
+        this._adjustMobileFunctionPanelGrid();
       } catch (e) {
         console.warn('[归墟] 应用用户主题偏好失败:', e);
       }
@@ -2672,6 +2677,57 @@ container.style.fontFamily = `"Microsoft YaHei", "Noto Sans SC", "PingFang SC", 
       } catch (e) {
         console.warn('[归墟] _applyViewportSizing 出错:', e);
       }
+    },
+
+    // 更新：根据设置隐藏右侧功能面板按钮（移动端与桌面端均生效；不隐藏“设置中心”，避免丢失入口）
+    // 说明：桌面端 CSS 在 desktop.css 中对 .interaction-btn 使用了 display: inline-flex !important；
+    // 为了正确隐藏，需要以 JS 设置内联 !important（setProperty 第三个参数为 'important'）
+    _applyFunctionButtonsVisibility(hiddenMap = {}) {
+      try {
+        const ids = [
+          'btn-inventory',
+          'btn-relationships',
+          'btn-command-center',
+          'btn-guixu-system',
+          'btn-show-extracted',
+          'btn-save-load-manager',
+          'btn-intro-guide'
+        ];
+        ids.forEach(id => {
+          const el = document.getElementById(id);
+          if (!el) return;
+          const hide = !!hiddenMap[id];
+          if (hide) {
+            // 桌面端存在 display: inline-flex !important，需要用内联 !important 覆盖
+            el.style.setProperty('display', 'none', 'important'); // 隐藏（含 !important）
+            el.setAttribute('aria-hidden', 'true');               // 语义隐藏（可选）
+          } else {
+            // 显示：移除内联 display，让样式表生效
+            el.style.removeProperty('display');
+            el.removeAttribute('aria-hidden');
+          }
+        });
+      } catch (_) {}
+    },
+
+    // 新增：移动端功能面板最后一个“落单”按钮独占一行，确保“一行一个或最多两个”
+    _adjustMobileFunctionPanelGrid() {
+      try {
+        const root = document.querySelector('.guixu-root-container');
+        if (!root || !root.classList.contains('mobile-view')) return;
+        const panel = document.querySelector('.interaction-panel');
+        if (!panel) return;
+        // 仅选取面板直接子级的功能按钮，忽略后续的 .panel-section 区块
+        const buttons = Array.from(panel.querySelectorAll(':scope > .interaction-btn'))
+          .filter(el => getComputedStyle(el).display !== 'none');
+        // 清除先前设置
+        buttons.forEach(b => { try { b.style.removeProperty('grid-column'); } catch(_) {} });
+        // 若为奇数个，最后一个按钮占满整行
+        if (buttons.length % 2 === 1 && buttons.length > 0) {
+          const last = buttons[buttons.length - 1];
+          last.style.gridColumn = '1 / -1';
+        }
+      } catch (_) {}
     },
 
     // 输入草稿：加载/保存/清除
