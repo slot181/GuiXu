@@ -311,7 +311,7 @@
           { selector: '.panel-section .section-title', match: '背景显示方式', text: '设置背景图的铺放方式（cover/contain/repeat/stretch/center）。' },
           { selector: '.panel-section .section-title', match: '背景压缩', text: '上传本地图片时按此质量进行压缩（默认WebP，范围0.60-1.00）；勾选“保留原始尺寸”则不缩放，仅按质量压缩。仅影响上传后的存储，不改变当前已选背景清晰度。' },
           { selector: '.panel-section .section-title', match: '故事文本字号', text: '控制中央正文区域的基础字号大小。' },
-          { selector: '.panel-section .section-title', match: '流式请求', text: '此开关只是以流式请求的方式进行请求，并不会真的流式输出在正文窗口里。' },
+          { selector: '.panel-section .section-title', match: '流式输出', text: '启用后采用流式请求，并实时在正文窗口渲染增量内容；生成完成后仍会写入并以最终文本替换预览。' },
           { selector: '#section-title-story-font', match: null, text: '可分别设置：正文颜色、方括号文本颜色、引号文本颜色、思维链文字颜色以及其背景透明度；并可上传本地字体文件（TTF/OTF/WOFF/WOFF2）。字体以本地缓存方式加载，刷新后仍有效（强制清缓存除外）。' },
         ];
         panelMap.forEach(cfg => {
@@ -439,11 +439,11 @@
           panel.className = 'panel-section';
           panel.id = 'panel-streaming-toggle';
           panel.innerHTML = `
-            <div class="section-title">流式请求</div>
+            <div class="section-title">流式输出</div>
             <div class="attributes-list" style="padding: 10px;">
               <div class="attribute-item" style="gap:10px; align-items:center;">
                 <input id="pref-streaming-enabled" type="checkbox" />
-                <label for="pref-streaming-enabled" class="auto-write-label">流式请求开关</label>
+                <label for="pref-streaming-enabled" class="auto-write-label">流式输出开关（实时渲染）</label>
               </div>
             </div>
           `;
@@ -456,7 +456,8 @@
           }
           try {
             const streamingTitle = panel.querySelector('.section-title');
-            attachInfoIcon(streamingTitle, '此开关只是以流式请求的方式进行请求，并不会真的流式输出在正文窗口里。');
+            // 更新说明：启用后将以流式请求的方式实时把增量文本渲染到正文窗口中
+            attachInfoIcon(streamingTitle, '启用后采用流式请求，并实时在正文窗口渲染增量内容；生成完成后仍会写入并以最终文本替换预览。');
           } catch (_) {}
         }
         // 绑定开关事件

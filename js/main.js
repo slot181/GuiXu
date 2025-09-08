@@ -250,6 +250,11 @@
       this.ensureRefreshButton();
       this.ensureRerollButton();
       this.ensureAllModalsClosed();
+      // 清理：移除底部遗留的“流式输出”开关按钮（改由设置中心管理）
+      try {
+        const legacyBtn = document.getElementById('btn-toggle-stream');
+        if (legacyBtn) legacyBtn.remove();
+      } catch (_) {}
 
       // 启动服务轮询改为在门禁评估后再启动
 
@@ -258,6 +263,56 @@
       // 订阅全局状态事件（一次性），用于在 mvu 或装备变化时即时刷新UI
       this.ensureStateSubscriptions();
 
+      // 新增：绑定流式事件（仅绑定一次），在生成过程中将 LLM 的流式输出实时渲染到正文窗口
+      try {
+        if (!this._streamingEventsBound) {
+          this._streamingEventsBound = true;
+
+          const renderStreaming = (text) => {
+            try {
+              // 仅当开启了“流式请求”时才渲染预览
+              const st = window.GuixuState?.getState?.();
+              if (!st || !st.isStreamingEnabled) return;
+
+              const gameTextDisplay = document.getElementById('game-text-display');
+              if (!gameTextDisplay) return;
+
+              // 仅渲染正文（优先 <gametxt>，否则为去除思维链后的文本），避免对 MVU/提取等产生副作用
+              const displayText = this._getDisplayText(String(text || ''));
+              gameTextDisplay.innerHTML = this.formatMessageContent(displayText || '');
+            } catch (_) {}
+          };
+
+          // 生成开始：标记活跃，清空缓存，并在启用流式时更新顶部提醒文案
+          eventOn(iframe_events.GENERATION_STARTED, () => {
+            try { this._streamingActive = true; this._lastStreamingText = ''; } catch (_) {}
+            try {
+              const st = window.GuixuState?.getState?.();
+              if (st && st.isStreamingEnabled) this.showWaitingMessage('正在流式输出中…');
+            } catch (_) {}
+          });
+
+          // 优先使用“完整累计文本”事件
+          eventOn(iframe_events.STREAM_TOKEN_RECEIVED_FULLY, (full_text) => {
+            try { this._lastStreamingText = String(full_text || ''); } catch (_) {}
+            renderStreaming(this._lastStreamingText);
+          });
+
+          // 兼容：仅有增量事件时，手动累加并渲染
+          eventOn(iframe_events.STREAM_TOKEN_RECEIVED_INCREMENTALLY, (incremental_text) => {
+            try { this._lastStreamingText = (this._lastStreamingText || '') + String(incremental_text || ''); } catch (_) {}
+            renderStreaming(this._lastStreamingText);
+          });
+
+          // 生成结束：结束标记；最终渲染交由 ActionService 完整流程（提取/MVU/保存）处理
+          eventOn(iframe_events.GENERATION_ENDED, () => {
+            try { this._streamingActive = false; } catch (_) {}
+          });
+        }
+      } catch (e) {
+        console.warn('[归墟] 绑定流式事件失败:', e);
+      }
+      
       // 自动检测并应用移动端视图
       this._autoDetectMobileAndApply();
       // 桌面端：注入左右侧栏开合按钮并恢复上次折叠状态
@@ -1042,42 +1097,6 @@ if (!document.getElementById('guixu-gate-style')) {
       }
     },
 
-    // 新增：底部“流式”开关按钮
-    ensureStreamingToggleButton() {
-      try {
-        const bottom = document.getElementById('bottom-status-container');
-        if (!bottom) return;
-        const qs = bottom.querySelector('.quick-send-container');
-        if (!qs) return;
-
-        let btn = document.getElementById('btn-toggle-stream');
-        if (!btn) {
-          btn = document.createElement('button');
-          btn.id = 'btn-toggle-stream';
-          btn.className = 'interaction-btn';
-          btn.type = 'button';
-          btn.style.padding = '5px 12px';
-          btn.title = '切换流式传输（启用时逐字显示AI回复）';
-          btn.textContent = '流式';
-          // 插入到输入框前（与“当前指令”按钮同一风格）
-          const inputEl = qs.querySelector('#quick-send-input');
-          qs.insertBefore(btn, inputEl || qs.firstChild);
-
-          btn.addEventListener('click', () => {
-            const enabled = !window.GuixuState.getState().isStreamingEnabled;
-            window.GuixuState.update('isStreamingEnabled', enabled);
-            btn.classList.toggle('primary-btn', enabled);
-            window.GuixuHelpers.showTemporaryMessage(`流式传输已${enabled ? '开启' : '关闭'}`);
-          });
-        }
-
-        // 同步按钮外观到当前状态
-        const enabled = !!window.GuixuState.getState().isStreamingEnabled;
-        btn.classList.toggle('primary-btn', enabled);
-      } catch (e) {
-        console.warn('[归墟] ensureStreamingToggleButton 失败:', e);
-      }
-    },
  
     // 新增：移动端视图切换与悬浮按钮
     _getViewportEl() {
@@ -2237,7 +2256,11 @@ if (!document.getElementById('guixu-gate-style')) {
               if (Array.isArray(res.missing) && res.missing.length) parts.push(`未生成: ${res.missing.join(', ')}`);
               if (Array.isArray(res.unclosed) && res.unclosed.length) parts.push(`未闭合: ${res.unclosed.join(', ')}`);
               const msg = `检测到标签问题：${parts.join('；')}。请打开编辑功能（小铅笔）补齐这些标签，避免产生 bug。`;
-              try { window.GuixuHelpers?.showTemporaryMessage?.(msg, 6000); } catch (_) {}
+              // 改用无转圈的“通知”样式顶部浮窗，并在 6 秒后自动隐藏
+              try {
+                this.showWaitingMessage(msg, { variant: 'warning' });
+                setTimeout(() => { try { this.hideWaitingMessage(); } catch (_) {} }, 6000);
+              } catch (_) {}
             }
           } catch (_) {}
           const { strippedText: contentWithoutGuidelines, items: guidelineItems } = this._parseActionGuidelines(contentToParse);
@@ -2367,13 +2390,30 @@ if (!document.getElementById('guixu-gate-style')) {
       return processedText;
     },
 
-    showWaitingMessage() {
+    showWaitingMessage(text = null, opts = {}) {
       try {
-        const existing = document.getElementById('waiting-popup');
-        if (existing) existing.remove();
+        const { variant = 'loading' } = (opts || {});
         const messages = window.GuixuConstants?.WAITING_MESSAGES || [];
-        const msg = messages.length > 0 ? messages[Math.floor(Math.random() * messages.length)] : '正在请求伟大梦星...';
-        const div = document.createElement('div');
+        const msg = (text != null && String(text).trim() !== '')
+          ? String(text)
+          : (messages.length > 0 ? messages[Math.floor(Math.random() * messages.length)] : '正在请求伟大梦星...');
+        let div = document.getElementById('waiting-popup');
+        if (div) {
+          // 更新文案与样式
+          const span = div.querySelector('span');
+          if (span) span.textContent = msg;
+          const spinner = div.querySelector('.waiting-spinner');
+          const icon = div.querySelector('.waiting-icon');
+          if (spinner) spinner.style.display = (variant === 'loading') ? 'inline-block' : 'none';
+          if (icon) {
+            icon.style.display = (variant === 'loading') ? 'none' : 'inline-flex';
+            icon.textContent = (variant === 'warning') ? '⚠' : 'ℹ';
+          }
+          div.style.display = 'flex';
+          return;
+        }
+        // 新建浮窗
+        div = document.createElement('div');
         div.id = 'waiting-popup';
         div.className = 'waiting-popup';
         div.style.cssText = `
@@ -2394,6 +2434,7 @@ if (!document.getElementById('guixu-gate-style')) {
           font-size: 13px;
           font-weight: 600;
         `;
+        // 加载转圈
         const spinner = document.createElement('div');
         spinner.className = 'waiting-spinner';
         spinner.style.cssText = `
@@ -2403,10 +2444,25 @@ if (!document.getElementById('guixu-gate-style')) {
           border-right-color: transparent;
           border-radius: 50%;
           margin-right: 4px;
+          display: ${variant === 'loading' ? 'inline-block' : 'none'};
+        `;
+        // 通知/警告图标（非加载态显示）
+        const icon = document.createElement('span');
+        icon.className = 'waiting-icon';
+        icon.textContent = (variant === 'warning') ? '⚠' : 'ℹ';
+        icon.style.cssText = `
+          width: 14px;
+          height: 14px;
+          display: ${variant === 'loading' ? 'none' : 'inline-flex'};
+          align-items: center;
+          justify-content: center;
+          margin-right: 4px;
         `;
         const span = document.createElement('span');
         span.textContent = msg;
+        // 组装
         div.appendChild(spinner);
+        div.appendChild(icon);
         div.appendChild(span);
         const container = document.querySelector('.guixu-root-container') || document.body;
         container.appendChild(div);

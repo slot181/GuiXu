@@ -20,8 +20,12 @@
   color: #e0dcd1;
   font-size: 12px;
   z-index: 1001;
-  width: auto;
-  max-width: 300px;
+  box-sizing: border-box;           /* 避免内边距撑爆宽度 */
+  width: max-content;               /* 随内容自适应宽度 */
+  max-width: min(92vw, 360px);      /* 小屏防溢出，桌面限定 */
+  white-space: normal;              /* 允许正常换行 */
+  word-break: break-word;           /* 打断长词/连续字符 */
+  overflow-wrap: anywhere;          /* 移动端激进断行 */
   pointer-events: none;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
 }
@@ -67,8 +71,12 @@
   color: #e0dcd1;
   font-size: 12px;
   z-index: 1001;
-  width: auto;
-  max-width: 360px;
+  box-sizing: border-box;
+  width: max-content;               /* 自适应 */
+  max-width: min(92vw, 420px);      /* 防止左右溢出 */
+  white-space: normal;
+  word-break: break-word;
+  overflow-wrap: anywhere;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
 }
 
@@ -84,8 +92,12 @@
   color: #e0dcd1;
   font-size: 12px;
   z-index: 1002;
-  width: auto;
-  max-width: 360px;
+  box-sizing: border-box;
+  width: max-content;               /* 随内容自适应 */
+  max-width: min(92vw, 420px);      /* 小屏限制 */
+  white-space: normal;
+  word-break: break-word;
+  overflow-wrap: anywhere;
   box-shadow: 0 6px 18px rgba(0,0,0,0.45);
 }
 .attr-tip-title {

@@ -34,23 +34,28 @@
 }
 
 .waiting-popup {
-  position: absolute;
+  position: fixed; /* 固定相对视口，嵌入式/移动端均稳定 */
   top: 20px;
   left: 50%;
   transform: translateX(-50%);
-  background: rgba(15, 15, 35, 0.8);
+  background: rgba(15, 15, 35, 0.9);
   color: #c9aa71;
-  padding: 15px 25px;
+  padding: 12px 16px;
   border-radius: 8px;
   border: 1px solid #c9aa71;
-  z-index: 9999;
-  font-size: 16px;
+  z-index: 10002;
+  font-size: 14px;
   box-shadow: 0 5px 25px rgba(0, 0, 0, 0.7);
   line-height: 1.6;
   display: flex;
   align-items: center;
-  gap: 20px;
-  width: 450px;
-  /* 拉长悬浮框 */
-  max-width: 90%;
+  justify-content: center; /* 文本与图标整体居中 */
+  gap: 12px;
+  box-sizing: border-box;
+  width: max-content;            /* 根据内容自动收缩 */
+  max-width: min(92vw, 540px);   /* 防止两侧溢出主窗口 */
+  text-align: center;            /* 文本居中 */
+  white-space: normal;           /* 正常换行 */
+  word-break: break-word;        /* 打断长词 */
+  overflow-wrap: anywhere;       /* 移动端激进断行 */
 }
