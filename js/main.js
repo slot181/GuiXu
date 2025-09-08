@@ -1030,7 +1030,8 @@ if (!document.getElementById('guixu-gate-style')) {
           const btn = document.createElement('button');
           btn.id = 'btn-status-pop';
           btn.className = 'status-pop-btn';
-          btn.innerHTML = '<div class="effect-icon"></div><span>状态一览</span>';
+          // 初始文案：后续会在 renderUI 中根据实际状态数量动态更新
+          btn.innerHTML = '<div class="effect-icon"></div><span>当前无状态效果</span>';
           btn.title = '查看当前状态';
           btn.addEventListener('click', () => window.StatusesComponent?.show?.());
           const qs = bottom.querySelector('.quick-send-container');
@@ -1851,6 +1852,20 @@ if (!document.getElementById('guixu-gate-style')) {
           statusWrapper.innerHTML =
             '<div class="status-effect"><div class="effect-icon"></div><span>当前无状态效果</span></div>';
         }
+
+        // 新增：同步底部“状态一览”按钮文案，显示当前状态数量
+        try {
+          const count = Array.isArray(statuses) ? statuses.filter(Boolean).length : 0;
+          const popBtn = document.getElementById('btn-status-pop');
+          if (popBtn) {
+            const labelSpan = popBtn.querySelector('span');
+            if (labelSpan) {
+              // 中文文案：根据实时状态数量显示
+              // 若为 0，则显示“当前无状态效果”，否则显示数量
+              labelSpan.textContent = count > 0 ? `当前有${count}个状态效果` : '当前无状态效果';
+            }
+          }
+        } catch (_) {}
       }
     },
 
