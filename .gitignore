@@ -1,0 +1,100 @@
+# 通用项目 .gitignore（适用于前端/静态站点与常见工具）
+
+# 操作系统杂项
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+.Spotlight-V100
+.Trashes
+
+# 日志与调试输出
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# IDE / 编辑器
+.idea/
+.vscode/
+!.vscode/extensions.json
+# 如果你希望提交统一的工作区设置，可改为：
+# !.vscode/settings.json
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+*.swp
+*.swo
+
+# 依赖目录（如后续引入打包/工具链）
+node_modules/
+bower_components/
+jspm_packages/
+
+# 构建产物与缓存
+dist/
+build/
+out/
+public/build/
+coverage/
+.nyc_output/
+.cache/
+.parcel-cache/
+.cache-loader/
+.eslintcache
+.stylelintcache
+.vite/
+.next/
+.nuxt/
+.svelte-kit/
+.vercel/
+.docusaurus/
+storybook-static/
+
+# 临时目录
+tmp/
+temp/
+
+# 环境变量与密钥（示例文件除外）
+.env
+.env.*
+!.env.example
+*.local
+*.secret
+secrets/
+secret/
+*.pem
+*.key
+*.crt
+*.p12
+
+# 归档与临时文件
+*.zip
+*.tar
+*.gz
+*.tgz
+*.rar
+
+# 运行时/锁文件
+*.pid
+*.seed
+*.pid.lock
+
+# 备份/临时编辑文件
+*~
+*.bak
+*.tmp
+*.temp
+
+# 设计文件（按需保留）
+*.psd
+*.ai
+*.sketch
+*.xmp
+
+# TypeScript
+*.tsbuildinfo
