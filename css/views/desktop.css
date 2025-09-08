@@ -103,6 +103,15 @@
   height: 100% !important;
   min-height: 0 !important;
   gap: 1px !important;
+  /* 定义侧栏宽度变量，供开合按钮定位使用（默认未折叠） */
+  --left-pane-w: 220px;
+  --right-pane-w: 160px;
+}
+
+/* 桌面端（含强制桌面）默认变量，非折叠状态 */
+.guixu-root-container:not(.mobile-view) .game-container {
+  --left-pane-w: 220px;
+  --right-pane-w: 160px;
 }
 
 /* 顶部/正文/底部恢复网格区域行为 */
@@ -266,4 +275,70 @@
   font-size: 12px !important;
   min-width: 0;
   box-sizing: border-box;
+}
+
+/* ================= 桌面端左右侧栏：可折叠开合（非移动端） ================= */
+
+/* 折叠类：通过变量与网格列宽回收空间（左 220px / 右 160px 为默认宽度） */
+.guixu-root-container:not(.mobile-view).left-pane-collapsed .game-container {
+  --left-pane-w: 0px;
+  grid-template-columns: var(--left-pane-w) 1fr var(--right-pane-w) !important;
+}
+.guixu-root-container:not(.mobile-view).right-pane-collapsed .game-container {
+  --right-pane-w: 0px;
+  grid-template-columns: var(--left-pane-w) 1fr var(--right-pane-w) !important;
+}
+.guixu-root-container:not(.mobile-view).left-pane-collapsed.right-pane-collapsed .game-container {
+  --left-pane-w: 0px;
+  --right-pane-w: 0px;
+  grid-template-columns: var(--left-pane-w) 1fr var(--right-pane-w) !important;
+}
+
+/* 折叠时取消边框与内边距，避免残影；并限制滚动以免空区域占位 */
+.guixu-root-container:not(.mobile-view).left-pane-collapsed .character-panel {
+  padding: 0 !important;
+  border-right: none !important;
+  overflow: hidden !important;
+}
+.guixu-root-container:not(.mobile-view).right-pane-collapsed .interaction-panel {
+  padding: 0 !important;
+  border-left: none !important;
+  overflow: hidden !important;
+}
+
+/* 侧栏开合按钮（仅桌面端显示），定位在各自侧栏“内侧靠近正文”的中部；仅显示 «/» 文本，无边框与底色 */
+.guixu-root-container:not(.mobile-view) .game-container .pane-toggle-btn {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 1001;
+  /* 仅文本，但保留较大点击热区 */
+  padding: 6px 8px;
+  border: none;
+  background: transparent;
+  color: #c9aa71;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  user-select: none;
+  box-shadow: none;
+}
+/* 左侧按钮：位于左侧栏的“内侧边缘”附近；当左侧折叠时退回到容器内侧 6px */
+.guixu-root-container:not(.mobile-view) .game-container .pane-toggle-left {
+  left: max(6px, calc(var(--left-pane-w, 220px) - 12px));
+}
+/* 右侧按钮：位于右侧栏的“内侧边缘”附近；当右侧折叠时退回到容器内侧 6px */
+.guixu-root-container:not(.mobile-view) .game-container .pane-toggle-right {
+  right: max(6px, calc(var(--right-pane-w, 160px) - 12px));
+}
+
+.guixu-root-container:not(.mobile-view) .game-container .pane-toggle-btn:hover {
+  transform: translateY(-50%) scale(1.08);
+  text-shadow: 0 0 6px rgba(201, 170, 113, 0.6);
+}
+
+/* 移动端与移动端横屏全屏：不显示开合按钮 */
+.guixu-root-container.mobile-view .game-container .pane-toggle-btn,
+.guixu-root-container.mobile-landscape-fullscreen .game-container .pane-toggle-btn {
+  display: none !important;
 }

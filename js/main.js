@@ -260,6 +260,8 @@
 
       // 自动检测并应用移动端视图
       this._autoDetectMobileAndApply();
+      // 桌面端：注入左右侧栏开合按钮并恢复上次折叠状态
+      this.ensurePaneToggleControls();
 
       // 嵌入式(iframe)可见性兜底修复 + 移动端主内容固定高度
       this._applyEmbeddedVisibilityFix();
@@ -1135,6 +1137,8 @@ if (!document.getElementById('guixu-gate-style')) {
         this.applyUserPreferences();
         // 视图切换后，重新校正“刷新 + 重掷”在移动端的双键布局
         try { this.ensureRerollButton(); } catch (_) {}
+        // 同步更新侧栏开合按钮的图标（在桌面/移动端切换后）
+        try { this._updatePaneToggleLabels(); } catch (_) {}
         this._applyEmbeddedVisibilityFix();
         this._pulseFastReflow(200);
         this._reflowMobileLayout();
@@ -3345,6 +3349,106 @@ container.style.fontFamily = `"Microsoft YaHei", "Noto Sans SC", "PingFang SC", 
       } catch (e) {
         console.error('[归墟] trimJourneyAutomation 失败:', e);
         window.GuixuHelpers.showTemporaryMessage('修剪失败');
+      }
+    },
+
+    // 桌面端：左右侧栏开合控制
+    ensurePaneToggleControls() {
+      try {
+        const root = document.querySelector('.guixu-root-container');
+        const game = document.querySelector('.game-container');
+        if (!root || !game) return;
+
+        // 创建左侧按钮
+        let leftBtn = document.getElementById('pane-toggle-left');
+        if (!leftBtn) {
+          leftBtn = document.createElement('button');
+          leftBtn.id = 'pane-toggle-left';
+          leftBtn.className = 'pane-toggle-btn pane-toggle-left';
+          leftBtn.type = 'button';
+          leftBtn.addEventListener('click', () => this.toggleLeftPane());
+          game.appendChild(leftBtn);
+        }
+
+        // 创建右侧按钮
+        let rightBtn = document.getElementById('pane-toggle-right');
+        if (!rightBtn) {
+          rightBtn = document.createElement('button');
+          rightBtn.id = 'pane-toggle-right';
+          rightBtn.className = 'pane-toggle-btn pane-toggle-right';
+          rightBtn.type = 'button';
+          rightBtn.addEventListener('click', () => this.toggleRightPane());
+          game.appendChild(rightBtn);
+        }
+
+        // 恢复上次状态
+        try {
+          const leftCollapsed = localStorage.getItem('guixu_left_pane_collapsed') === '1';
+          const rightCollapsed = localStorage.getItem('guixu_right_pane_collapsed') === '1';
+          root.classList.toggle('left-pane-collapsed', leftCollapsed);
+          root.classList.toggle('right-pane-collapsed', rightCollapsed);
+        } catch (_) {}
+
+        this._updatePaneToggleLabels();
+      } catch (e) {
+        console.warn('[归墟] ensurePaneToggleControls 失败:', e);
+      }
+    },
+
+    // 更新开合按钮的图标与标题（根据当前状态）
+    _updatePaneToggleLabels() {
+      try {
+        const root = document.querySelector('.guixu-root-container');
+        if (!root) return;
+        const leftCollapsed = root.classList.contains('left-pane-collapsed');
+        const rightCollapsed = root.classList.contains('right-pane-collapsed');
+        const leftBtn = document.getElementById('pane-toggle-left');
+        const rightBtn = document.getElementById('pane-toggle-right');
+
+        if (leftBtn) {
+          leftBtn.textContent = leftCollapsed ? '»' : '«';
+          leftBtn.title = leftCollapsed ? '展开左侧栏' : '折叠左侧栏';
+          leftBtn.setAttribute('aria-pressed', String(!leftCollapsed));
+        }
+        if (rightBtn) {
+          rightBtn.textContent = rightCollapsed ? '«' : '»';
+          rightBtn.title = rightCollapsed ? '展开右侧栏' : '折叠右侧栏';
+          rightBtn.setAttribute('aria-pressed', String(!rightCollapsed));
+        }
+      } catch (_) {}
+    },
+
+    // 切换左侧栏
+    toggleLeftPane() {
+      try {
+        const root = document.querySelector('.guixu-root-container');
+        if (!root) return;
+        root.classList.toggle('left-pane-collapsed');
+        try {
+          const val = root.classList.contains('left-pane-collapsed') ? '1' : '0';
+          localStorage.setItem('guixu_left_pane_collapsed', val);
+        } catch (_) {}
+        this._updatePaneToggleLabels();
+        this._pulseFastReflow(150);
+      } catch (e) {
+        console.warn('[归墟] toggleLeftPane 失败:', e);
+      }
+    },
+
+    // 切换右侧栏
+    toggleRightPane() {
+      try {
+        const root = document.querySelector('.guixu-root-container');
+        if (!root) return;
+        root.classList.toggle('right-pane-collapsed');
+        try {
+          const val = root.classList.contains('right-pane-collapsed') ? '1' : '0';
+          localStorage.setItem('guixu_right_pane_collapsed', val);
+        } catch (_) {}
+        this._updatePaneToggleLabels();
+        this._pulseFastReflow(150);
+      } catch (e) {
+        console.warn('[归墟] toggleRightPane 失败:', e);
       }
     },
   };
