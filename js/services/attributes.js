@@ -99,9 +99,10 @@
 
       // 基础属性
       // 适配新MVU：直接读取对象字典，避免 SafeGetValue 将对象转为字符串
-      const base4 = (stat_data && typeof stat_data['基础四维'] === 'object' ? stat_data['基础四维'] : null)
-        || (stat_data && typeof stat_data['基础四维属性'] === 'object' ? stat_data['基础四维属性'] : null)
-        || {};
+      const base4 = (stat_data && typeof stat_data['基础属性'] === 'object' ? stat_data['基础属性'] : null)
+              || (stat_data && typeof stat_data['基础四维'] === 'object' ? stat_data['基础四维'] : null)
+              || (stat_data && typeof stat_data['基础四维属性'] === 'object' ? stat_data['基础四维属性'] : null)
+              || {};
       const baseAttrs = {
         fali: __toIntLocal(H.SafeGetValue(base4, '法力', 0)),
         shenhai: __toIntLocal(H.SafeGetValue(base4, '神海', 0)),
@@ -136,9 +137,10 @@
 
       // 当前值（不超过上限）
       // 适配新MVU：直接读取对象字典
-      const cur4 = (stat_data && typeof stat_data['当前四维'] === 'object' ? stat_data['当前四维'] : null)
-        || (stat_data && typeof stat_data['当前四维属性'] === 'object' ? stat_data['当前四维属性'] : null)
-        || {};
+      const cur4 = (stat_data && typeof stat_data['当前属性'] === 'object' ? stat_data['当前属性'] : null)
+              || (stat_data && typeof stat_data['当前四维'] === 'object' ? stat_data['当前四维'] : null)
+              || (stat_data && typeof stat_data['当前四维属性'] === 'object' ? stat_data['当前四维属性'] : null)
+              || {};
       const currentAttrs = {
         fali: Math.min(__toIntLocal(H.SafeGetValue(cur4, '法力', 0)), calculatedMaxAttrs.fali),
         shenhai: Math.min(__toIntLocal(H.SafeGetValue(cur4, '神海', 0)), calculatedMaxAttrs.shenhai),
@@ -240,9 +242,10 @@
       const stat_data = st.currentMvuState?.stat_data || {};
 
       // 适配新MVU：直接读取对象字典
-      const base4b = (stat_data && typeof stat_data['基础四维'] === 'object' ? stat_data['基础四维'] : null)
-        || (stat_data && typeof stat_data['基础四维属性'] === 'object' ? stat_data['基础四维属性'] : null)
-        || {};
+      const base4b = (stat_data && typeof stat_data['基础属性'] === 'object' ? stat_data['基础属性'] : null)
+              || (stat_data && typeof stat_data['基础四维'] === 'object' ? stat_data['基础四维'] : null)
+              || (stat_data && typeof stat_data['基础四维属性'] === 'object' ? stat_data['基础四维属性'] : null)
+              || {};
       const base = {
         fali: __toIntLocal(H.SafeGetValue(base4b, '法力', 0)),
         shenhai: __toIntLocal(H.SafeGetValue(base4b, '神海', 0)),
@@ -706,9 +709,9 @@ Array.isArray(linggenList) && linggenList.forEach(lg => {
     },
 
     /**
-     * 将“前端计算后的四维上限”写回到新结构：stat_data.四维上限。
+     * 将“前端计算后的四维上限”写回到新结构：stat_data.属性上限。
      * 不再镜像写入任何旧的顶层散键（如 法力上限/神海上限/道心上限/空速上限）。
-     * 仅当数值发生变化时才更新。
+     * 仅当数值发生变化时才更新。并在检测到旧键位（基础四维/当前四维/四维上限）时，做一次向新键位的兜底迁移。
      */
     _writeBackPlayerCoreMax(maxAttrs) {
       try {
@@ -725,10 +728,43 @@ Array.isArray(linggenList) && linggenList.forEach(lg => {
           '空速': toInt(maxAttrs.kongsu),
         };
 
+        // 迁移旧键到新键，并标记清理旧键
+        let needsCleanup = false;
+        try {
+          const hasNewBase = (sd && typeof sd['基础属性'] === 'object');
+          const hasNewCur = (sd && typeof sd['当前属性'] === 'object');
+          const oldBase = (sd && (typeof sd['基础四维'] === 'object' ? sd['基础四维'] : (typeof sd['基础四维属性'] === 'object' ? sd['基础四维属性'] : null))) || null;
+          const oldCur = (sd && (typeof sd['当前四维'] === 'object' ? sd['当前四维'] : (typeof sd['当前四维属性'] === 'object' ? sd['当前四维属性'] : null))) || null;
+
+          // 将旧值写入新键（内存态），后续统一调度写回
+          if (!hasNewBase && oldBase && typeof oldBase === 'object') {
+            sd['基础属性'] = Object.assign({}, oldBase);
+            needsCleanup = true;
+          }
+          if (!hasNewCur && oldCur && typeof oldCur === 'object') {
+            sd['当前属性'] = Object.assign({}, oldCur);
+            needsCleanup = true;
+          }
+          if (!sd['属性上限'] && typeof sd['四维上限'] === 'object') {
+            sd['属性上限'] = Object.assign({}, sd['四维上限']);
+            needsCleanup = true;
+          }
+
+          // 立即在内存态清理所有旧键，防止再次被写回
+          ['四维上限','四维属性','基础四维','基础四维属性','当前四维','当前四维属性'].forEach(k => {
+            try {
+              if (Object.prototype.hasOwnProperty.call(sd, k)) { delete sd[k]; needsCleanup = true; }
+            } catch (_) {}
+          });
+        } catch (_) {}
+
         let changed = false;
 
-        // 对比“四维上限”对象是否需要更新
-        const oldMaxObj = (sd && typeof sd['四维上限'] === 'object') ? sd['四维上限'] : null;
+        // 对比“属性上限”对象是否需要更新（优先新键；若仅旧键存在也视为需要更新）
+        const oldMaxObjNew = (sd && typeof sd['属性上限'] === 'object') ? sd['属性上限'] : null;
+        const oldMaxObjOld = (sd && typeof sd['四维上限'] === 'object') ? sd['四维上限'] : null;
+        const oldMaxObj = oldMaxObjNew || oldMaxObjOld || null;
+
         if (oldMaxObj && typeof oldMaxObj === 'object') {
           Object.entries(cnMax).forEach(([k, v]) => {
             const old = Number.parseInt(String(oldMaxObj[k]), 10);
@@ -738,11 +774,18 @@ Array.isArray(linggenList) && linggenList.forEach(lg => {
           changed = true;
         }
 
-        // 同步回写：设置“四维上限”对象（新结构）
-        sd['四维上限'] = Object.assign({}, (oldMaxObj && typeof oldMaxObj === 'object' ? oldMaxObj : {}), cnMax);
+        // 同步回写：设置“属性上限”对象（新结构）
+        sd['属性上限'] = Object.assign({}, (oldMaxObjNew && typeof oldMaxObjNew === 'object' ? oldMaxObjNew : {}), cnMax);
 
+        // 内存态同时清理旧键，避免后续流程再次镜像旧键
+        try {
+          ['四维上限','四维属性','基础四维','基础四维属性','当前四维','当前四维属性'].forEach(k => {
+            if (Object.prototype.hasOwnProperty.call(sd, k)) delete sd[k];
+          });
+        } catch (_) {}
 
-        if (!changed) return;
+        // 若仅有清理需求（needsCleanup=true）而数值未变更，也要继续调度写回
+        if (!changed && !needsCleanup) return;
 
         // 更新内存中的计算上限缓存
         try { st.calculatedMaxAttributes = Object.assign({}, st.calculatedMaxAttributes, { ...maxAttrs }); } catch (_) {}
@@ -751,13 +794,20 @@ Array.isArray(linggenList) && linggenList.forEach(lg => {
         try {
           if (window.GuixuMvuIO && typeof window.GuixuMvuIO.scheduleStatUpdate === 'function') {
             window.GuixuMvuIO.scheduleStatUpdate((stat) => {
-              const prev = (stat['四维上限'] && typeof stat['四维上限'] === 'object') ? stat['四维上限'] : {};
-              stat['四维上限'] = Object.assign({}, prev, cnMax);
-            }, { reason: 'attributes:max' });
+              // 写回属性上限（新结构）
+              const prev = (stat['属性上限'] && typeof stat['属性上限'] === 'object') ? stat['属性上限'] : {};
+              stat['属性上限'] = Object.assign({}, prev, cnMax);
+              // 清理所有旧键，确保不再回写到MVU
+              try {
+                ['四维上限','四维属性','基础四维','基础四维属性','当前四维','当前四维属性'].forEach(k => {
+                  if (Object.prototype.hasOwnProperty.call(stat, k)) delete stat[k];
+                });
+              } catch (_) {}
+            }, { reason: 'attributes:max+cleanup' });
           }
         } catch (_) {}
       } catch (e) {
-        console.warn('[归墟] 写回四维上限失败:', e);
+        console.warn('[归墟] 写回属性上限失败:', e);
       }
     },
 

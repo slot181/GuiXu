@@ -1114,18 +1114,19 @@ const description = h.SafeGetValue(rel, 'description', h.SafeGetValue(rel, '身�
         };
 
         // 基础/加成/当前 四维属性，可能是对象、字符串化 JSON 或包装在数组里
+        // 优先适配新命名：基础属性 / 属性上限 / 当前属性；旧命名兼容兜底
         const baseAttrs = (() => {
-          const raw = rel?.['基础四维'] ?? rel?.['基础四维属性'];
+          const raw = rel?.['基础属性'] ?? rel?.['基础四维'] ?? rel?.['基础四维属性'];
           const n = normalizeField(raw ?? {});
           return (n && typeof n === 'object' && !Array.isArray(n)) ? n : {};
         })();
         const attrs = (() => {
-          const raw = rel?.['四维上限'] ?? rel?.['四维属性'];
+          const raw = rel?.['属性上限'] ?? rel?.['四维上限'] ?? rel?.['四维属性'];
           const n = normalizeField(raw ?? {});
           return (n && typeof n === 'object' && !Array.isArray(n)) ? n : {};
         })();
         const curAttrs = (() => {
-          const raw = rel?.['当前四维'] ?? rel?.['当前四维属性'];
+          const raw = rel?.['当前属性'] ?? rel?.['当前四维'] ?? rel?.['当前四维属性'];
           const n = normalizeField(raw ?? {});
           return (n && typeof n === 'object' && !Array.isArray(n)) ? n : {};
         })();
@@ -2457,7 +2458,8 @@ try { await this._syncNpcFourDimMaxToMvu(rel, computedMax); } catch (_) {}
         const userItems = collectUserItems(stat_data);
 
         // 获取玩家神海用于价格计算
-        const playerShenhai = Number(h.SafeGetValue(stat_data, '神海', 0)) || 0;
+        // 优先从“当前属性.神海”读取，旧顶层散键兜底
+        const playerShenhai = Number(((stat_data && stat_data['当前属性'] && stat_data['当前属性']['神海']) ?? h.SafeGetValue(stat_data, '神海', 0))) || 0;
 
         const renderNpcItemRow = (it) => {
           const n = h.SafeGetValue(it, 'name', '未知物品');
@@ -2948,7 +2950,8 @@ try { await this._syncNpcFourDimMaxToMvu(rel, computedMax); } catch (_) {}
               const tierForBuy = window.GuixuHelpers.SafeGetValue(item, 'tier', '练气');
               let recommendedTotalBuy = baseVal * purchaseQuantity;
               // 使用“最新玩家神海”进行计算，避免使用旧作用域变量
-              const playerShenhaiBuy = Number(window.GuixuHelpers.SafeGetValue(sdBuy, '神海', 0)) || 0;
+              // 优先从“当前属性.神海”读取，旧顶层散键兜底
+              const playerShenhaiBuy = Number(((sdBuy && sdBuy['当前属性'] && sdBuy['当前属性']['神海']) ?? window.GuixuHelpers.SafeGetValue(sdBuy, '神海', 0))) || 0;
               if (window.GuixuTradeCalculator && baseVal > 0) {
                 try {
                   const priceInfo = window.GuixuTradeCalculator.computeTradePrices(baseVal, tierForBuy, playerShenhaiBuy);
@@ -3002,7 +3005,8 @@ try { await this._syncNpcFourDimMaxToMvu(rel, computedMax); } catch (_) {}
               }
 
               // 获取玩家当前神海
-              const playerShenhai = Number(window.GuixuHelpers.SafeGetValue(currentStat, '神海', 0)) || 0;
+              // 优先从“当前属性.神海”读取，旧顶层散键兜底
+              const playerShenhai = Number(((currentStat && currentStat['当前属性'] && currentStat['当前属性']['神海']) ?? window.GuixuHelpers.SafeGetValue(currentStat, '神海', 0))) || 0;
 
               // 将购买数量传给成功率计算（用于按数量缩放推荐价）
               item.purchaseQuantity = purchaseQuantity;
@@ -3165,7 +3169,8 @@ try { await this._syncNpcFourDimMaxToMvu(rel, computedMax); } catch (_) {}
               const tierForSell = window.GuixuHelpers.SafeGetValue(item, 'tier', '练气');
               let recommendedTotalSell = baseVal * sellQuantity;
               // 使用“最新玩家神海”计算推荐卖出价，避免作用域变量未定义
-              const playerShenhaiSell = Number(window.GuixuHelpers.SafeGetValue(latestStatData, '神海', 0)) || 0;
+              // 优先从“当前属性.神海”读取，旧顶层散键兜底
+              const playerShenhaiSell = Number(((latestStatData && latestStatData['当前属性'] && latestStatData['当前属性']['神海']) ?? window.GuixuHelpers.SafeGetValue(latestStatData, '神海', 0))) || 0;
               if (window.GuixuTradeCalculator && baseVal > 0) {
                 try {
                   const priceInfo = window.GuixuTradeCalculator.computeTradePrices(baseVal, tierForSell, playerShenhaiSell);
@@ -3212,7 +3217,8 @@ try { await this._syncNpcFourDimMaxToMvu(rel, computedMax); } catch (_) {}
                 return;
               }
               // 获取玩家当前神海
-              const playerShenhai2 = Number(window.GuixuHelpers.SafeGetValue(sd2, '神海', 0)) || 0;
+              // 优先从“当前属性.神海”读取，旧顶层散键兜底
+              const playerShenhai2 = Number(((sd2 && sd2['当前属性'] && sd2['当前属性']['神海']) ?? window.GuixuHelpers.SafeGetValue(sd2, '神海', 0))) || 0;
 
               // 使用新的出售成功率计算
               const ok = RelationshipsComponent._computeSellSuccess(offerBase, item, favorability, playerShenhai2);
@@ -4096,7 +4102,7 @@ try { await this._syncNpcFourDimMaxToMvu(rel, computedMax); } catch (_) {}
     },
 
     /**
-     * 将计算得到的四维上限回写到 MVU（NPC 角色）
+     * 将计算得到的“属性上限”回写到 MVU（NPC 角色）
      * 仅当与现有值不一致时写回，保持容器原始结构（对象字典/旧数组包装、字符串化条目）
      */
     async _syncNpcFourDimMaxToMvu(relRef, computedMax) {
@@ -4133,8 +4139,8 @@ try { await this._syncNpcFourDimMaxToMvu(rel, computedMax); } catch (_) {}
         let relObj = loc.relObj || {};
         const originalRelEntry = loc.originalRelEntry;
 
-        // 比较：若现有四维上限与 newMax 完全一致则跳过
-        const oldMaxRaw = relObj && (relObj['四维上限'] ?? relObj['四维属性']);
+        // 比较：若现有“属性上限”与 newMax 完全一致则跳过（兼容旧键）
+        const oldMaxRaw = relObj && (relObj['属性上限'] ?? relObj['四维上限'] ?? relObj['四维属性']);
         let needWrite = true;
         try {
           if (oldMaxRaw && typeof oldMaxRaw === 'object') {
@@ -4143,10 +4149,38 @@ try { await this._syncNpcFourDimMaxToMvu(rel, computedMax); } catch (_) {}
           }
         } catch (_) {}
 
-        if (!needWrite) return;
+        // 迁移旧键为新键并清理旧键（不保留旧命名，避免回写到MVU）
+        let needsCleanup = false;
+        try {
+          if (!relObj['基础属性'] && (relObj['基础四维'] || relObj['基础四维属性'])) {
+            relObj['基础属性'] = Object.assign({}, relObj['基础四维'] || relObj['基础四维属性']);
+            needsCleanup = true;
+          }
+        } catch (_) {}
+        try {
+          if (!relObj['当前属性'] && (relObj['当前四维'] || relObj['当前四维属性'])) {
+            relObj['当前属性'] = Object.assign({}, relObj['当前四维'] || relObj['当前四维属性']);
+            needsCleanup = true;
+          }
+        } catch (_) {}
+        try {
+          if (!relObj['属性上限'] && relObj['四维上限']) {
+            relObj['属性上限'] = Object.assign({}, relObj['四维上限']);
+            needsCleanup = true;
+          }
+        } catch (_) {}
+        // 统一清理旧键
+        try {
+          ['四维上限','四维属性','基础四维','基础四维属性','当前四维','当前四维属性'].forEach(k => {
+            if (Object.prototype.hasOwnProperty.call(relObj, k)) { delete relObj[k]; needsCleanup = true; }
+          });
+        } catch (_) {}
 
-        // 回写
-        relObj['四维上限'] = newMax;
+        // 若既不需要更新上限也未发生清理/迁移，则直接返回；否则继续写回
+        if (!needWrite && !needsCleanup) return;
+
+        // 回写（新结构）
+        relObj['属性上限'] = newMax;
 
         if (containerType === 'object') {
           const wasStringContainer = (typeof stat_data['人物关系列表'] === 'string');
@@ -4840,11 +4874,11 @@ const personality = h.SafeGetValue(rel, '性格', h.SafeGetValue(rel, 'personali
         };
         // 计算上限：优先使用现成“四维上限”；若缺失，则基于“基础四维 + 装备/灵根/天赋加成”推导
         let totalAttrs = (() => {
-          const v = rel?.['四维上限'] ?? rel?.['四维属性'];
+          const v = rel?.['属性上限'] ?? rel?.['四维上限'] ?? rel?.['四维属性'];
           return pickObj(v);
         })();
         const curAttrs = (() => {
-          const v = rel?.['当前四维'] ?? rel?.['当前四维属性'];
+          const v = rel?.['当前属性'] ?? rel?.['当前四维'] ?? rel?.['当前四维属性'];
           return pickObj(v);
         })();
 
@@ -4931,7 +4965,7 @@ const personality = h.SafeGetValue(rel, '性格', h.SafeGetValue(rel, 'personali
         // 修正：如果四维上限疑似为基础值，则按“基础+装备/灵根/天赋加成”推导上限并与现值取最大
         try {
           const ATTR_KEYS_CN = ['法力','神海','道心','空速'];
-          const baseCheck = pickObj(rel?.['基础四维'] ?? rel?.['基础四维属性']);
+          const baseCheck = pickObj(rel?.['基础属性'] ?? rel?.['基础四维'] ?? rel?.['基础四维属性']);
           const needFix = ATTR_KEYS_CN.some(k => toNum(totalAttrs[k]) <= toNum(baseCheck[k]));
           if (needFix) {
             const parsePercent = (v) => {
@@ -5005,11 +5039,12 @@ const personality = h.SafeGetValue(rel, '性格', h.SafeGetValue(rel, 'personali
         } catch (_) {}
         const fourDimParts = keys.map(k => `${k}:${toNum(curAttrs[k])}/${toNum(totalAttrs[k])}`);
         if (fourDimParts.some(p => /:/.test(p))) {
-          lines.push(`四维（当前/上限）|${fourDimParts.join('；')}`);
+          // 采用新命名：属性（当前/上限）
+          lines.push(`属性（当前/上限）|${fourDimParts.join('；')}`);
         }
         // 基础四维（优先新键，其次旧键，最后以散列基础值兜底）
         try {
-          let base = pickObj(rel?.['基础四维'] ?? rel?.['基础四维属性']);
+          let base = pickObj(rel?.['基础属性'] ?? rel?.['基础四维'] ?? rel?.['基础四维属性']);
           if (!Object.keys(base).length) {
             // 兜底：从散列基础键合成
             const map = {
@@ -5032,7 +5067,8 @@ const personality = h.SafeGetValue(rel, '性格', h.SafeGetValue(rel, 'personali
             .filter(k => base[k] != null && String(base[k]).trim() !== '')
             .map(k => `${k}:${toNum(base[k])}`)
             .join('；');
-          if (kvBase) lines.push(`基础四维|${kvBase}`);
+          // 采用新命名：基础属性
+          if (kvBase) lines.push(`基础属性|${kvBase}`);
         } catch (_) { }
 
         // 装备槽（提取到世界书：主修/辅修/武器/防具/饰品/法宝，含明细）
