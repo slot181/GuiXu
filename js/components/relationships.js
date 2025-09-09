@@ -1358,6 +1358,78 @@ const description = h.SafeGetValue(rel, 'description', h.SafeGetValue(rel, '身�
           }).join('');
         };
 
+        /* 新增：天赋列表渲染（单行标题：左“天赋名”，右“名称”，可折叠详情；不展示百分比加成） */
+        const renderTalentList = (arr) => {
+          if (!Array.isArray(arr) || arr.length === 0) return '<div class="ability-empty">无</div>';
+          const safeArr = arr.filter(item => item);
+          if (safeArr.length === 0) return '<div class="ability-empty">无</div>';
+          return safeArr.map(item => {
+            const obj = (typeof item === 'string') ? (function(){ try{ return JSON.parse(item); } catch { return {}; } })() : item;
+            const n = h.SafeGetValue(obj, 'name', h.SafeGetValue(obj, '名称', '未知天赋'));
+            const t = h.SafeGetValue(obj, 'tier', h.SafeGetValue(obj, '品阶', '凡品'));
+            const d = h.SafeGetValue(obj, 'description', h.SafeGetValue(obj, '描述', ''));
+            const color = h.getTierColorStyle(t);
+            const ab = normalizeField(obj['attributes_bonus'] ?? obj['属性加成'] ?? {}) || {};
+            // 天赋无百分比加成
+            const sePairs = (function (v) {
+              const clean = (s) => String(s).trim();
+              let n = v;
+              try {
+                if (typeof n === 'string') {
+                  const s = clean(n);
+                  if (!s) return [];
+                  if ((s.startsWith('{') && s.endsWith('}')) || (s.startsWith('[') && s.endsWith(']'))) {
+                    try { n = JSON.parse(s); } catch { n = s; }
+                  }
+                }
+                if (Array.isArray(n)) {
+                  const out = [];
+                  n.forEach(e => {
+                    if (!e) return;
+                    if (typeof e === 'string') {
+                      const m = e.match(/^([^:：]+)\s*[:：]\s*(.+)$/);
+                      out.push([m ? clean(m[1]) : '', m ? clean(m[2]) : clean(e)]);
+                    } else if (typeof e === 'object') {
+                      const k = h.SafeGetValue(e, 'name', h.SafeGetValue(e, '名称', ''));
+                      const d = h.SafeGetValue(e, 'description', h.SafeGetValue(e, '描述', clean(JSON.stringify(e))));
+                      out.push([clean(k), clean(d)]);
+                    }
+                  });
+                  return out;
+                }
+                if (n && typeof n === 'object') {
+                  return Object.entries(n)
+                    .filter(([k, v]) => k !== '$meta' && v != null && clean(v) !== '')
+                    .map(([k, v]) => [clean(k), typeof v === 'string' ? clean(v) : clean(JSON.stringify(v))]);
+                }
+                if (typeof n === 'string') {
+                  const parts = n.split(/[\n;,、]+/).map(s => clean(s)).filter(Boolean);
+                  return parts.map(s => {
+                    const m = s.match(/^([^:：]+)\s*[:：]\s*(.+)$/);
+                    return [m ? clean(m[1]) : '', m ? clean(m[2]) : s];
+                  });
+                }
+              } catch (_) {}
+              return [];
+            })(obj['special_effects'] ?? obj['词条效果'] ?? obj['词条'] ?? []);
+            return `
+              <details class="details-container talent-row">
+                <summary>
+                  <div class="attribute-item">
+                    <span class="attribute-name">天赋名称</span>
+                    <span class="attribute-value" style="${color}">${n}</span>
+                  </div>
+                </summary>
+                <div class="details-content">
+                  <div class="attribute-item"><span class="attribute-name">品阶</span><span class="attribute-value" style="${color}">${t}</span></div>
+                  ${d ? `<div class="details-content" style="margin-bottom:6px;">${d}</div>` : ''}
+                  ${Object.keys(ab).length ? `<div class="attribute-item"><span class="attribute-name">固有加成</span><span class="attribute-value"></span></div>${renderKV(ab)}` : ''}
+                  ${sePairs.length ? `<div class="attribute-item"><span class="attribute-name">词条</span><span class="attribute-value"></span></div>${sePairs.map(([k,v]) => `<div class="attribute-item"><span class="attribute-name">${k || '条目'}</span><span class="attribute-value">${v}</span></div>`).join('')}` : ''}
+                </div>
+              </details>
+            `;
+          }).join('');
+        };
         const tierStyle = h.getTierStyle(tier);
         const cultivationDisplay = level ? `${tier} ${level}` : tier;
 
@@ -1733,6 +1805,37 @@ try { await this._syncNpcFourDimMaxToMvu(rel, computedMax); } catch (_) {}
             .ability-cards { display: grid; grid-template-columns: 1fr; gap: 10px; }
             .ability-item .attribute-item { display: flex; justify-content: space-between; }
             .ability-empty { color: #9a8f7a; font-size: 12px; }
+
+            /* 天赋列表：一行一个，标题行与通用 attribute-item 视觉对齐；名称值靠右贴边 */
+            .details-container.talent-row {
+              margin-bottom: 8px;
+              border: 1px dashed rgba(201,170,113,0.25);
+              border-radius: 8px;
+            }
+            .details-container.talent-row > summary {
+              list-style: none;
+              display: flex;
+              align-items: center;
+              width: 100%;
+              padding: 0; /* 去除内边距，保证右侧值与卡片内容边界对齐 */
+              cursor: pointer;
+            }
+            .details-container.talent-row > summary::-webkit-details-marker { display: none; }
+            .details-container.talent-row > summary .attribute-item {
+              display: flex;
+              align-items: center;
+              justify-content: space-between; /* 左右两端对齐，统一视觉 */
+              gap: 8px;
+              width: 100%;
+              padding: 0;
+              margin: 0;
+            }
+            .details-container.talent-row > summary .attribute-name { color: #8b7355; }
+            .details-container.talent-row > summary .attribute-value {
+              margin-left: auto;
+              text-align: right; /* 名称值靠右 */
+            }
+
             /* NPC 装备网格：限制模块最大宽度，每行最多 3 个（移动端 2 个），取消单行铺满 */
             #character-details-modal .npc-equip-grid {
               max-width: 600px;
@@ -1871,7 +1974,7 @@ try { await this._syncNpcFourDimMaxToMvu(rel, computedMax); } catch (_) {}
 
               <div class="gx-card ability-item">
                 <div class="section-title">天赋</div>
-                ${renderAbilityList(talentList)}
+                ${renderTalentList(talentList)}
               </div>
 
               <div class="gx-card ability-item">
@@ -2023,6 +2126,9 @@ try { await this._syncNpcFourDimMaxToMvu(rel, computedMax); } catch (_) {}
         window.GuixuBaseModal.setTitle('character-details-modal', `角色详情 - ${name}`);
         window.GuixuBaseModal.setBodyHTML('character-details-modal', bodyHtml);
 
+        // 构建标签页布局与新增模块（深度互动开关等）
+        try { await RelationshipsComponent._upgradeCharacterDetailsToTabs(rel); } catch (e) { console.warn('[归墟] 构建标签页失败:', e); }
+        
         // 绑定：NPC装备栏悬浮提示（只读）
         try {
           const host = document.querySelector('#character-details-modal .modal-body') || document.body;
@@ -2309,6 +2415,690 @@ try { await this._syncNpcFourDimMaxToMvu(rel, computedMax); } catch (_) {}
         } catch (e) { console.warn('[归墟] 绑定NPC属性分解失败:', e); }
       } catch (e) {
         console.error('[归墟] _updateEventHistoryItem 失败:', e);
+        throw e;
+      }
+    },
+
+    // 新增：将详情面板改造为标签页模式，并渲染新增字段与“深度互动模块”开关
+    async _upgradeCharacterDetailsToTabs(rel) {
+      try {
+        const h = window.GuixuHelpers;
+        const host = document.querySelector('#character-details-modal .modal-body');
+        if (!host) return;
+
+        // 防重复构建
+        if (host.querySelector('#cd-tab-root')) return;
+
+        // 准备样式（标签页 + 响应式）
+        const style = document.createElement('style');
+        style.textContent = `
+          /* 标签页容器 */
+          #cd-tab-root { display: flex; flex-direction: column; gap: 10px; }
+          .cd-tabs {
+            display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px;
+            border-bottom: 1px dashed rgba(201,170,113,0.25); scrollbar-width: thin;
+          }
+          .cd-tab {
+            appearance: none; border: 1px solid rgba(201,170,113,0.35);
+            background: rgba(201,170,113,0.08); color: #c9aa71; border-radius: 18px;
+            display: inline-flex; align-items: center; justify-content: center;
+            height: 32px; padding: 0 12px; font-size: 12px; white-space: nowrap;
+            cursor: pointer; flex: 0 0 auto; transition: background .2s, border-color .2s, box-shadow .2s;
+          }
+          .cd-tab:hover { background: rgba(201,170,113,0.12); border-color: rgba(201,170,113,0.5); }
+          .cd-tab.active {
+            background: linear-gradient(180deg, rgba(201,170,113,0.25), rgba(201,170,113,0.12));
+            border-color: rgba(201,170,113,0.6); box-shadow: 0 0 6px rgba(201,170,113,0.25) inset;
+          }
+          .cd-panels { display: block; }
+          .cd-panel { display: none; }
+          .cd-panel.active { display: block; }
+
+          /* 概览页“标注”按钮：椭圆小按钮（覆盖桌面端全局32px规则） */
+          #character-details-modal #btn-npc-mark-overview {
+            height: 24px !important;        /* 桌面端高度缩小 */
+            padding: 0 10px !important;      /* 内边距紧凑 */
+            border-radius: 999px !important; /* 椭圆形 */
+            min-width: 0 !important;         /* 不强制最小宽度 */
+            line-height: 1 !important;
+            font-size: 12px !important;
+            display: inline-flex; align-items: center; justify-content: center;
+
+            /* 与徽章视觉一致：浅色底 + 金色描边 */
+            background: rgba(201,170,113,0.08) !important;
+            border: 1px solid rgba(201,170,113,0.45) !important;
+            color: #c9aa71 !important;
+          }
+          #character-details-modal #btn-npc-mark-overview:hover {
+            background: rgba(201,170,113,0.12) !important;
+            border-color: rgba(201,170,113,0.6) !important;
+          }
+          #character-details-modal #btn-npc-mark-overview[disabled] {
+            opacity: .85;
+            cursor: default;
+          }
+
+          /* 人物关系网：每人一个可折叠组（与天赋样式对齐，保证上下对称） */
+          #character-details-modal .details-container.relation-row {
+            margin: 0;                           /* 去除多余外边距，保证上下对齐 */
+            border: none;                        /* 取消外层虚线边框，避免破坏对称 */
+            border-radius: 0;
+          }
+          #character-details-modal .details-container.relation-row > summary {
+            list-style: none;
+            display: flex;
+            align-items: center;
+            width: 100%;
+            cursor: pointer;
+          }
+          #character-details-modal .details-container.relation-row > summary::-webkit-details-marker { display: none; }
+          #character-details-modal .details-container.relation-row > summary .attribute-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            width: 100%;
+            padding: 8px 4px;                    /* 与通用 attribute-item 对齐，保证上下对称 */
+            margin: 0;
+            border-bottom: 1px solid rgba(201, 170, 113, 0.1); /* 与列表分隔线一致 */
+          }
+          #character-details-modal .details-container.relation-row > summary .attribute-name { color: #8b7355; }
+          #character-details-modal .details-container.relation-row > summary .attribute-value { margin-left: auto; text-align: right; }
+          #character-details-modal .details-container.relation-row .details-content {
+            border-top: 1px solid rgba(201, 170, 113, 0.1);   /* 展开部分与 summary 之间保持对称分隔 */
+            padding: 0;                                       /* 使用内部 attribute-item 的统一内边距 */
+          }
+ 
+          /* 卡片间距在移动端略收紧 + 移动端按钮更小 */
+          @media (max-width: 520px) {
+            .gx-card { padding: 10px; }
+            #character-details-modal #btn-npc-mark-overview {
+              height: 22px !important;
+              padding: 0 8px !important;
+              font-size: 11px !important;
+            }
+          }
+        `;
+        host.prepend(style);
+
+        // 原始内容根节点
+        const root = host.querySelector('.character-details-modern');
+        if (!root) return;
+
+        // 构建标签页 DOM
+        const container = document.createElement('div');
+        container.id = 'cd-tab-root';
+        const tabs = document.createElement('div');
+        tabs.className = 'cd-tabs';
+        const panels = document.createElement('div');
+        panels.className = 'cd-panels';
+
+        const makeBtn = (id, text, active = false) => {
+          const b = document.createElement('button');
+          b.className = 'cd-tab' + (active ? ' active' : '');
+          b.setAttribute('data-tab', id);
+          b.textContent = text;
+          return b;
+        };
+        const makePanel = (id, active = false) => {
+          const p = document.createElement('section');
+          p.className = 'cd-panel' + (active ? ' active' : '');
+          p.setAttribute('data-tab', id);
+          return p;
+        };
+
+        // 标签定义（按业务模块划分）
+        const tabDefs = [
+          ['overview','概览', true],
+          ['attrs','属性'],
+          ['ability','能力'],
+          ['status','状态'],
+          ['events','事件'],
+          ['inner','内在'],
+          ['social','社交'],
+          ['interact','互动'],
+          ['love','情爱']
+        ];
+        tabDefs.forEach(([id, label, active]) => {
+          tabs.appendChild(makeBtn(id, label, !!active));
+          panels.appendChild(makePanel(id, !!active));
+        });
+
+        // 插入到 root 前
+        root.parentNode.insertBefore(container, root);
+        container.appendChild(tabs);
+        container.appendChild(panels);
+
+        const panelOf = id => panels.querySelector(`.cd-panel[data-tab="${id}"]`);
+
+        // 1) 概览：搬运顶部信息与好感度卡片
+        const pOverview = panelOf('overview');
+        const gxTop = root.querySelector('.gx-top');
+        if (gxTop) {
+          // 将 gx-top 内两个卡片移动到概览面板
+          Array.from(gxTop.children || []).forEach(ch => pOverview.appendChild(ch));
+          // 移除空容器
+          try { gxTop.remove(); } catch (_) {}
+        }
+
+        // 新增：在“概览/概述”页角色名右侧添加“标注”按钮，点击即开启深度互动模块（适配桌面端与移动端）
+        try {
+          const infoCard = pOverview.querySelector('.gx-card'); // 角色信息卡片
+          const nameLine = infoCard && infoCard.querySelector('.name-line');
+          const pillGroup = nameLine && nameLine.querySelector('.pill-group');
+          if (pillGroup && !pillGroup.querySelector('#btn-npc-mark-overview')) {
+            const markBtn = document.createElement('button');
+            markBtn.id = 'btn-npc-mark-overview';
+            markBtn.className = 'interaction-btn btn-compact';
+            markBtn.textContent = '标注';
+            // 紧凑尺寸，避免与徽章冲突，移动端也不挤压姓名
+            markBtn.style.padding = '2px 8px';
+            markBtn.style.fontSize = '12px';
+            pillGroup.appendChild(markBtn);
+
+            // 同步当前开关状态到按钮UI（允许双向切换）
+            const isDeepEnabled = (String(h.SafeGetValue(rel, '深度互动模块', false)).toLowerCase() === 'true') || (h.SafeGetValue(rel, '深度互动模块', false) === true);
+            const syncBtn = (enabled) => {
+              markBtn.classList.toggle('primary', !!enabled);
+              markBtn.textContent = enabled ? '已标注' : '标注';
+              markBtn.setAttribute('aria-pressed', enabled ? 'true' : 'false');
+            };
+            syncBtn(isDeepEnabled);
+
+            // 点击切换“深度互动模块”开关：支持开启/取消（乐观更新，失败回滚）
+            markBtn.addEventListener('click', async () => {
+              if (markBtn._busy) return; // 防抖：进行中的请求不重复发起
+              const cur = markBtn.getAttribute('aria-pressed') === 'true';
+              const next = !cur;
+
+              // 立即更新 UI（视觉反馈）
+              markBtn._busy = true;
+              markBtn.disabled = true;
+              syncBtn(next);
+
+              try {
+                await RelationshipsComponent._setNpcDeepInteraction(rel, next);
+                window.GuixuHelpers?.showTemporaryMessage?.(next ? '已开启深度互动模块' : '已取消深度互动模块');
+              } catch (e) {
+                // 失败：回滚 UI
+                syncBtn(cur);
+                window.GuixuHelpers?.showTemporaryMessage?.(next ? '开启失败' : '取消失败');
+                console.warn('[归墟] 标注按钮切换深度互动失败:', e);
+              } finally {
+                markBtn._busy = false;
+                markBtn.disabled = false;
+              }
+            });
+          }
+        } catch (_) {}
+
+        // 2) 属性：四维条与修为进度（并将标题改为“属性面板（当前/上限）”）
+        const pAttrs = panelOf('attrs');
+        const allCards = Array.from(root.querySelectorAll('.gx-card'));
+        // 找到四维卡
+        const cardStats = allCards.find(c => (c.querySelector('.section-title')?.textContent || '').includes('四维'));
+        if (cardStats) {
+          const titleEl = cardStats.querySelector('.section-title');
+          if (titleEl) titleEl.textContent = '属性面板（当前/上限）';
+          pAttrs.appendChild(cardStats);
+        }
+        // 修为进度卡
+        const cardCult = allCards.find(c => (c.querySelector('.section-title')?.textContent || '').includes('修为进度'));
+        if (cardCult) pAttrs.appendChild(cardCult);
+
+        // 3) 能力：装备/灵根/天赋（整体搬运)
+        const pAbility = panelOf('ability');
+        const abilityCards = root.querySelector('.ability-cards');
+        if (abilityCards) {
+          pAbility.appendChild(abilityCards);
+        }
+
+        // 4) 状态：确保“当前状态”卡片迁移到“状态”标签页（避免仍留在“能力”页）
+        const pStatus = panelOf('status');
+        // 由于上方已把 ability-cards 整体搬到 pAbility，这里优先在 pAbility 内查找
+        let cardStatus = Array.from((panelOf('ability') || root).querySelectorAll('.gx-card'))
+          .find(c => (c.querySelector('.section-title')?.textContent || '').includes('当前状态'));
+        // 若未找到，再在 panels 域内兜底查找
+        if (!cardStatus) {
+          cardStatus = Array.from((panels || root).querySelectorAll('.gx-card'))
+            .find(c => (c.querySelector('.section-title')?.textContent || '').includes('当前状态'));
+        }
+        // 最后从 root 兜底
+        if (!cardStatus) {
+          cardStatus = Array.from(root.querySelectorAll('.gx-card'))
+            .find(c => (c.querySelector('.section-title')?.textContent || '').includes('当前状态'));
+        }
+        if (cardStatus) pStatus.appendChild(cardStatus);
+
+        // 5) 事件：从 rel.event_history 渲染
+        const pEvents = panelOf('events');
+        const buildEventHistory = () => {
+          const evRaw = rel?.event_history ?? rel?.['过往交集'] ?? null;
+          let list = [];
+          try {
+            let v = evRaw;
+            if (typeof v === 'string') {
+              const s = v.trim();
+              if ((s.startsWith('{') && s.endsWith('}')) || (s.startsWith('[') && s.endsWith(']'))) {
+                try { v = JSON.parse(s); } catch { /* ignore */ }
+              }
+            }
+            if (Array.isArray(v)) {
+              list = v.filter(Boolean).map(x => (typeof x === 'string') ? x : (h.SafeGetValue(x, 'description', h.SafeGetValue(x, 'name', JSON.stringify(x)))));
+            } else if (v && typeof v === 'object') {
+              list = Object.keys(v).filter(k => k !== '$meta').map(k => {
+                const it = v[k];
+                if (typeof it === 'string') return it;
+                return h.SafeGetValue(it, 'description', h.SafeGetValue(it, 'name', JSON.stringify(it)));
+              }).filter(Boolean);
+            } else if (typeof v === 'string' && v) {
+              list = v.split(/[\n；;]+/).map(s => s.trim()).filter(Boolean);
+            }
+          } catch (_) {}
+          return list;
+        };
+        const evList = buildEventHistory();
+        {
+          const card = document.createElement('div');
+          card.className = 'gx-card';
+          card.innerHTML = `
+            <div class="section-title">过往交集</div>
+            ${evList.length ? `<ul class="event-history-list" style="margin:6px 0 0; padding-left:16px; color:#d9d3c5; font-size:12px;">${evList.map((s, i) => `<li style="margin:4px 0;">${h.escapeHTML ? h.escapeHTML(s) : String(s)}</li>`).join('')}</ul>` : `<div class="ability-empty">无</div>`}
+          `;
+          pEvents.appendChild(card);
+        }
+
+        // 6) 内在驱动
+        const pInner = panelOf('inner');
+        const innerObj = rel?.['内在驱动'] || null;
+        {
+          const card = document.createElement('div');
+          card.className = 'gx-card';
+          card.innerHTML = `<div class="section-title">内在驱动</div>`;
+          const body = document.createElement('div');
+          body.className = 'attributes-list';
+          const put = (k, v) => {
+            if (v == null || String(v).trim() === '') return;
+            const row = document.createElement('div');
+            row.className = 'attribute-item';
+            row.innerHTML = `<span class="attribute-name">${k}</span><span class="attribute-value">${v}</span>`;
+            body.appendChild(row);
+          };
+          if (innerObj && typeof innerObj === 'object') {
+            put('短期目标', h.SafeGetValue(innerObj, '短期目标', ''));
+            put('长期夙愿', h.SafeGetValue(innerObj, '长期夙愿', ''));
+            put('核心价值观', h.SafeGetValue(innerObj, '核心价值观', ''));
+            put('禁忌与逆鳞', h.SafeGetValue(innerObj, '禁忌与逆鳞', ''));
+          } else {
+            const empty = document.createElement('div');
+            empty.className = 'ability-empty';
+            empty.textContent = '无';
+            body.appendChild(empty);
+          }
+          card.appendChild(body);
+          pInner.appendChild(card);
+        }
+
+        // 7) 社交网络
+        const pSocial = panelOf('social');
+        const social = rel?.['社交网络'] || null;
+        {
+          const card = document.createElement('div');
+          card.className = 'gx-card';
+          card.innerHTML = `<div class="section-title">社交网络</div>`;
+          const wrap = document.createElement('div');
+          wrap.className = 'attributes-list';
+          // 人物关系网（首行分组标题，下面逐项一行一个）
+          try {
+            const net = social && social['人物关系网'];
+            const keys = net && typeof net === 'object' ? Object.keys(net).filter(k => k !== '$meta') : [];
+            // 分组标题
+            const header = document.createElement('div');
+            header.className = 'attribute-item';
+            header.innerHTML = `<span class="attribute-name">人物关系网</span><span class="attribute-value"></span>`;
+            wrap.appendChild(header);
+            if (keys && keys.length) {
+              keys.forEach(nameKey => {
+                const obj = net[nameKey];
+                const nm = h.SafeGetValue(obj, 'name', nameKey);
+                // 关系类型读取增强：兼容 relationship / 关系 / 关系类型 / type 等键位
+                const relRaw = h.SafeGetValue(
+                  obj,
+                  'relationship',
+                  h.SafeGetValue(obj, '关系', h.SafeGetValue(obj, '关系类型', h.SafeGetValue(obj, 'type', 'NEUTRAL')))
+                );
+                const relCN = RelationshipsComponent._toChineseRelationship(relRaw);
+                const imprint = h.SafeGetValue(obj, '主观印象', '');
+
+                // 每个对象单独一组，可折叠，summary 左标签“姓名”，右侧为人物姓名
+                const details = document.createElement('details');
+                details.className = 'details-container relation-row';
+
+                const summary = document.createElement('summary');
+                summary.innerHTML = `
+                  <div class="attribute-item">
+                    <span class="attribute-name">姓名</span>
+                    <span class="attribute-value">${nm}</span>
+                  </div>
+                `;
+
+                const content = document.createElement('div');
+                content.className = 'details-content';
+
+                const r1 = document.createElement('div');
+                r1.className = 'attribute-item';
+                r1.innerHTML = `<span class="attribute-name">关系类型</span><span class="attribute-value">${relCN}</span>`;
+
+                const r2 = document.createElement('div');
+                r2.className = 'attribute-item';
+                r2.innerHTML = `<span class="attribute-name">主观印象</span><span class="attribute-value">${imprint ? imprint : '无'}</span>`;
+
+                content.appendChild(r1);
+                content.appendChild(r2);
+
+                details.appendChild(summary);
+                details.appendChild(content);
+                wrap.appendChild(details);
+              });
+            } else {
+              const empty = document.createElement('div');
+              empty.className = 'ability-empty';
+              empty.textContent = '无';
+              wrap.appendChild(empty);
+            }
+          } catch (_) {
+            const header = document.createElement('div');
+            header.className = 'attribute-item';
+            header.innerHTML = `<span class="attribute-name">人物关系网</span><span class="attribute-value"></span>`;
+            wrap.appendChild(header);
+            const empty = document.createElement('div');
+            empty.className = 'ability-empty';
+            empty.textContent = '无';
+            wrap.appendChild(empty);
+          }
+          // 所属势力（首行分组标题，下面逐项一行一个）
+          try {
+            const org = social && social['所属势力'];
+            const header2 = document.createElement('div');
+            header2.className = 'attribute-item';
+            header2.innerHTML = `<span class="attribute-name">所属势力</span><span class="attribute-value"></span>`;
+            wrap.appendChild(header2);
+            if (org && typeof org === 'object') {
+              const orgName = h.SafeGetValue(org, '势力名称', '');
+              const orgPos = h.SafeGetValue(org, '势力地位', '');
+              if (orgName) {
+                const r1 = document.createElement('div');
+                r1.className = 'attribute-item';
+                r1.innerHTML = `<span class="attribute-name">势力名称</span><span class="attribute-value">${orgName}</span>`;
+                wrap.appendChild(r1);
+              }
+              if (orgPos) {
+                const r2 = document.createElement('div');
+                r2.className = 'attribute-item';
+                r2.innerHTML = `<span class="attribute-name">势力地位</span><span class="attribute-value">${orgPos}</span>`;
+                wrap.appendChild(r2);
+              }
+              if (!orgName && !orgPos) {
+                const empty = document.createElement('div');
+                empty.className = 'ability-empty';
+                empty.textContent = '无';
+                wrap.appendChild(empty);
+              }
+            } else {
+              const empty = document.createElement('div');
+              empty.className = 'ability-empty';
+              empty.textContent = '无';
+              wrap.appendChild(empty);
+            }
+          } catch (_) {
+            const header2 = document.createElement('div');
+            header2.className = 'attribute-item';
+            header2.innerHTML = `<span class="attribute-name">所属势力</span><span class="attribute-value"></span>`;
+            wrap.appendChild(header2);
+            const empty = document.createElement('div');
+            empty.className = 'ability-empty';
+            empty.textContent = '无';
+            wrap.appendChild(empty);
+          }
+          card.appendChild(wrap);
+          pSocial.appendChild(card);
+        }
+
+        // 8) 互动：互动模式 + “深度互动模块”开关
+        const pInteract = panelOf('interact');
+        {
+
+          // 互动模式卡
+          const mode = rel?.['互动模式'] || null;
+          const modeCard = document.createElement('div');
+          modeCard.className = 'gx-card';
+          modeCard.innerHTML = `<div class="section-title">互动模式</div>`;
+          const wrap = document.createElement('div');
+          wrap.className = 'attributes-list';
+          const put = (k, v) => {
+            if (v == null || String(v).trim() === '') return;
+            const row = document.createElement('div');
+            row.className = 'attribute-item';
+            row.innerHTML = `<span class="attribute-name">${k}</span><span class="attribute-value">${v}</span>`;
+            wrap.appendChild(row);
+          };
+          if (mode && typeof mode === 'object') {
+            put('口癖/口头禅', h.SafeGetValue(mode, '口癖/口头禅', ''));
+            put('谈话风格', h.SafeGetValue(mode, '谈话风格', ''));
+            put('话题偏好', h.SafeGetValue(mode, '话题偏好', ''));
+            put('情报价值', h.SafeGetValue(mode, '情报价值', ''));
+          } else {
+            const empty = document.createElement('div');
+            empty.className = 'ability-empty';
+            empty.textContent = '无';
+            wrap.appendChild(empty);
+          }
+          modeCard.appendChild(wrap);
+          pInteract.appendChild(modeCard);
+
+        }
+
+        // 9) 情爱史与性观念
+        const pLove = panelOf('love');
+        {
+          const love = rel?.['情爱史与性观念'] || null;
+          const card = document.createElement('div');
+          card.className = 'gx-card';
+          card.innerHTML = `<div class="section-title">情爱史与性观念</div>`;
+          const wrap = document.createElement('div');
+          wrap.className = 'attributes-list';
+          const put = (k, v) => {
+            if (v == null || String(v).trim() === '') return;
+            const row = document.createElement('div');
+            row.className = 'attribute-item';
+            row.innerHTML = `<span class="attribute-name">${k}</span><span class="attribute-value">${v}</span>`;
+            wrap.appendChild(row);
+          };
+          if (love && typeof love === 'object') {
+            put('经验状态', window.GuixuHelpers.SafeGetValue(love, '经验状态', ''));
+            // 首次经历
+            try {
+              const first = love['首次经历'];
+              const renderFirstList = (data) => {
+                if (data == null) return;
+
+                // 添加分组标题（首次经历）
+                let headerAdded = false;
+                const addHeader = () => {
+                  if (headerAdded) return;
+                  headerAdded = true;
+                  const header = document.createElement('div');
+                  header.className = 'attribute-item';
+                  header.innerHTML = `<span class="attribute-name">首次经历</span><span class="attribute-value"></span>`;
+                  wrap.appendChild(header);
+                };
+
+                // 渲染一条记录
+                const renderItem = (label, value) => {
+                  if (value == null || String(value).trim() === '') return;
+                  const row = document.createElement('div');
+                  row.className = 'attribute-item';
+                  row.innerHTML = `<span class="attribute-name">${label}</span><span class="attribute-value">${value}</span>`;
+                  wrap.appendChild(row);
+                };
+
+                // 组合对象字段（对象描述/体验评价/时间/地点）
+                const combineObj = (obj) => {
+                  const d1 = window.GuixuHelpers.SafeGetValue(obj, '对象描述', '');
+                  const d2 = window.GuixuHelpers.SafeGetValue(obj, '体验评价', '');
+                  const t  = window.GuixuHelpers.SafeGetValue(obj, '时间', '');
+                  const l  = window.GuixuHelpers.SafeGetValue(obj, '地点', '');
+                  return [d1, d2, t, l].filter(Boolean).join('｜');
+                };
+
+                // 数组：逐条渲染为 事件1/事件2/…
+                if (Array.isArray(data)) {
+                  const list = data.filter(Boolean);
+                  if (!list.length) return;
+                  addHeader();
+                  list.forEach((it, idx) => {
+                    let text = '';
+                    if (it && typeof it === 'object') text = combineObj(it);
+                    else text = String(it);
+                    if (text && String(text).trim()) renderItem(`事件${idx + 1}`, text);
+                  });
+                  return;
+                }
+
+                // 对象：键为标签名，值为对象/字符串
+                if (data && typeof data === 'object') {
+                  const keys = Object.keys(data).filter(k => k !== '$meta');
+                  if (!keys.length) return;
+                  addHeader();
+                  keys.forEach(k => {
+                    const v = data[k];
+                    let text = '';
+                    if (v && typeof v === 'object') text = combineObj(v);
+                    else text = String(v ?? '');
+                    if (text && String(text).trim()) renderItem(k, text);
+                  });
+                  return;
+                }
+
+                // 字符串：渲染为单条
+                if (typeof data === 'string') {
+                  const s = data.trim();
+                  if (s) {
+                    addHeader();
+                    renderItem('条目', s);
+                  }
+                }
+              };
+
+              renderFirstList(first);
+            } catch (_) {}
+            put('性观念', window.GuixuHelpers.SafeGetValue(love, '性观念', ''));
+            // 癖好与禁忌
+            try {
+              const pref = love['癖好与禁忌'];
+              const renderKVRows = (label, obj) => {
+                if (!obj || typeof obj !== 'object') return;
+                const entries = Object.keys(obj)
+                  .filter(k => k !== '$meta')
+                  .map(k => [k, obj[k]])
+                  .filter(([k, v]) => v != null && String(v).trim() !== '');
+                if (!entries.length) return;
+                const header = document.createElement('div');
+                header.className = 'attribute-item';
+                header.innerHTML = `<span class="attribute-name">${label}</span><span class="attribute-value"></span>`;
+                wrap.appendChild(header);
+                entries.forEach(([k, v]) => {
+                  const row = document.createElement('div');
+                  row.className = 'attribute-item';
+                  row.innerHTML = `<span class="attribute-name">${k}</span><span class="attribute-value">${v}</span>`;
+                  wrap.appendChild(row);
+                });
+              };
+              if (pref && typeof pref === 'object') {
+                renderKVRows('喜好', pref['喜好']);
+                renderKVRows('雷区', pref['雷区']);
+              }
+            } catch (_) {}
+          } else {
+            const empty = document.createElement('div');
+            empty.className = 'ability-empty';
+            empty.textContent = '无';
+            wrap.appendChild(empty);
+          }
+          card.appendChild(wrap);
+          pLove.appendChild(card);
+        }
+
+        // 清理原根（剩余无用容器）
+        try { root.remove(); } catch (_) {}
+
+        // 绑定标签切换
+        tabs.addEventListener('click', (ev) => {
+          const btn = ev.target.closest('.cd-tab');
+          if (!btn) return;
+          const id = btn.getAttribute('data-tab');
+          tabs.querySelectorAll('.cd-tab').forEach(b => b.classList.toggle('active', b === btn));
+          panels.querySelectorAll('.cd-panel').forEach(p => p.classList.toggle('active', p.getAttribute('data-tab') === id));
+          // 小优化：切换时滚动到顶部，移动端体验更好
+          try { host.scrollTop = 0; } catch (_) {}
+        });
+
+      } catch (e) {
+        console.warn('[归墟] _upgradeCharacterDetailsToTabs 构建失败:', e);
+      }
+    },
+
+    // 新增：写回“深度互动模块”布尔值到当前 MVU（同步当前楼层与 0 楼）
+    async _setNpcDeepInteraction(relRef, enabled) {
+      try {
+        const currentId = window.GuixuAPI.getCurrentMessageId();
+        const messages = await window.GuixuAPI.getChatMessages(currentId);
+        if (!messages || !messages[0]) throw new Error('无法读取当前聊天数据');
+
+        const currentMvuState = messages[0].data || {};
+        currentMvuState.stat_data = currentMvuState.stat_data || {};
+        const stat_data = currentMvuState.stat_data;
+
+        // 定位 NPC
+        let loc = RelationshipsComponent._locateNpcInState(stat_data, relRef);
+        if (!loc) {
+          try {
+            if (RelationshipsComponent._rebuildRelationshipDict(stat_data)) {
+              loc = RelationshipsComponent._locateNpcInState(stat_data, relRef);
+            }
+          } catch (_) {}
+        }
+        if (!loc) throw new Error('在人物关系列表中未找到该角色');
+
+        const { containerType, matchKeyOrIdx, relObj, originalRelEntry } = loc;
+        const obj = (relObj && typeof relObj === 'object') ? relObj : {};
+        obj['深度互动模块'] = !!enabled;
+
+        // 写回（保持原容器类型）
+        if (containerType === 'object') {
+          const wasStringContainer = (typeof stat_data['人物关系列表'] === 'string');
+          let dict;
+          try { dict = wasStringContainer ? JSON.parse(stat_data['人物关系列表']) : stat_data['人物关系列表']; } catch (_) { dict = {}; }
+          if (!dict || typeof dict !== 'object' || Array.isArray(dict)) dict = {};
+          dict[matchKeyOrIdx] = (typeof originalRelEntry === 'string') ? JSON.stringify(obj) : obj;
+          stat_data['人物关系列表'] = wasStringContainer ? JSON.stringify(dict) : dict;
+        } else {
+          const wrap = Array.isArray(stat_data['人物关系列表']) ? stat_data['人物关系列表'] : [[]];
+          const list = Array.isArray(wrap[0]) ? wrap[0] : [];
+          list[matchKeyOrIdx] = (typeof originalRelEntry === 'string') ? JSON.stringify(obj) : obj;
+          stat_data['人物关系列表'] = [list];
+        }
+
+        // 同步写回（当前楼层 + 0 楼）
+        const updates = [{ message_id: currentId, data: currentMvuState }];
+        if (currentId !== 0) updates.push({ message_id: 0, data: currentMvuState });
+        await window.GuixuAPI.setChatMessages(updates, { refresh: 'none' });
+
+        // 刷新相关 UI
+        await this._refreshAllRelatedUI();
+        return true;
+      } catch (e) {
+        console.error('[归墟] _setNpcDeepInteraction 失败:', e);
         throw e;
       }
     },
