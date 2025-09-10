@@ -181,9 +181,14 @@
 }
 .inventory-item .item-row--actions > button { margin-left: 0 !important; }
 
-/* 折叠详情 */
-.inventory-item .item-row--details { margin-top: 2px; }
+/* 折叠详情：强制为块级上下展开（覆盖 .item-row 的 flex） */
+.inventory-item .item-row--details {
+  margin-top: 2px;
+  display: block;   /* 关键：不使用 flex，改为标准块级，使内容向下展开 */
+  width: 100%;
+}
 .inventory-item .item-row--details-summary {
+  display: block;   /* 摘要标题独占一行 */
   cursor: pointer;
   color: #c9aa71;
   font-size: 12px;

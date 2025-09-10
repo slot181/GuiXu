@@ -2057,20 +2057,20 @@ try { await this._syncNpcFourDimMaxToMvu(rel, computedMax); } catch (_) {}
                   }
                 });
                 if (!entries.length) return '';
-                return `<div class="attribute-item"><span class="attribute-name">效果</span><span class="attribute-value"></span></div>` +
+                return `<div class="attribute-item"><span class="attribute-name">词条效果</span><span class="attribute-value"></span></div>` +
                   entries.map(([k, v]) => `<div class="attribute-item"><span class="attribute-name">${k}</span><span class="attribute-value">${v}</span></div>`).join('');
               }
               /* 新增：当 effects 是纯标量（字符串/数字/布尔）时也要渲染，而不是直接丢弃 */
               if (eff != null && (typeof eff === 'string' || typeof eff === 'number' || typeof eff === 'boolean')) {
                 const s = clean(typeof eff === 'string' ? eff : String(eff));
                 if (!s) return '';
-                return `<div class="attribute-item"><span class="attribute-name">效果</span><span class="attribute-value"></span></div>` +
+                return `<div class="attribute-item"><span class="attribute-name">词条效果</span><span class="attribute-value"></span></div>` +
                   `<div class="attribute-item"><span class="attribute-name">条目</span><span class="attribute-value">${s}</span></div>`;
               }
               if (!eff || typeof eff !== 'object') return '';
               const items = Object.entries(eff).filter(([k, v]) => v !== undefined && v !== null && clean(v) !== '');
               if (!items.length) return '';
-              return `<div class="attribute-item"><span class="attribute-name">效果</span><span class="attribute-value"></span></div>` +
+              return `<div class="attribute-item"><span class="attribute-name">词条效果</span><span class="attribute-value"></span></div>` +
                 items.map(([k, v]) => `<div class="attribute-item"><span class="attribute-name">${k}</span><span class="attribute-value">${typeof v === 'string' ? clean(v) : clean(JSON.stringify(v))}</span></div>`).join('');
             };
             return list.map(st => {
@@ -2079,15 +2079,31 @@ try { await this._syncNpcFourDimMaxToMvu(rel, computedMax); } catch (_) {}
               const sType = typeMap[typeKey] || h.SafeGetValue(st, 'type', 'NEUTRAL');
               const sDur = h.SafeGetValue(st, 'duration', 0);
               const sDesc = h.SafeGetValue(st, 'description', '');
-              // 修复：优先读取原始 effects 对象/数组，避免 SafeGetValue 将对象折叠为首项导致只渲染一条
-              let eff = (st && (st.effects ?? st.effect ?? st['效果'] ?? st.buffs)) ?? null;
-              const rawEffectsCandidate = st && (st.effects ?? st['effect'] ?? st['效果'] ?? st['buffs']);
+              // 新：优先读取 special_effects（兼容旧 effects），并尽量使用原始对象/数组
+              let eff = (st && (st.special_effects ?? st['词条效果'] ?? st['词条'])) ?? null;
+              const rawEffectsCandidate = st && (st.special_effects ?? st['词条效果'] ?? st['词条'] ?? st.effects ?? st['effect'] ?? st['效果'] ?? st['buffs']);
               // 始终优先使用原始对象/数组（即使 SafeGetValue 返回了字符串/单值）
               if (rawEffectsCandidate && typeof rawEffectsCandidate === 'object') {
                 eff = rawEffectsCandidate;
               } else if (eff == null) {
                 // 回退：仅在没有原始对象时，才使用 SafeGetValue 读取可能的字符串
-                eff = h.SafeGetValue(st, 'effects', h.SafeGetValue(st, 'effect', h.SafeGetValue(st, '效果', h.SafeGetValue(st, 'buffs', null))));
+                eff = h.SafeGetValue(
+                  st,
+                  'special_effects',
+                  h.SafeGetValue(
+                    st,
+                    '词条效果',
+                    h.SafeGetValue(
+                      st,
+                      '词条',
+                      h.SafeGetValue(
+                        st,
+                        'effects',
+                        h.SafeGetValue(st, 'effect', h.SafeGetValue(st, '效果', h.SafeGetValue(st, 'buffs', null)))
+                      )
+                    )
+                  )
+                );
               }
               // 兼容字符串化 "[object Object]" 场景：用原始对象兜底（参考 StatusesComponent._normalizeOne）
               if (typeof eff === 'string' && eff.trim && eff.trim() === '[object Object]' && rawEffectsCandidate && typeof rawEffectsCandidate === 'object') {

@@ -84,7 +84,7 @@
       if (typeof item === 'string') {
         const text = item.trim();
         // 尝试将字符串解析为 JSON（新Schema可能以字符串形式注入）
-        if ((text.startsWith('{') && text.endsWith('}'))) {
+        if (text.startsWith('{') && text.endsWith('}')) {
           try {
             const obj = JSON.parse(text);
             if (obj && typeof obj === 'object') {
@@ -100,13 +100,14 @@
           source: '',
           duration: '',
           stacks: '',
-          effects: null,
+          special_effects: null,
           meta: null,
           raw: item,
           type: 'text',
           statusType: 'NEUTRAL',
         };
       }
+
       // 对象状态：尝试提取常见字段
       try {
         // 本地安全取值，避免依赖外部 SafeGetValue 引发异常
@@ -125,15 +126,17 @@
         const source = pick(item, ['source', '来源'], '');
         const duration = pick(item, ['duration', '持续时间'], '');
         const stacks = pick(item, ['stacks', '层数', 'stack', '层'], '');
-        let effects = pick(item, ['effects', 'effect', '效果', 'buffs'], null);
+
+        // 统一读取 special_effects（兼容旧 effects 与中文键兜底），但输出统一为 special_effects
+        let special = pick(item, ['special_effects', '词条效果', '词条', 'effects', '效果', 'buffs'], null);
         // 修复：[object Object] 被提前转成字符串的情况，尽量从原始对象恢复
-        const rawEffectsCandidate = item && (item.effects ?? item['effect'] ?? item['效果'] ?? item['buffs']);
-        if (typeof effects === 'string' && effects.trim && effects.trim() === '[object Object]') {
-          if (rawEffectsCandidate && typeof rawEffectsCandidate === 'object') {
-            effects = rawEffectsCandidate;
+        const rawSpecialCandidate = item && (item['special_effects'] ?? item['词条效果'] ?? item['词条'] ?? item['effects'] ?? item['效果'] ?? item['buffs']);
+        if (typeof special === 'string' && special.trim && special.trim() === '[object Object]') {
+          if (rawSpecialCandidate && typeof rawSpecialCandidate === 'object') {
+            special = rawSpecialCandidate;
           }
         }
-        const meta = pick(item, ['meta', 'extra', '附加', '其他'], null);
+
         // 新 Schema: 状态类型（标准化为 BUFF/DEBUFF/NEUTRAL/AURA/TERRAIN）
         let statusType = String(pick(item, ['type', '状态类型'], 'NEUTRAL') || 'NEUTRAL').toUpperCase();
         const knownTypes = new Set(['BUFF', 'DEBUFF', 'NEUTRAL', 'AURA', 'TERRAIN']);
@@ -147,8 +150,8 @@
           duration: (Number.isFinite(Number(duration)) ? Number(duration) : (duration ? String(duration) : '')),
           stacks: typeof stacks === 'string' ? stacks : (Number.isFinite(stacks) ? String(stacks) : (stacks ? JSON.stringify(stacks) : '')),
           attributes_bonus: (typeof item.attributes_bonus === 'string' ? this._parsePossibleJson(item.attributes_bonus) : (item && typeof item.attributes_bonus === 'object' && item.attributes_bonus)) || null,
-          effects: this._parseEffects(effects),
-          meta: meta,
+          special_effects: this._parseEffects(special),
+          meta: pick(item, ['meta', 'extra', '附加', '其他'], null),
           statusType: statusType,
           raw: item,
           type: 'object',
@@ -160,7 +163,7 @@
           source: '',
           duration: '',
           stacks: '',
-          effects: null,
+          special_effects: null,
           meta: null,
           raw: item,
           type: 'unknown',
@@ -235,9 +238,9 @@
           </div>`);
         }
 
-        // 修复3：重写 effects 渲染逻辑
-        if (s.effects) {
-          const effectsObj = this._parseEffects(s.effects);
+        // 新：统一使用 special_effects 渲染（兼容数组/对象/标量）
+        if (s.special_effects) {
+          const effectsObj = this._parseEffects(s.special_effects);
 
           if (Array.isArray(effectsObj)) {
             const effs = effectsObj.map(entry => {
@@ -305,7 +308,7 @@
               </ul>
             </div>`);
           } else {
-            const pretty = this._esc(typeof s.effects === 'string' ? s.effects : JSON.stringify(s.effects));
+            const pretty = this._esc(typeof s.special_effects === 'string' ? s.special_effects : JSON.stringify(s.special_effects));
             detailsBlocks.push(`<div style="margin:6px 0;">
               <div style="color:#8b7355; font-size:11px;">词条效果：</div>
               <pre style="white-space: pre-wrap; word-wrap: break-word; color: #e0dcd1; font-size: 11px; padding: 8px; background: rgba(0, 0, 0, 0.2); border-radius: 4px;">${pretty}</pre>
@@ -321,7 +324,7 @@
           </div>`);
         }
 
-        if (!s.description && !s.source && !s.duration && !s.stacks && !s.effects && !s.meta && s.raw) {
+        if (!s.description && !s.source && !s.duration && !s.stacks && !s.special_effects && !s.meta && s.raw) {
           const rawPretty = typeof s.raw === 'string' ? this._esc(s.raw) : this._prettyJson(s.raw);
           detailsBlocks.push(`<pre style="white-space: pre-wrap; word-wrap: break-word; color: #e0dcd1; font-size: 11px; padding: 8px; background: rgba(0, 0, 0, 0.2); border-radius: 4px;">${rawPretty}</pre>`);
         }

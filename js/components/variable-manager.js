@@ -225,7 +225,6 @@
           type: '',
           tier: '凡品',
           description: '',
-          effect: '',
           special_effects: { $meta: { extensible: true } },
           attributes_bonus: {},
           '百分比加成': {},
@@ -239,7 +238,7 @@
           description: '',
           type: 'NEUTRAL',
           duration: 0,
-          effects: {}
+          special_effects: {}
         };
       case 'npc':
         return {
@@ -342,10 +341,12 @@
 
         this._originalStatSnap = deepClone(stat_data || {});
         this._workingStat = deepClone(stat_data || {});
-
+        // 打开面板时进行一次本地兜底迁移：effect/effects -> special_effects
+        try { this._migrateEffectsSchemaOnStat(this._workingStat); } catch (_) {}
+ 
         this._renderShell();
         this._renderTabs();
-
+ 
         this._bindFooterActions();
 
         try { window.GuixuHelpers?.showTemporaryMessage?.('已载入变量，切换标签可查看系统/玩家/NPC。'); } catch (_) {}
@@ -355,6 +356,123 @@
         if (body) body.innerHTML = '<p class="modal-placeholder" style="text-align:center; color:#8b7355; font-size:12px;">载入变量失败。</p>';
       }
     },
+
+   // 一次性迁移：effect/effects -> special_effects（与主入口保持一致）
+   _migrateEffectsSchemaOnStat(stat) {
+     try {
+       if (!stat || typeof stat !== 'object') return false;
+       let changed = false;
+       // 读取“可扩展字典”的条目（兼容 JSON Schema 的 properties 与普通字典）
+       const getDictEntries = (dictLike) => {
+         if (!dictLike || typeof dictLike !== 'object') return {};
+         const hasProps = !!(dictLike && dictLike.properties && typeof dictLike.properties === 'object');
+         return hasProps ? dictLike.properties : dictLike;
+       };
+       // 迁移一个“状态对象”的 effects -> special_effects
+       const migrateStatusObj = (stObj) => {
+         if (!stObj || typeof stObj !== 'object') return false;
+         let dirty = false;
+         const eff = stObj.effects;
+         if (eff && typeof eff === 'object' && !Array.isArray(eff)) {
+           if (!stObj.special_effects || typeof stObj.special_effects !== 'object' || Array.isArray(stObj.special_effects)) {
+             stObj.special_effects = {};
+             dirty = true;
+           }
+           for (const k of Object.keys(eff)) {
+             if (k === '$meta') continue;
+             stObj.special_effects[k] = eff[k];
+             dirty = true;
+           }
+           try { delete stObj.effects; dirty = true; } catch (_) {}
+         }
+         return dirty;
+       };
+       // 迁移一个“物品对象”的 effect -> special_effects
+       const migrateItemObj = (itemObj, force = false) => {
+         if (!itemObj || typeof itemObj !== 'object') return false;
+         const isPill = force || String(itemObj.type || '').trim() === '丹药';
+         if (!isPill) return false;
+         const old = itemObj.effect;
+         if (old == null || old === '') {
+           if ('effect' in itemObj) { try { delete itemObj.effect; } catch(_) {} }
+           return false;
+         }
+         if (!itemObj.special_effects || typeof itemObj.special_effects !== 'object' || Array.isArray(itemObj.special_effects)) {
+           itemObj.special_effects = {};
+         }
+         let key = 'migrated_effect', idx = 1;
+         while (Object.prototype.hasOwnProperty.call(itemObj.special_effects, key)) { idx += 1; key = `migrated_effect_${idx}`; }
+         itemObj.special_effects[key] = old;
+         try { delete itemObj.effect; } catch (_) {}
+         return true;
+       };
+       // 玩家 当前状态
+       try {
+         const stDict = stat['当前状态'];
+         const entries = getDictEntries(stDict);
+         for (const k of Object.keys(entries || {})) {
+           const v = entries[k];
+           const obj = (Array.isArray(v) && v.length === 1 && typeof v[0] === 'object') ? v[0] : v;
+           if (migrateStatusObj(obj)) changed = true;
+         }
+       } catch (_) {}
+       // 玩家 丹药列表
+       try {
+         const pillDict = stat['丹药列表'];
+         const entries = getDictEntries(pillDict);
+         for (const k of Object.keys(entries || {})) {
+           const v = entries[k];
+           const obj = (Array.isArray(v) && v.length === 1 && typeof v[0] === 'object') ? v[0] : v;
+           if (migrateItemObj(obj, true)) changed = true;
+         }
+       } catch (_) {}
+       // NPC 人物关系列表
+       try {
+         const npcRoot = stat['人物关系列表'];
+         const npcEntries = getDictEntries(npcRoot);
+         for (const npcKey of Object.keys(npcEntries || {})) {
+           const npcObj = npcEntries[npcKey];
+           const npc = (Array.isArray(npcObj) && npcObj.length === 1 && typeof npcObj[0] === 'object') ? npcObj[0] : npcObj;
+           if (!npc || typeof npc !== 'object') continue;
+           // NPC 当前状态
+           try {
+             const stDict = npc['当前状态'];
+             const entries = getDictEntries(stDict);
+             for (const k of Object.keys(entries || {})) {
+               const v = entries[k];
+               const sobj = (Array.isArray(v) && v.length === 1 && typeof v[0] === 'object') ? v[0] : v;
+               if (migrateStatusObj(sobj)) changed = true;
+             }
+           } catch (_) {}
+           // NPC 储物袋（丹药）
+           try {
+             const bag = npc['储物袋'];
+             const bagEntries = getDictEntries(bag);
+             for (const bk of Object.keys(bagEntries || {})) {
+               const node = bagEntries[bk];
+               const nodeObj = (Array.isArray(node) && node.length === 1 && typeof node[0] === 'object') ? node[0] : node;
+               if (nodeObj && typeof nodeObj === 'object') {
+                 if (nodeObj.type || nodeObj.name || nodeObj['名称']) {
+                   if (migrateItemObj(nodeObj, false)) changed = true;
+                 } else {
+                   const sub = getDictEntries(nodeObj);
+                   for (const sk of Object.keys(sub || {})) {
+                     const sv = sub[sk];
+                     const sobj = (Array.isArray(sv) && sv.length === 1 && typeof sv[0] === 'object') ? sv[0] : sv;
+                     const inPillCat = bk === '丹药';
+                     if (migrateItemObj(sobj, inPillCat)) changed = true;
+                   }
+                 }
+               }
+             }
+           } catch (_) {}
+         }
+       } catch (_) {}
+       return changed;
+     } catch (_) {
+       return false;
+     }
+   },
 
     // 布局壳
     _renderShell() {
@@ -915,9 +1033,9 @@
         const kvMain = ['id','name','description','type','duration'].filter(f => f in it);
         const mainHtml = this._renderKVList(kvMain.map(f => this._renderKVRow(f, it[f], `${path}['${f}']`)));
 
-        const eff = it['effects'];
-        const effHtml = (eff && typeof eff === 'object')
-          ? this._wrapSubDetails('效果', this._renderObjectAsKV('效果', `${path}['effects']`, eff))
+        const se = it['special_effects'];
+        const seHtml = (se && typeof se === 'object')
+          ? this._wrapSubDetails('词条', this._renderSpecialEffectsDictContent(`${path}['special_effects']`, se))
           : '';
 
         return `
@@ -927,7 +1045,7 @@
                 <button class="interaction-btn danger-btn" data-vm-del="${path}">删除</button>
               </span>
             </summary>
-            <div class="vm-details-body">${mainHtml}${effHtml}</div>
+            <div class="vm-details-body">${mainHtml}${seHtml}</div>
           </details>
         `;
       }).join('');
@@ -1011,7 +1129,7 @@
         const qty = window.GuixuHelpers.SafeGetValue(it, 'quantity', null);
         const head = `<span class="attribute-value" style="${window.GuixuHelpers.getTierStyle ? window.GuixuHelpers.getTierStyle(tier) : ''}">${escapeHTML(name)}</span><span class="attribute-name">【${escapeHTML(tier)}】${type ? ' - ' + escapeHTML(type) : ''}${qty!=null ? (' ×' + qty) : ''}</span>`;
 
-        const baseFields = ['id','name','type','tier','description','effect','base_value','quantity'].filter(f => f in it);
+        const baseFields = ['id','name','type','tier','description','base_value','quantity'].filter(f => f in it);
         const baseHtml = this._renderKVList(baseFields.map(f => this._renderKVRow(f, it[f], `${path}['${f}']`)));
 
         const ab = it['attributes_bonus'];

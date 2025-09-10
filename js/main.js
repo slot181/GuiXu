@@ -1790,6 +1790,156 @@ if (!document.getElementById('guixu-gate-style')) {
       } catch (_) {}
     },
  
+    // 新增：统一 MVU 结构迁移（effect/effects -> special_effects）
+    // 说明：
+    // - 丹药列表物品：若存在旧字段 item.effect，则将其值迁移为 special_effects.migrated_effect = item.effect，并删除 item.effect
+    // - 状态记录：若存在旧字段 status.effects（对象），则将其键值对全部并入 special_effects，并删除 status.effects
+    // - NPC：对每个 NPC 的“当前状态”与“储物袋”中的丹药物品做同样迁移（储物袋仅在物品 type === '丹药' 时迁移）
+    _migrateEffectsSchemaOnStat(stat) {
+      try {
+        if (!stat || typeof stat !== 'object') return false;
+        let changed = false;
+
+        // 工具：读取“可扩展字典”的条目（兼容 JSON Schema 的 properties 与普通字典）
+        const getDictEntries = (dictLike) => {
+          if (!dictLike || typeof dictLike !== 'object') return {};
+          const hasProps = !!(dictLike && dictLike.properties && typeof dictLike.properties === 'object');
+          return hasProps ? dictLike.properties : dictLike;
+        };
+
+        // 工具：迁移一个“状态对象”的 effects -> special_effects
+        const migrateStatusObj = (stObj) => {
+          if (!stObj || typeof stObj !== 'object') return false;
+          let dirty = false;
+          const eff = stObj.effects;
+          if (eff && typeof eff === 'object' && !Array.isArray(eff)) {
+            // 确保 special_effects 是对象
+            if (!stObj.special_effects || typeof stObj.special_effects !== 'object' || Array.isArray(stObj.special_effects)) {
+              stObj.special_effects = {};
+              dirty = true;
+            }
+            // 合并键值
+            for (const k of Object.keys(eff)) {
+              if (k === '$meta') continue;
+              stObj.special_effects[k] = eff[k];
+              dirty = true;
+            }
+            // 删除旧字段
+            try { delete stObj.effects; dirty = true; } catch (_) {}
+          }
+          return dirty;
+        };
+
+        // 工具：迁移一个“物品对象”的 effect -> special_effects
+        const migrateItemObj = (itemObj, force = false) => {
+          if (!itemObj || typeof itemObj !== 'object') return false;
+          // 仅在丹药类别或明确要求时迁移
+          const isPill = force || String(itemObj.type || '').trim() === '丹药';
+          if (!isPill) return false;
+          const old = itemObj.effect;
+          if (old == null || old === '') {
+            // 顺带清理空的 effect 字段
+            if ('effect' in itemObj) { try { delete itemObj.effect; } catch(_) {} }
+            return false;
+          }
+          if (!itemObj.special_effects || typeof itemObj.special_effects !== 'object' || Array.isArray(itemObj.special_effects)) {
+            itemObj.special_effects = {};
+          }
+          // 将旧值塞到一个稳定的迁移键上（中文注释：键名随意，这里使用英文，避免与自然语言键冲突）
+          const key = 'migrated_effect';
+          // 若已存在同名键，避免覆盖，追加编号
+          let finalKey = key, idx = 1;
+          while (Object.prototype.hasOwnProperty.call(itemObj.special_effects, finalKey)) {
+            idx += 1; finalKey = `${key}_${idx}`;
+          }
+          itemObj.special_effects[finalKey] = old;
+          try { delete itemObj.effect; } catch (_) {}
+          return true;
+        };
+
+        // 1) 玩家：当前状态
+        try {
+          const stDict = stat['当前状态'];
+          const entries = getDictEntries(stDict);
+          for (const k of Object.keys(entries || {})) {
+            const v = entries[k];
+            if (v && typeof v === 'object') {
+              if (migrateStatusObj(Array.isArray(v) && v.length === 1 && typeof v[0] === 'object' ? v[0] : v)) changed = true;
+            }
+          }
+        } catch (_) {}
+
+        // 2) 玩家：丹药列表
+        try {
+          const pillDict = stat['丹药列表'];
+          const entries = getDictEntries(pillDict);
+          for (const k of Object.keys(entries || {})) {
+            const v = entries[k];
+            const obj = (Array.isArray(v) && v.length === 1 && typeof v[0] === 'object') ? v[0] : v;
+            if (obj && typeof obj === 'object') {
+              if (migrateItemObj(obj, true)) changed = true;
+            }
+          }
+        } catch (_) {}
+
+        // 3) NPC：人物关系列表
+        try {
+          const npcRoot = stat['人物关系列表'];
+          const npcEntries = getDictEntries(npcRoot);
+          for (const npcKey of Object.keys(npcEntries || {})) {
+            const npcObj = npcEntries[npcKey];
+            const npc = (Array.isArray(npcObj) && npcObj.length === 1 && typeof npcObj[0] === 'object') ? npcObj[0] : npcObj;
+            if (!npc || typeof npc !== 'object') continue;
+
+            // NPC 当前状态
+            try {
+              const stDict = npc['当前状态'];
+              const entries = getDictEntries(stDict);
+              for (const k of Object.keys(entries || {})) {
+                const v = entries[k];
+                if (v && typeof v === 'object') {
+                  if (migrateStatusObj(Array.isArray(v) && v.length === 1 && typeof v[0] === 'object' ? v[0] : v)) changed = true;
+                }
+              }
+            } catch (_) {}
+
+            // NPC 储物袋：尝试把 type == '丹药' 的物品迁移
+            try {
+              const bag = npc['储物袋'];
+              const bagEntries = getDictEntries(bag);
+              for (const bk of Object.keys(bagEntries || {})) {
+                const node = bagEntries[bk];
+                const nodeObj = (Array.isArray(node) && node.length === 1 && typeof node[0] === 'object') ? node[0] : node;
+
+                if (nodeObj && typeof nodeObj === 'object') {
+                  // 情况A：直接就是一个物品
+                  if (nodeObj.type || nodeObj.name || nodeObj['名称']) {
+                    if (migrateItemObj(nodeObj, false)) changed = true;
+                  } else {
+                    // 情况B：可能是一个类别字典（如 '丹药' 分类下是一堆物品）
+                    const subEntries = getDictEntries(nodeObj);
+                    for (const sk of Object.keys(subEntries || {})) {
+                      const sv = subEntries[sk];
+                      const sobj = (Array.isArray(sv) && sv.length === 1 && typeof sv[0] === 'object') ? sv[0] : sv;
+                      if (sobj && typeof sobj === 'object') {
+                        const inPillCat = bk === '丹药';
+                        if (migrateItemObj(sobj, inPillCat)) changed = true;
+                      }
+                    }
+                  }
+                }
+              }
+            } catch (_) {}
+          }
+        } catch (_) {}
+
+        return changed;
+      } catch (e) {
+        console.warn('[归墟] _migrateEffectsSchemaOnStat 失败:', e);
+        return false;
+      }
+    },
+
     async updateDynamicData() {
       const $ = (sel, ctx = document) => ctx.querySelector(sel);
       if (this._firstRoundBlockActive) {
@@ -1801,14 +1951,28 @@ if (!document.getElementById('guixu-gate-style')) {
         let messages = await window.GuixuAPI.getChatMessages(currentId);
         let rawState = messages?.[0]?.data || null;
 
-
         if (rawState) {
           const normalizedState = rawState;
-          // 渲染用：深度过滤掉占位符，避免任何界面看到占位符
+
+          // 先对 stat_data 做一次 effect/effects → special_effects 迁移（就地）
+          try {
+            const stat = normalizedState.stat_data || {};
+            const changed = this._migrateEffectsSchemaOnStat(stat);
+            if (changed && window.GuixuMvuIO && typeof window.GuixuMvuIO.scheduleStatUpdate === 'function') {
+              // 将迁移后的 stat_data 写回当前楼层（节流/合并）
+              window.GuixuMvuIO.scheduleStatUpdate((st) => {
+                try {
+                  // 安全合并：以迁移后的结构覆盖
+                  Object.assign(st, stat);
+                } catch (_) {}
+              }, { reason: 'migrate_effects_schema' });
+            }
+          } catch (_) {}
+
+          // 渲染用：深度过滤掉占位符
           const toRender = this._deepStripMeta(normalizedState.stat_data);
 
           window.GuixuState.update('currentMvuState', normalizedState);
-          // 便捷调试/外部页面自检：暴露当前MVU与其 stat_data（参考 guimi.html 的做法）
           try {
             window.currentMvuState = normalizedState;
             window.currentStatData = toRender;
@@ -1831,7 +1995,6 @@ if (!document.getElementById('guixu-gate-style')) {
         if (autoToggleCheckbox) autoToggleCheckbox.checked = !!state.isAutoToggleLorebookEnabled;
         const autoSaveCheckbox = $('#auto-save-checkbox');
         if (autoSaveCheckbox) autoSaveCheckbox.checked = !!state.isAutoSaveEnabled;
-        // 同步“世界书读写序号”输入框
         const unifiedIndexInput = $('#unified-index-input');
         if (unifiedIndexInput) unifiedIndexInput.value = String(state.unifiedIndex || 1);
       } catch (error) {
