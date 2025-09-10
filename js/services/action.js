@@ -88,7 +88,7 @@
                   : base;
 
                 if (!last || !String(last).trim()) {
-                    window.GuixuHelpers?.showTemporaryMessage?.('未找到上一轮输入，无法重掷');
+                    window.GuixuHelpers?.showTemporaryMessage?.('未找到上一轮输入，无法重新生成');
                     return;
                 }
 
@@ -181,10 +181,21 @@
                     await window.GuixuMain?.loadAndDisplayCurrentScene?.(aiResponse);
                 } catch (_) {}
 
-                window.GuixuHelpers?.showTemporaryMessage?.('已使用上一轮输入重掷本轮回复');
+                // 成功后：清理底部输入框与其本地缓存（不保留旧草稿）
+                try {
+                    const input = document.getElementById('quick-send-input');
+                    if (input) input.value = '';
+                    if (window.GuixuMain && typeof window.GuixuMain.clearInputDraft === 'function') {
+                        window.GuixuMain.clearInputDraft();
+                    } else {
+                        try { localStorage.removeItem('guixu_input_draft'); } catch (_) {}
+                    }
+                } catch (_) {}
+
+                window.GuixuHelpers?.showTemporaryMessage?.('已使用上一轮输入重新生成本轮回复');
             } catch (error) {
-                console.error('[归墟] 重掷失败:', error);
-                window.GuixuHelpers?.showTemporaryMessage?.(`重掷失败: ${error.message}`);
+                console.error('[归墟] 重新生成失败:', error);
+                window.GuixuHelpers?.showTemporaryMessage?.(`重新生成失败: ${error.message}`);
             }
         },
 

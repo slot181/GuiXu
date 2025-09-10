@@ -124,6 +124,10 @@
             .guixu-root-container .quick-send-container .qs-center #quick-send-input{
               width: 100%;
             }
+            /* 桌面端：扩大中心列最小宽度（输入栏随中心列拉伸），等效提升输入栏宽度约20% */
+            .guixu-root-container:not(.mobile-view) .quick-send-container{
+              grid-template-columns: auto minmax(300px, 1fr) auto;
+            }
           `;
           document.head.appendChild(s);
         }
@@ -691,8 +695,9 @@ if (!document.getElementById('guixu-gate-style')) {
           btn.id = 'btn-reroll-last';
           btn.className = 'interaction-btn';
           btn.type = 'button';
-          btn.textContent = '🎲 重掷';
-          btn.title = '使用上一轮的输入重新生成上一轮的回应（重roll）';
+          // 去除小图标，并统一命名为“重新生成”，以便与其他按钮等高对齐
+          btn.textContent = '重新生成';
+          btn.title = '使用上一轮的输入重新生成上一轮的回应';
           insertAfterRefresh();
           applyMobileTwoBtnLayout();
 
@@ -700,24 +705,24 @@ if (!document.getElementById('guixu-gate-style')) {
             try {
               const last = window.GuixuState?.getState?.().lastSentPrompt;
               if (!last || !String(last).trim()) {
-                window.GuixuHelpers?.showTemporaryMessage?.('没有找到上一轮输入，无法重掷');
+                window.GuixuHelpers?.showTemporaryMessage?.('没有找到上一轮输入，无法重新生成');
                 return;
               }
               // 弹出文本编辑弹窗：允许用户修改上一轮输入（桌面/移动端、全屏/非全屏统一风格）
               const edited = await window.GuixuMain?.showTextPrompt?.({
-                title: '编辑上一轮输入并重掷',
-                message: '可在下方修改上一轮输入后重掷；留空将使用上一轮输入。',
+                title: '编辑上一轮输入并重新生成',
+                message: '可在下方修改上一轮输入后重新生成；留空将使用上一轮输入。',
                 defaultValue: last,
                 placeholder: '在此编辑上一轮输入…',
-                okText: '重掷',
+                okText: '重新生成',
                 cancelText: '取消'
               });
               if (edited === null) return;
               const content = String(edited).trim() || last;
               try { window.GuixuActionService?.rerollLast?.(content); } catch (_) {}
             } catch (e) {
-              console.warn('[归墟] 重掷触发失败:', e);
-              window.GuixuHelpers?.showTemporaryMessage?.('重掷失败');
+              console.warn('[归墟] 重新生成触发失败:', e);
+              window.GuixuHelpers?.showTemporaryMessage?.('重新生成失败');
             }
           });
         } else {
@@ -1152,6 +1157,13 @@ if (!document.getElementById('guixu-gate-style')) {
           this._restoreFabPositions();
           requestAnimationFrame(() => this._restoreFabPositions());
           setTimeout(() => this._restoreFabPositions(), 150);
+          // 全屏下切到移动端时，强制锁定竖屏，且明确移除横屏移动端全屏模式类
+          try {
+            if (document.fullscreenElement && this._isMobileEnv()) {
+              this._tryLockPortraitOrientation?.();
+            }
+          } catch (_) {}
+          this._updateMobileLandscapeFullscreenClass?.(); // 该方法将清理横屏标记
         } else {
           // 显式切到桌面端：移除移动端类并加上强制桌面类（覆盖小屏CSS兜底）
           root.classList.remove('mobile-view', 'show-character-panel', 'show-interaction-panel');
@@ -3101,8 +3113,23 @@ container.style.fontFamily = `"Microsoft YaHei", "Noto Sans SC", "PingFang SC", 
         }
       } catch (_) {}
     },
+    // 新增：在全屏模式下尝试锁定为竖屏（用于移动端全屏强制竖屏UI）
+    _tryLockPortraitOrientation() {
+      try {
+        if (!document.fullscreenElement) return;
+        const lock = screen.orientation && typeof screen.orientation.lock === 'function'
+          ? screen.orientation.lock.bind(screen.orientation)
+          : (screen.lockOrientation || screen.mozLockOrientation || screen.msLockOrientation);
+        if (lock) {
+          const maybePromise = lock('portrait');
+          if (maybePromise && typeof maybePromise.then === 'function') {
+            maybePromise.then(() => {}).catch(() => {});
+          }
+        }
+      } catch (_) {}
+    },
 
-    // 移动端横屏全屏时的类切换（用于让底部栏在横屏全屏下可见）
+    // 移动端横屏全屏模式移除：不再支持横屏模式下的移动端UI
     _isMobileEnv() {
       try {
         return (window.SillyTavern?.isMobile?.() === true) ||
@@ -3114,10 +3141,8 @@ container.style.fontFamily = `"Microsoft YaHei", "Noto Sans SC", "PingFang SC", 
       try {
         const root = document.querySelector('.guixu-root-container');
         if (!root) return;
-        const cond = !!document.fullscreenElement
-          && root.classList.contains('mobile-view')
-          && window.matchMedia('(orientation: landscape)').matches;
-        root.classList.toggle('mobile-landscape-fullscreen', cond);
+        // 直接移除横屏移动端全屏类，禁用该模式
+        root.classList.remove('mobile-landscape-fullscreen');
       } catch (_) {}
     },
 

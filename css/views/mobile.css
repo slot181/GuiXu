@@ -140,6 +140,15 @@
   box-sizing: border-box;
 }
 
+/* 强制覆盖 JS 动态注入的 gate-refresh-btn 高度，保持两键一致 */
+.guixu-root-container.mobile-view .quick-send-container .qs-left.qs-left--two-btn > #btn-first-run-refresh.gate-refresh-btn,
+.guixu-root-container.mobile-view .quick-send-container .qs-left.qs-left--two-btn > #btn-reroll-last {
+  height: 34px !important;   /* 与上方声明保持一致 */
+  line-height: 34px;         /* 文本垂直居中，避免视觉差 */
+  padding: 0 12px;
+  font-size: 12px;
+}
+
 /* 让输入区在移动端占满宽度 */
 .mobile-view .quick-send-input {
   width: 100%;
@@ -168,11 +177,11 @@
   width: auto; /* 保持芯片宽度，不再拉满整行 */
 }
 
-/* 非全屏的移动端：为底部栏内容设置统一最大宽度，避免贴边并与“状态一览”对齐 */
-.guixu-root-container.mobile-view:not(.mobile-landscape-fullscreen) .bottom-status .quick-send-container,
-.guixu-root-container.mobile-view:not(.mobile-landscape-fullscreen) .bottom-status .qs-left,
-.guixu-root-container.mobile-view:not(.mobile-landscape-fullscreen) .bottom-status .qs-center,
-.guixu-root-container.mobile-view:not(.mobile-landscape-fullscreen) .bottom-status .qs-right {
+/* 移动端：为底部栏内容设置统一最大宽度，避免贴边并与“状态一览”对齐（已移除横屏全屏模式判断） */
+.guixu-root-container.mobile-view .bottom-status .quick-send-container,
+.guixu-root-container.mobile-view .bottom-status .qs-left,
+.guixu-root-container.mobile-view .bottom-status .qs-center,
+.guixu-root-container.mobile-view .bottom-status .qs-right {
   max-width: 680px;
   width: 100%;
   margin: 0 auto;

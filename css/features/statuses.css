@@ -159,6 +159,12 @@
   color: #c9aa71;
   font-size: 12px;
   cursor: pointer;
+  /* 关键：允许作为 grid 子项在桌面端收缩，避免内容把底部栏撑高与溢出到中列 */
+  min-width: 0;              /* grid/flex 子项要配合此项才能启用省略 */
+  white-space: nowrap;       /* 保持单行 */
+  overflow: hidden;          /* 按列裁剪，避免视觉重叠 */
+  max-width: 100%;           /* 不超出所在列宽度 */
+  z-index: 0;                /* 降低层级，防止与中间控件交叠时盖住它们 */
 }
 .status-pop-btn:hover {
   background-color: rgba(201, 170, 113, 0.1);
@@ -168,6 +174,17 @@
   height: 14px;
   background: #c9aa71;
   border-radius: 50%;
+  flex: 0 0 auto;
+}
+/* 让文本成为省略号承载区：仅当宽度不足时以“…”省略 */
+.status-pop-btn > span {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1 1 auto;    /* 文本可压缩 */
+  min-width: 0;      /* 配合 grid/flex 触发省略 */
+  max-width: 100%;
 }
 
 /* 状态一览面板：输入与选择统一视觉（如有过滤/搜索控件时生效） */

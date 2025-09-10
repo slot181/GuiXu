@@ -58,7 +58,8 @@
       rgba(45, 27, 61, 0.8) 100%);
   border-top: 1px solid #c9aa71;
   display: grid;
-  grid-template-columns: 1fr auto 1fr;
+  /* 三列：左(状态按钮) - 中(快速发送) - 右(预留)；允许左右列在中间过宽时收缩 */
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: center;
   gap: 15px;
   padding: 0 15px;
@@ -73,8 +74,14 @@
   gap: 8px;
 }
 /* 网格对齐：左侧按钮靠左，输入区居中 */
-#btn-status-pop { justify-self: start; }
-.bottom-status .quick-send-container { justify-self: center; }
+#btn-status-pop {
+  justify-self: start;
+  min-width: 0;           /* 允许在左列内收缩 */
+}
+.bottom-status .quick-send-container {
+  justify-self: center;
+  min-width: 0;           /* 避免中列挤压两侧列导致溢出 */
+}
 
 /* 快速发送输入框 */
 .quick-send-input {
@@ -84,8 +91,8 @@
   color: #e0dcd1;
   padding: 5px 10px;
   font-size: 12px;
-  width: 250px;   /* 初始宽度 */
-  height: 44px;   /* 固定高度，避免底部栏抖动 */
+  width: 300px;   /* 宽度+20%（桌面端默认宽度从250px提升至300px；移动端有独立覆盖） */
+  height: 44px;   /* 固定高度，避免底部栏抖动（桌面端聚焦时有专门规则增高） */
   resize: none;
   line-height: 1.5;
   font-family: inherit;
@@ -101,3 +108,8 @@
 
 /* 轻微调整快速发送容器的间距（保持居中时的视觉间隔） */
 .quick-send-container { margin: 0 10px; }
+
+/* 桌面端（全屏/非全屏）：输入框聚焦时增高，扩大可视区域；移动端不受影响 */
+.guixu-root-container:not(.mobile-view) .quick-send-input:focus {
+  height: 60px; /* 比默认44px更高，便于查看更多内容 */
+}

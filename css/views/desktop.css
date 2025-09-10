@@ -337,8 +337,7 @@
   text-shadow: 0 0 6px rgba(201, 170, 113, 0.6);
 }
 
-/* 移动端与移动端横屏全屏：不显示开合按钮 */
-.guixu-root-container.mobile-view .game-container .pane-toggle-btn,
-.guixu-root-container.mobile-landscape-fullscreen .game-container .pane-toggle-btn {
+/* 移动端：不显示开合按钮（已移除横屏全屏模式支持） */
+.guixu-root-container.mobile-view .game-container .pane-toggle-btn {
   display: none !important;
 }

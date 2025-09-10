@@ -57,6 +57,8 @@
       const cur = String(current || '').trim() || '未知';
       el.classList.remove('is-update');
       el.innerHTML = `<span class="vb-text">版本 ${this._escape(cur)}</span>`;
+      // 桌面端：渲染后根据空间判定是否折叠为小图标
+      this._updateCompactMode?.();
     },
 
     renderUpdate(current) {
@@ -68,6 +70,8 @@
       el.innerHTML =
         `<span class="vb-text">版本 ${this._escape(cur)}</span>` +
         `<span class="vb-pill">可更新</span>`;
+      // 桌面端：渲染后根据空间判定是否折叠为小图标
+      this._updateCompactMode?.();
     },
 
     _getCurrent() {
@@ -134,6 +138,52 @@
       }
     },
 
+    // 桌面端：根据底部栏剩余空间自动切换“紧凑图标模式”，避免遮挡输入区/按钮
+    _updateCompactMode() {
+      try {
+        const root = document.querySelector('.guixu-root-container');
+        const bottom = document.getElementById('bottom-status-container');
+        const qs = bottom ? bottom.querySelector('.quick-send-container') : null;
+        const el = document.getElementById(this._elId);
+        if (!root || !bottom || !qs || !el) return;
+
+        // 移动端不启用折叠
+        if (root.classList.contains('mobile-view')) {
+          el.classList.remove('compact');
+          return;
+        }
+
+        // 测量“非折叠”时的自然宽度（使用离屏克隆，避免触发布局/观察者循环）
+        let naturalWidth = 0;
+        try {
+          const clone = el.cloneNode(true);
+          clone.classList.remove('compact');
+          clone.style.position = 'absolute';
+          clone.style.visibility = 'hidden';
+          clone.style.pointerEvents = 'none';
+          clone.style.left = '-99999px';
+          clone.style.top = '0';
+          (document.body || bottom).appendChild(clone);
+          naturalWidth = Math.max(0, clone.getBoundingClientRect().width || 0);
+          clone.remove();
+        } catch (_) {
+          // 兜底：取当前宽度或下限
+          naturalWidth = Math.max(80, el.getBoundingClientRect().width || 0);
+        }
+
+        const bottomRect = bottom.getBoundingClientRect();
+        const qsRect = qs.getBoundingClientRect();
+        // 右侧剩余空间（底部容器右边缘到快速发送容器右边缘）
+        const margin = 12; // 给输入组与徽标之间预留安全间距
+        const availableRight = Math.max(0, bottomRect.right - qsRect.right - margin);
+        // 阈值：需要至少容纳自然宽度；最低也给一个下限，避免误触发
+        const needed = Math.max(80, Math.round(naturalWidth || 0)); // 80px 作为保底需求
+
+        const shouldCompact = availableRight < needed;
+        el.classList.toggle('compact', shouldCompact);
+      } catch (_) {}
+    },
+ 
     async update() {
       try {
         const current = this._getCurrent();
@@ -167,10 +217,33 @@
         this.ensureContainer();
         // 初次同步
         this.update();
+        // 首次折叠判定
+        this._updateCompactMode?.();
+
+        // 监听窗口尺寸与方向变化，动态折叠/还原
+        if (!this._resBound) {
+          this._resBound = true;
+          const apply = () => this._updateCompactMode?.();
+          window.addEventListener('resize', apply);
+          window.addEventListener('orientationchange', apply);
+        }
+
+        // 监听底部栏与快速发送容器“尺寸变化”（避免使用 MutationObserver 导致的循环触发）
+        try {
+          const bottom = document.getElementById('bottom-status-container');
+          const qs = bottom ? bottom.querySelector('.quick-send-container') : null;
+          if (!this._roBound && (bottom || qs) && typeof ResizeObserver !== 'undefined') {
+            this._roBound = true;
+            this._ro = new ResizeObserver(() => this._updateCompactMode?.());
+            if (bottom) this._ro.observe(bottom);
+            if (qs) this._ro.observe(qs);
+            setTimeout(() => this._updateCompactMode?.(), 0);
+          }
+        } catch (_) {}
 
         // 二次同步：等主入口与 UpdateNotifier 的远程检查完成后再刷新一次（防止门禁/频控导致的延迟）
-        setTimeout(() => this.update(), 1500);
-        setTimeout(() => this.update(), 5000);
+        setTimeout(() => { this.update(); this._updateCompactMode?.(); }, 1500);
+        setTimeout(() => { this.update(); this._updateCompactMode?.(); }, 5000);
       };
       if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', onReady);
       else onReady();
