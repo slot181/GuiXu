@@ -43,7 +43,7 @@
   padding: 12px 16px;
   border-radius: 8px;
   border: 1px solid #c9aa71;
-  z-index: 10002;
+  z-index: 10120; /* 提升层级，高于所有功能面板/模态(10080)与确认/输入(10100) */
   font-size: 14px;
   box-shadow: 0 5px 25px rgba(0, 0, 0, 0.7);
   line-height: 1.6;
@@ -58,4 +58,9 @@
   white-space: normal;           /* 正常换行 */
   word-break: break-word;        /* 打断长词 */
   overflow-wrap: anywhere;       /* 移动端激进断行 */
+}
+
+/* 顶部栏临时消息浮窗：统一抬升层级，防止被任何面板/模态遮挡 */
+.guixu-root-container .temp-message-popup {
+  z-index: 10120 !important; /* 高于所有面板(10080)与确认输入(10100)与设置说明(10110) */
 }

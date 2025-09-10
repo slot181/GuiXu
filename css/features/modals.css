@@ -70,3 +70,10 @@
   overflow-y: auto;
   position: relative; /* 供内部浮层（如 tooltip）相对定位 */
 }
+
+/* 顶层确认/输入类弹窗：确保总在所有功能面板与其他模态之上 */
+.guixu-root-container #custom-confirm-modal.modal-overlay,
+.guixu-root-container #custom-number-prompt-modal.modal-overlay,
+.guixu-root-container #custom-text-prompt-modal.modal-overlay {
+  z-index: 10100 !important; /* 高于通用模态(10080)、底栏(10010)与悬浮菜单/按钮(10055/10060/10065) */
+}

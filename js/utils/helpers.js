@@ -246,7 +246,7 @@
         border: 1px solid #c9aa71;
         border-radius: 8px;
         padding: 15px 25px;
-        z-index: 10001;
+        z-index: 10120;
         font-size: 14px;
         font-weight: 600;
         font-family: "Microsoft YaHei", sans-serif;

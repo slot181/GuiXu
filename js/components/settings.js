@@ -264,7 +264,8 @@
         if (document.getElementById('guixu-info-tooltip')) return;
         const tip = document.createElement('div');
         tip.id = 'guixu-info-tooltip';
-        tip.style.cssText = 'position: fixed; z-index: 10070; max-width: 260px; padding: 8px 10px; background: rgba(15,15,35,0.96); color: #e0dcd1; border: 1px solid #8b7355; border-radius: 6px; font-size: 12px; line-height: 1.5; display: none; box-shadow: 0 6px 16px rgba(0,0,0,0.45);';
+        // 提升层级：高于所有模态(10080)与自定义确认(10100)，确保问号说明不被设置面板等遮挡
+        tip.style.cssText = 'position: fixed; z-index: 10110; max-width: 260px; padding: 8px 10px; background: rgba(15,15,35,0.96); color: #e0dcd1; border: 1px solid #8b7355; border-radius: 6px; font-size: 12px; line-height: 1.5; display: none; box-shadow: 0 6px 16px rgba(0,0,0,0.45);';
         (document.querySelector('.guixu-root-container') || document.body).appendChild(tip);
       };
       const showInfoTooltip = (ev, text) => {

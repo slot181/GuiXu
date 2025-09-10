@@ -2421,7 +2421,7 @@ if (!document.getElementById('guixu-gate-style')) {
           top: 20px;
           left: 50%;
           transform: translateX(-50%);
-          z-index: 10002;
+          z-index: 10120; /* 提升等待/通知浮窗层级，高于所有面板与确认弹窗 */
           background: rgba(26, 26, 46, 0.95);
           color: #c9aa71;
           border: 1px solid #c9aa71;
