@@ -59,6 +59,7 @@
     { id: 'btn-relationships', label: '人物关系' },
     { id: 'btn-command-center', label: '指令中心' },
     { id: 'btn-guixu-system', label: '归墟系统' },
+    { id: 'btn-variable-manager', label: '变量编辑器' },
     { id: 'btn-show-extracted', label: '查看提取内容' },
     { id: 'btn-save-load-manager', label: '存档/读档' },
     { id: 'btn-intro-guide', label: '游玩指南' },

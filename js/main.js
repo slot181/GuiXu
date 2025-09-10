@@ -801,10 +801,12 @@ if (!document.getElementById('guixu-gate-style')) {
       $('#btn-relationships')?.addEventListener('click', () => window.RelationshipsComponent?.show?.());
       $('#btn-command-center')?.addEventListener('click', () => window.CommandCenterComponent?.show?.());
       $('#btn-guixu-system')?.addEventListener('click', () => window.GuixuSystemComponent?.show?.());
+      // 新增：变量编辑器按钮
+      $('#btn-variable-manager')?.addEventListener('click', () => window.VariableManagerComponent?.show?.());
       $('#btn-show-extracted')?.addEventListener('click', () => window.ExtractedContentComponent?.show?.());
       $('#btn-save-load-manager')?.addEventListener('click', () => window.GuixuActionService?.showSaveLoadManager?.());
-      $('#btn-settings')?.addEventListener('click', () => { 
-        window.SettingsComponent?.show?.(); 
+      $('#btn-settings')?.addEventListener('click', () => {
+        window.SettingsComponent?.show?.();
       });
       $('#btn-intro-guide')?.addEventListener('click', () => window.IntroModalComponent?.show?.());
       $('#btn-view-statuses')?.addEventListener('click', () => window.StatusesComponent?.show?.());
@@ -2829,6 +2831,7 @@ container.style.fontFamily = `"Microsoft YaHei", "Noto Sans SC", "PingFang SC", 
           'btn-relationships',
           'btn-command-center',
           'btn-guixu-system',
+          'btn-variable-manager',
           'btn-show-extracted',
           'btn-save-load-manager',
           'btn-intro-guide'

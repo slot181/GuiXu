@@ -159,6 +159,7 @@
         <button id="btn-relationships" class="interaction-btn">人物关系</button>
         <button id="btn-command-center" class="interaction-btn">指令中心</button>
         <button id="btn-guixu-system" class="interaction-btn">归墟系统</button>
+        <button id="btn-variable-manager" class="interaction-btn">变量编辑器</button>
         <button id="btn-show-extracted" class="interaction-btn">查看提取内容</button>
         <button id="btn-save-load-manager" class="interaction-btn">存档/读档</button>
         <button id="btn-settings" class="interaction-btn">设置中心</button>
@@ -306,6 +307,23 @@
           <button class="modal-close-btn">&times;</button>
         </div>
         <div class="modal-body"><!-- 动态填充 --></div>
+      </div>
+    </div>
+    <!-- 新增：变量编辑器模态框 -->
+    <div id="variable-manager-modal" class="modal-overlay">
+      <div class="modal-content" style="max-width: 760px;">
+        <div class="modal-header">
+          <h2 class="modal-title">变量编辑器</h2>
+          <button class="modal-close-btn">&times;</button>
+        </div>
+        <div class="modal-body"><!-- 动态填充 --></div>
+        <div class="command-center-footer">
+          <button id="vm-btn-reset" class="interaction-btn">重置未保存修改</button>
+          <div>
+            <button id="vm-btn-apply" class="interaction-btn">应用（不保存）</button>
+            <button id="vm-btn-save" class="interaction-btn primary-btn" style="margin-left: 10px;">保存并应用</button>
+          </div>
+        </div>
       </div>
     </div>
     <!-- 新增：角色详情模态框 -->
@@ -518,6 +536,7 @@
   <!-- 新增：版本小标签组件 -->
   <script src="https://edit.stonecoks.vip/js/components/version-badge.js"></script>
   <script src="https://edit.stonecoks.vip/js/components/intro-modal.js"></script>
+  <script src="https://edit.stonecoks.vip/js/components/variable-manager.js"></script>
   <script src="https://edit.stonecoks.vip/js/main.js"></script>
 </body>
 
