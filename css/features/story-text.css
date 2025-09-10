@@ -11,6 +11,13 @@
   text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.7);
 }
 
+/* 取消宿主站点段落首行缩进对正文的影响（防御宿主页面 p{text-indent} 规则） */
+.game-text-container,
+.game-text-container gametxt,
+.game-text-container p {
+  text-indent: 0 !important; /* 统一取消首行缩进 */
+}
+
 /* 文本染色（语言/心理/景物） */
 .text-language {
   color: #ff1493;         /* 荧光粉色 */

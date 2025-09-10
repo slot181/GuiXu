@@ -546,3 +546,56 @@
     --gx-input-height: 30px;
   }
 }
+
+/* 移动端-游玩指南/指令中心：防止底部按钮溢出面板，统一自适应尺寸 */
+.guixu-root-container.mobile-view #intro-modal .modal-content,
+.guixu-root-container.mobile-view #command-center-modal .modal-content {
+  width: 96vw;
+  max-width: 96vw;
+  height: auto;
+  max-height: 90vh;       /* 优先使用视口高度限制 */
+  max-height: 90dvh;      /* 兼容动态视口单位 */
+  overflow-x: hidden;     /* 防止横向滚动条 */
+}
+
+/* 主体区滚动，保留页脚按钮可见 */
+.guixu-root-container.mobile-view #intro-modal .modal-body,
+.guixu-root-container.mobile-view #command-center-modal .modal-body {
+  overflow-y: auto;
+}
+
+/* 底部按钮区：可换行并适配底部安全区，避免溢出面板 */
+.guixu-root-container.mobile-view #intro-modal .confirm-modal-buttons,
+.guixu-root-container.mobile-view #command-center-modal .command-center-footer {
+  flex-wrap: wrap !important;
+  gap: 8px !important;
+  align-items: stretch !important;
+  padding-bottom: max(8px, env(safe-area-inset-bottom, 0px));
+}
+
+/* 指令中心页脚：上方“刷新缓存”独占一行，下面“双键并排” */
+.guixu-root-container.mobile-view #command-center-modal .command-center-footer > #btn-refresh-storage {
+  flex: 1 1 100% !important;
+  height: 36px !important;
+}
+.guixu-root-container.mobile-view #command-center-modal .command-center-footer > div {
+  width: 100% !important;
+  display: grid !important;
+  grid-template-columns: 1fr 1fr !important;
+  gap: 8px !important;
+}
+.guixu-root-container.mobile-view #command-center-modal .command-center-footer button {
+  min-width: 0 !important;
+  height: 36px !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+/* 游玩指南：双键等分布局（“稍后再看/立即开始”） */
+.guixu-root-container.mobile-view #intro-modal .confirm-modal-buttons > .interaction-btn,
+.guixu-root-container.mobile-view #intro-modal .confirm-modal-buttons > .primary-btn {
+  min-width: 0 !important;
+  height: 36px !important;
+  flex: 1 1 calc(50% - 4px) !important;
+  box-sizing: border-box !important;
+}

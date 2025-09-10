@@ -16,7 +16,9 @@
     if (!ok) console.warn('[归墟] main.js 依赖未完全加载：请确保 constants/dom/helpers/TavernAPI/services 已按顺序加载。');
     return ok;
   }
-
+   
+  // 移除：误将 CSS 写入 JS 的块。首行缩进的样式请在 CSS 文件中维护。
+  
   const GuixuMain = {
     _initialized: false,
     // MVU 占位符常量
@@ -392,6 +394,32 @@
             #game-text-display {
               color: var(--guixu-story-default-color, var(--guixu-story-color, #e0dcd1)) !important;
             }
+
+            /* 彻底取消任何“首行缩进”（含宿主站点规则与因思维链按钮导致的意外缩进） */
+            #game-text-display,
+            #game-text-display gametxt,
+            #game-text-display p,
+            .game-text-container,
+            .game-text-container gametxt,
+            .game-text-container p {
+              text-indent: 0 !important;
+              margin-left: 0 !important;
+              padding-left: 0 !important;
+            }
+            /* 将 <gametxt> 作为块级元素渲染，避免受上方思维链按钮影响换行布局 */
+            .game-text-container gametxt {
+              display: block !important;
+              margin: 0 !important;
+              padding: 0 !important;
+            }
+            /* 正文块容器：包裹渲染后的正文，彻底屏蔽首行缩进与左右内边距 */
+            .game-text-container .story-paragraph {
+              display: block !important;
+              margin: 0 !important;
+              padding: 0 !important;
+              text-indent: 0 !important;
+            }
+
             /* 特殊文本着色：引号/心理/景语 */
             #game-text-display .text-language {
               color: var(--guixu-story-quote-color, #ff4d4f) !important;
@@ -408,6 +436,8 @@
               align-items: center;
               justify-content: flex-start;
               gap: 6px;
+              float: none !important;      /* 明确不参与浮动 */
+              width: 100% !important;      /* 占满一行，后续正文不会环绕 */
             }
             /* 芯片按钮风格，遵循主色调 */
             .thinking-chip-btn {
@@ -2283,7 +2313,7 @@ if (!document.getElementById('guixu-gate-style')) {
               <div id="guixu-thinking-content" class="thinking-box"><pre>${escapeHtml(thinkingText)}</pre></div>
             `;
           }
-          gameTextDisplay.innerHTML = thinkingHtml + this.formatMessageContent(displayText);
+          gameTextDisplay.innerHTML = thinkingHtml + `<div class="story-paragraph">${this.formatMessageContent(displayText)}</div>`;
 
           // 新增：在渲染正文后显示 “行动方针” 按钮，并确保正文不再显示对应文本块
           try {
@@ -2383,11 +2413,21 @@ if (!document.getElementById('guixu-gate-style')) {
 
     formatMessageContent(text) {
       if (!text) return '';
-      let processedText = text.replace(/\\n/g, '<br />');
-      processedText = processedText.replace(/(“[^”]+”|「[^」]+」)/g, match => `<span class="text-language">${match}</span>`);
-      processedText = processedText.replace(/\*([^*]+)\*/g, (m, p1) => `<span class="text-psychology">${p1}</span>`);
-      processedText = processedText.replace(/【([^】\d]+[^】]*)】/g, (m, p1) => `<span class="text-scenery">${p1}</span>`);
-      return processedText;
+      // 移除每一行行首的空格/制表符/中文全角空格，避免在 pre-wrap 下出现“首行缩进”
+      // 说明：模型常在段首插入空格或全角空格(U+3000)，这些会被 white-space: pre-wrap 原样显示为缩进
+      let s = String(text).replace(/\r/g, '');
+      s = s.replace(/^[ \t\u3000]+/gm, ''); // 移除各行行首空白
+      s = s.replace(/^\s+/, '');            // 再移除整体开头多余空白
+
+      // 将转义的 \n 转为 <br />（实际换行由容器的 pre-wrap 保持）
+      s = s.replace(/\\n/g, '<br />');
+
+      // 文本着色（引号/心理/景语）
+      s = s.replace(/(“[^”]+”|「[^」]+」)/g, match => `<span class="text-language">${match}</span>`);
+      s = s.replace(/\*([^*]+)\*/g, (m, p1) => `<span class="text-psychology">${p1}</span>`);
+      s = s.replace(/【([^】\d]+[^】]*)】/g, (m, p1) => `<span class="text-scenery">${p1}</span>`);
+
+      return s;
     },
 
     showWaitingMessage(text = null, opts = {}) {
