@@ -6089,7 +6089,10 @@ const personality = h.SafeGetValue(rel, '性格', h.SafeGetValue(rel, 'personali
       if (!name) { window.GuixuHelpers.showTemporaryMessage('该人物缺少姓名，无法提取'); return; }
       const state = window.GuixuState.getState();
       const index = state.unifiedIndex || 1;
-      const entryComment = index > 1 ? `角色:${name}(${index})` : `角色:${name}`;
+      // 新前缀：优先写入“【角色】”，旧前缀“角色:”仅用于兼容读取
+      const ROLE_PREFIX_NEW = '【角色】';
+      const ROLE_PREFIX_OLD = '角色:'; // 兼容兜底用（读取/清理时使用）
+      const entryComment = index > 1 ? `${ROLE_PREFIX_NEW}${name}(${index})` : `${ROLE_PREFIX_NEW}${name}`;
       const book = window.GuixuConstants.LOREBOOK.NAME;
       const content = this._buildCharacterEntryContent(rel);
       if (!content) { window.GuixuHelpers.showTemporaryMessage('没有可写入的角色信息'); return; }
@@ -6125,7 +6128,13 @@ const personality = h.SafeGetValue(rel, '性格', h.SafeGetValue(rel, 'personali
       try {
         const book = window.GuixuConstants.LOREBOOK.NAME;
         const all = await window.GuixuAPI.getLorebookEntries(book);
-        const uids = all.filter(e => typeof e.comment === 'string' && e.comment.startsWith('角色:')).map(e => e.uid);
+        // 兼容清理：同时匹配“【角色】”与旧前缀“角色:”
+        const uids = all
+          .filter(e => {
+            const c = String(e.comment || '');
+            return typeof e.comment === 'string' && (c.startsWith('【角色】') || c.startsWith('角色:'));
+          })
+          .map(e => e.uid);
         if (uids.length) await window.GuixuAPI.deleteLorebookEntries(book, uids);
       } catch (e) {
         console.warn('[归墟] 清空角色目录失败:', e);

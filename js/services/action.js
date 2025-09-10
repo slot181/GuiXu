@@ -7,6 +7,10 @@
         return;
     }
 
+    // 新旧前缀常量：存档（新：【存档】；旧：存档:）
+    const SAVE_PREFIX_NEW = '【存档】';
+    const SAVE_PREFIX_OLD = '存档:';
+
     const ActionService = {
         // 深拷贝工具：用于生成上一轮MVU快照
         _deepClone(obj) { try { return JSON.parse(JSON.stringify(obj)); } catch (_) { return obj; } },
@@ -618,7 +622,7 @@
             });
         },
 
-        // 云存档：从世界书条目读取所有存档记录
+        // 云存档：从世界书条目读取所有存档记录（兼容新旧前缀）
         async getSavesFromStorage() {
             try {
                 const bookName = GuixuConstants.LOREBOOK.NAME;
@@ -626,8 +630,13 @@
                 const map = {};
                 (entries || []).forEach(e => {
                     const c = String(e.comment || '');
-                    if (c.startsWith('存档:')) {
-                        const slotId = c.slice(3); // 去掉前缀 '存档:'
+                    let slotId = '';
+                    if (c.startsWith(SAVE_PREFIX_NEW)) {
+                        slotId = c.slice(SAVE_PREFIX_NEW.length);
+                    } else if (c.startsWith(SAVE_PREFIX_OLD)) {
+                        slotId = c.slice(SAVE_PREFIX_OLD.length);
+                    }
+                    if (slotId) {
                         try { map[slotId] = JSON.parse(e.content || '{}'); } catch (_) { /* ignore */ }
                     }
                 });
@@ -639,29 +648,40 @@
         },
 
         _slotEntryName(slotId) {
-            return `存档:${slotId}`;
+            // 存档条目统一采用新前缀
+            return `${SAVE_PREFIX_NEW}${slotId}`;
         },
 
         async _upsertSaveEntry(slotId, saveData) {
             const bookName = GuixuConstants.LOREBOOK.NAME;
-            const comment = this._slotEntryName(slotId);
+            const newComment = this._slotEntryName(slotId);
+            const oldComment = `${SAVE_PREFIX_OLD}${slotId}`;
             const all = await GuixuAPI.getLorebookEntries(bookName);
-            const existing = (all || []).find(e => e.comment === comment);
+            let existing = (all || []).find(e => e.comment === newComment) || (all || []).find(e => e.comment === oldComment);
             const content = JSON.stringify(saveData || {}, null, 0);
             if (existing) {
+                // 若为旧前缀，先迁移为新前缀（平滑升级）
+                if (existing.comment === oldComment) {
+                    try {
+                        await window.GuixuState.renameLorebookEntry(oldComment, newComment);
+                        const all2 = await GuixuAPI.getLorebookEntries(bookName);
+                        existing = (all2 || []).find(e => e.comment === newComment) || existing;
+                    } catch (_) {}
+                }
                 await GuixuAPI.setLorebookEntries(bookName, [{ uid: existing.uid, content }]);
             } else {
-                await GuixuAPI.createLorebookEntries(bookName, [{ comment, content, keys: [comment], enabled: false, position: 'before_character_definition', order: 10 }]);
+                await GuixuAPI.createLorebookEntries(bookName, [{ comment: newComment, content, keys: [newComment], enabled: false, position: 'before_character_definition', order: 10 }]);
             }
         },
 
         async _deleteSaveEntry(slotId) {
             const bookName = GuixuConstants.LOREBOOK.NAME;
-            const comment = this._slotEntryName(slotId);
+            const newComment = this._slotEntryName(slotId);
+            const oldComment = `${SAVE_PREFIX_OLD}${slotId}`;
             const all = await GuixuAPI.getLorebookEntries(bookName);
-            const existing = (all || []).find(e => e.comment === comment);
-            if (existing) {
-                await GuixuAPI.deleteLorebookEntries(bookName, [existing.uid]);
+            const targets = (all || []).filter(e => e.comment === newComment || e.comment === oldComment).map(e => e.uid);
+            if (targets.length) {
+                await GuixuAPI.deleteLorebookEntries(bookName, targets);
             }
         },
 
@@ -857,14 +877,15 @@
                     const entryNamesToDelete = new Set();
                     const entryUidsToDelete = new Set();
 
-                    // 1. 收集所有存档条目的 comment 和 uid
+                    // 1. 收集所有存档条目的 comment 和 uid（兼容新旧前缀）
                     allLoreEntries.forEach(entry => {
-                        if (String(entry.comment).startsWith('存档:')) {
-                            const slotId = entry.comment.slice(3);
-                            if (saveKeys.includes(slotId)) {
-                                entryNamesToDelete.add(entry.comment);
-                                entryUidsToDelete.add(entry.uid);
-                            }
+                        const c = String(entry.comment || '');
+                        let slotId = '';
+                        if (c.startsWith(SAVE_PREFIX_NEW)) slotId = c.slice(SAVE_PREFIX_NEW.length);
+                        else if (c.startsWith(SAVE_PREFIX_OLD)) slotId = c.slice(SAVE_PREFIX_OLD.length);
+                        if (slotId && saveKeys.includes(slotId)) {
+                            entryNamesToDelete.add(c);
+                            entryUidsToDelete.add(entry.uid);
                         }
                     });
 

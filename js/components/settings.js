@@ -32,7 +32,27 @@
     return Math.min(max, Math.max(min, n));
   }
 
-  const BG_PREFIX = String(window.GuixuConstants?.BACKGROUND?.PREFIX || '归墟背景/');
+  // 新前缀：优先使用全局常量中的“【背景图片】”；兼容旧版“归墟背景/”
+  const BG_PREFIX = String(window.GuixuConstants?.BACKGROUND?.PREFIX || '【背景图片】');
+  const BG_LEGACY_PREFIXES = Array.isArray(window.GuixuConstants?.BACKGROUND?.LEGACY_PREFIXES)
+    ? window.GuixuConstants.BACKGROUND.LEGACY_PREFIXES
+    : ['归墟背景/'];
+  // 判断是否为背景条目（兼容新旧前缀）
+  const isBgEntry = (comment) => {
+    const c = String(comment || '');
+    if (!c) return false;
+    if (c.startsWith(BG_PREFIX)) return true;
+    return BG_LEGACY_PREFIXES.some(p => c.startsWith(p));
+  };
+  // 去掉背景前缀（兼容新旧前缀）
+  const stripBgPrefix = (comment) => {
+    let s = String(comment || '');
+    if (s.startsWith(BG_PREFIX)) return s.slice(BG_PREFIX.length);
+    for (const p of BG_LEGACY_PREFIXES) {
+      if (s.startsWith(p)) return s.slice(p.length);
+    }
+    return s;
+  };
   // 新增：功能面板按钮清单（右侧交互面板）。不包含“设置中心”，避免误隐藏导致无法再打开设置。
   const FUNC_BUTTONS = Object.freeze([
     { id: 'btn-inventory', label: '背包' },
@@ -713,12 +733,12 @@
       }
     },
 
-    // 加载以“归墟背景/”为前缀的所有世界书条目
+    // 加载以“【背景图片】”为前缀的所有世界书条目（兼容旧版“归墟背景/”）
     async loadBackgroundEntries() {
       const bookName = window.GuixuConstants?.LOREBOOK?.NAME;
       if (!bookName || !window.GuixuAPI) return [];
       const entries = await window.GuixuAPI.getLorebookEntries(bookName);
-      const list = Array.isArray(entries) ? entries.filter(e => (e.comment || '').startsWith(BG_PREFIX)) : [];
+      const list = Array.isArray(entries) ? entries.filter(e => isBgEntry(e.comment)) : [];
       this._bgEntriesCache = list;
       return list;
     },
@@ -751,8 +771,8 @@
       entries.forEach(e => {
         const opt = document.createElement('option');
         opt.value = e.comment || '';
-        // 标签使用去前缀后的名字，找不到则用完整 comment
-        let label = opt.value.startsWith(BG_PREFIX) ? opt.value.slice(BG_PREFIX.length) : opt.value;
+        // 标签使用去前缀后的名字（兼容新旧前缀），找不到则用完整 comment
+        let label = stripBgPrefix(opt.value);
         if (!label) label = opt.value;
         opt.textContent = label;
         sel.appendChild(opt);
@@ -817,8 +837,18 @@
         const bookName = window.GuixuConstants?.LOREBOOK?.NAME;
         if (!bookName || !window.GuixuAPI) throw new Error('世界书API不可用');
 
-        // 生成唯一 comment：归墟背景/<文件名或时间戳>(-n)
-        const baseName = (file.name || `背景_${Date.now()}`).replace(/\.[^.]+$/, '');
+        // 生成唯一 comment：前缀 + 原始文件名（不含扩展名）；若冲突自动追加 -n
+        // 说明：优先使用用户选择的文件名，避免出现随机数字命名
+        const rawName = String(file.name || '').split(/[/\\]/).pop(); // 处理 fakepath
+        const noExt = rawName.replace(/\.[^.]+$/, '');                // 去掉扩展名
+        const normalized = noExt
+          .replace(/\s+/g, '_')                                       // 空白 -> 下划线
+          .replace(/[\/\\?%*:|"<>\[\]{}\(\)]/g, '_')                  // 非法字符置换
+          .replace(/_+/g, '_')                                        // 合并多余下划线
+          .replace(/^_+|_+$/g, '');                                   // 去首尾下划线
+        // 若文件名为空或仅包含非法字符，则回退到时间戳（避免随机数）
+        const ts = (() => { const d=new Date(); const p=n=>String(n).padStart(2,'0'); return `${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}_${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}`; })();
+        const baseName = normalized || `背景_${ts}`;
         const entries = await this.loadBackgroundEntries();
         const existingComments = new Set(entries.map(e => e.comment || ''));
         const uniqueComment = this.makeUniqueComment(baseName, existingComments);
@@ -861,7 +891,13 @@
 
     // 基于现有 comment 集合生成唯一 comment
     makeUniqueComment(baseName, existingComments) {
-      const sanitize = (s) => String(s || '').trim().replace(/[\/\\?%*:|"<>]/g, '_');
+      // 更稳健的清洗：保留中英文、数字与下划线/短横线；其它替换成下划线并规整
+      const sanitize = (s) => String(s || '')
+        .trim()
+        .replace(/\s+/g, '_')
+        .replace(/[\/\\?%*:|"<>\[\]{}\(\)]/g, '_')
+        .replace(/_+/g, '_')
+        .replace(/^_+|_+$/g, '');
       const base = `${BG_PREFIX}${sanitize(baseName)}`;
       if (!existingComments.has(base)) return base;
       let i = 2;

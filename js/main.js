@@ -2541,14 +2541,20 @@ if (!document.getElementById('guixu-gate-style')) {
 
         const index = window.GuixuState?.getState?.().unifiedIndex || 1;
         const allEntries = await window.GuixuAPI.getLorebookEntries(bookName);
-        // 仅管理“角色:”前缀的条目；若带(索引)则仅管理与当前 unifiedIndex 匹配的
-        const charEntries = (allEntries || []).filter(e => typeof e.comment === 'string' && e.comment.startsWith('角色:'));
+        // 兼容“【角色】”与旧前缀“角色:”；若带(索引)则仅管理与当前 unifiedIndex 匹配
+        const ROLE_PREFIX_NEW = '【角色】';
+        const ROLE_PREFIX_OLD = '角色:';
+        const charEntries = (allEntries || []).filter(e => {
+          const c = String(e.comment || '');
+          return typeof e.comment === 'string' && (c.startsWith(ROLE_PREFIX_NEW) || c.startsWith(ROLE_PREFIX_OLD));
+        });
         if (!charEntries.length) return;
 
         const nameFromComment = (comment) => {
           try {
             let s = String(comment || '');
-            s = s.slice('角色:'.length);
+            if (s.startsWith(ROLE_PREFIX_NEW)) s = s.slice(ROLE_PREFIX_NEW.length);
+            else if (s.startsWith(ROLE_PREFIX_OLD)) s = s.slice(ROLE_PREFIX_OLD.length);
             const m = s.match(/\((\d+)\)$/);
             if (m) s = s.slice(0, s.lastIndexOf('('));
             return s;
@@ -2733,11 +2739,18 @@ container.style.fontFamily = `"Microsoft YaHei", "Noto Sans SC", "PingFang SC", 
         if (prefsNow && prefsNow.backgroundUrl) return;
 
         const bookName = window.GuixuConstants?.LOREBOOK?.NAME;
-        const prefix = String(window.GuixuConstants?.BACKGROUND?.PREFIX || '归墟背景/');
+        const newPrefix = String(window.GuixuConstants?.BACKGROUND?.PREFIX || '【背景图片】');
+        const legacyPrefixes = Array.isArray(window.GuixuConstants?.BACKGROUND?.LEGACY_PREFIXES) ? window.GuixuConstants.BACKGROUND.LEGACY_PREFIXES : ['归墟背景/'];
         if (!bookName || !window.GuixuAPI) return;
 
         const allEntries = await window.GuixuAPI.getLorebookEntries(bookName);
-        const list = Array.isArray(allEntries) ? allEntries.filter(e => (e.comment || '').startsWith(prefix)) : [];
+        const isBg = (c) => {
+          const s = String(c || '');
+          if (!s) return false;
+          if (s.startsWith(newPrefix)) return true;
+          return legacyPrefixes.some(p => s.startsWith(p));
+        };
+        const list = Array.isArray(allEntries) ? allEntries.filter(e => isBg(e.comment)) : [];
         if (!list.length) return;
 
         const first = list[0];
