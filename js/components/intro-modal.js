@@ -65,7 +65,6 @@
           <div class="panel-section">
             <div class="section-title">常见问题排查</div>
             <ol class="intro-ol">
-              <li><strong>UI渲染错乱</strong>：若UI渲染错乱，请尝试点击右上角小铅笔，检查<strong>UpdateVariable</strong>标签是否存在。</li>
               <li><strong>正文错乱</strong>：如正文出现变量代码，请使用<strong>编辑功能（小铅笔）</strong>检查，确保正文被<strong>gametxt</strong>标签完整包裹。若问题依旧，请优先手动删除思维链里的所有内容。</li>
               <li><strong>行动选项</strong>：若正文没有行动选项按钮，请同样检查并确保该选项被<strong>action</strong>标签正确包裹。若无效，处理方法同上。</li>
             </ol>
@@ -76,6 +75,7 @@
             <ol class="intro-ol">
               <li>喜欢本项目，欢迎到 <a href="https://github.com/slot181/GuiXu" target="_blank" rel="noopener noreferrer">GitHub 仓库</a> 点赞并分享给朋友。</li>
               <li>在使用中遇到任何问题，可来 Discord 提出你的问题 <a href="https://discord.com/channels/1134557553011998840/1395002325751300227" target="_blank" rel="noopener noreferrer">原贴讨论</a>。</li>
+              <li><a href="https://discord.gg/epymFhrfHe" target="_blank" rel="noopener noreferrer">归墟小团体</a></li>
               <li>最后，赞美梦星！</li>
             </ol>
           </div>
