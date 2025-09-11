@@ -78,10 +78,11 @@
       this.loadStateFromStorage('guixu_auto_save_enabled', 'isAutoSaveEnabled', false);
       this.loadStateFromStorage('guixu_auto_trim_enabled', 'isAutoTrimEnabled', false);
       this.loadStateFromStorage('guixu_streaming_enabled', 'isStreamingEnabled', false);
-      this.loadStateFromStorage('guixu_user_preferences', 'userPreferences', { backgroundUrl: '', bgMaskOpacity: 0.7, storyFontSize: 14, bgFitMode: 'cover' });
       this.loadStateFromStorage('guixu_currency_unit', 'currencyUnit', '下品灵石');
       this.loadStateFromStorage('guixu_action_guidelines', 'lastActionGuidelines', []);
       this.loadStateFromStorage('guixu_last_thinking', 'lastExtractedThinking', '');
+      // 新增：设置中心的用户偏好（从浏览器本地缓存加载）
+      this.loadStateFromStorage('guixu_user_preferences', 'userPreferences', {});
 
       // 类型归一化
       if (!Array.isArray(this.lastActionGuidelines)) this.lastActionGuidelines = [];
@@ -257,11 +258,12 @@
                 isAutoSaveEnabled: 'guixu_auto_save_enabled',
                 isAutoTrimEnabled: 'guixu_auto_trim_enabled',
                 tradeAbuseCounters: 'guixu_trade_abuse_counters',
-                userPreferences: 'guixu_user_preferences',
                 isStreamingEnabled: 'guixu_streaming_enabled',
                 currencyUnit: 'guixu_currency_unit',
                 lastActionGuidelines: 'guixu_action_guidelines',
                 lastExtractedThinking: 'guixu_last_thinking',
+                // 新增：设置中心用户偏好持久化键
+                userPreferences: 'guixu_user_preferences',
             };
             if (storageMap[key]) {
                 let valueToStore = value;

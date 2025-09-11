@@ -22,6 +22,8 @@
     // 背景压缩设置
     bgCompressQuality: 0.9, // 0.6 - 1.0
     bgKeepSize: false,      // 保留原始尺寸（不缩放）
+    // 移动端悬浮按钮尺寸（像素）
+    mobileFabSize: 44,
     // 新增：功能面板按钮隐藏配置（key 为按钮ID，true 表示隐藏）
     hiddenFunctionButtons: {}
   });
@@ -173,6 +175,42 @@
         }
       } catch (_) {}
 
+      // 新增：移动端悬浮按钮尺寸设置面板
+      try {
+        const modalBody = overlay?.querySelector('.modal-body');
+        if (modalBody && !document.getElementById('panel-mobile-fab')) {
+          const panel = document.createElement('div');
+          panel.className = 'panel-section';
+          panel.id = 'panel-mobile-fab';
+          panel.innerHTML = `
+            <div class="section-title">移动端悬浮按钮大小</div>
+            <div class="attributes-list" style="padding:10px;">
+              <div class="attribute-item" style="gap:10px; align-items:center;">
+                <span class="attribute-name" style="min-width:120px;">按钮尺寸</span>
+                <input id="pref-mobile-fab-size" type="range" min="32" max="80" step="1" value="44" style="width:200px;">
+                <span id="pref-mobile-fab-size-val" class="attribute-value">44px</span>
+              </div>
+            </div>
+          `;
+          // 插入在“功能面板按钮”面板之前；若不存在则追加在“正文字体与颜色”面板之后
+          const functionPanel = document.getElementById('panel-function-buttons');
+          if (functionPanel && functionPanel.parentElement === modalBody) {
+            modalBody.insertBefore(panel, functionPanel);
+          } else {
+            const afterFontPanel = modalBody.querySelector('#panel-story-font-color')?.closest('.panel-section');
+            if (afterFontPanel && afterFontPanel.nextSibling) {
+              modalBody.insertBefore(panel, afterFontPanel.nextSibling);
+            } else {
+              modalBody.appendChild(panel);
+            }
+          }
+          try {
+            const title = panel.querySelector('.section-title');
+            attachInfoIcon(title, '用于调整移动端右下角三个悬浮按钮（角色/功能/设置）的大小。范围 32-80 像素。');
+          } catch (_) {}
+        }
+      } catch (_) {}
+
       // 内部状态：暂存字体 DataURL/名称（避免读值过程中丢失）
       this._tempFontDataUrl = this._tempFontDataUrl || '';
       this._tempFontName = this._tempFontName || '';
@@ -196,6 +234,9 @@
       const qualityVal = $('#pref-bg-quality-val');
       const keepSizeCheckbox = $('#pref-bg-keep-size');
 
+      // 悬浮按钮大小
+      const fabSizeRange = $('#pref-mobile-fab-size');
+      const fabSizeVal = $('#pref-mobile-fab-size-val');
       storyColorInput?.addEventListener('input', () => {
         const val = String(storyColorInput.value || '').trim() || '#e0dcd1';
         if (storyColorVal) storyColorVal.textContent = val.toUpperCase();
@@ -237,6 +278,13 @@
       qualityRange?.addEventListener('input', () => {
         const v = Math.min(1, Math.max(0.6, Number(qualityRange.value ?? DEFAULTS.bgCompressQuality)));
         if (qualityVal) qualityVal.textContent = v.toFixed(2);
+      });
+
+      // 悬浮按钮大小实时预览
+      fabSizeRange?.addEventListener('input', () => {
+        const v = Math.min(80, Math.max(32, Number(fabSizeRange.value ?? DEFAULTS.mobileFabSize)));
+        if (fabSizeVal) fabSizeVal.textContent = `${Math.round(v)}px`;
+        this.applyPreview(this.readValues());
       });
 
       // 字体上传
@@ -425,22 +473,19 @@
         try { window.GuixuHelpers?.showTemporaryMessage?.('已应用设置（未保存）'); } catch (_) {}
       });
 
-      // 保存并关闭（写入状态 + 应用 + 漫游持久化）
+      // 保存并关闭（仅保存到浏览器本地缓存，不再写入世界书）
       btnSaveClose?.addEventListener('click', async () => {
         const prefs = this.readValues();
         try {
+          // 保存到全局状态；state.js 已将 userPreferences 持久化到 localStorage
           window.GuixuState?.update?.('userPreferences', prefs);
         } catch (e) {
           console.warn('[归墟][设置中心] 保存 userPreferences 失败:', e);
         }
-        window.GuixuMain?.applyUserPreferences?.(prefs);
-        try {
-          await this.persistToRoaming(prefs);
-          try { window.GuixuHelpers?.showTemporaryMessage?.('设置已保存（本地+全局），刷新后仍生效'); } catch (_) {}
-        } catch (e) {
-          console.warn('[归墟][设置中心] 保存到全局变量失败，仅本地已保存:', e);
-          try { window.GuixuHelpers?.showTemporaryMessage?.('设置已保存到本地（全局保存失败）'); } catch (_) {}
-        }
+        // 立即应用到当前界面（无需刷新）
+        try { window.GuixuMain?.applyUserPreferences?.(prefs); } catch (_) {}
+        // 提示：仅本地保存
+        try { window.GuixuHelpers?.showTemporaryMessage?.('设置已保存到本地，刷新后仍生效'); } catch (_) {}
         this.hide();
       });
 
@@ -652,6 +697,14 @@
       if (qualityVal) qualityVal.textContent = q.toFixed(2);
       if (keepSizeCheckbox) keepSizeCheckbox.checked = !!(prefs.bgKeepSize ?? DEFAULTS.bgKeepSize);
 
+      // 悬浮按钮大小
+      const fabSize = Math.min(80, Math.max(32, Number(prefs.mobileFabSize ?? DEFAULTS.mobileFabSize)));
+      if (document.getElementById('pref-mobile-fab-size')) {
+        document.getElementById('pref-mobile-fab-size').value = String(fabSize);
+      }
+      if (document.getElementById('pref-mobile-fab-size-val')) {
+        document.getElementById('pref-mobile-fab-size-val').textContent = `${Math.round(fabSize)}px`;
+      }
       this._selectedComment = selectedComment;
 
       // 在刷新列表后设值更稳妥，这里先预置选中值
@@ -701,7 +754,7 @@
       const customFontDataUrl = String(this._tempFontDataUrl || DEFAULTS.customFontDataUrl);
       const bgCompressQuality = Math.min(1, Math.max(0.6, Number($('#pref-bg-quality')?.value ?? DEFAULTS.bgCompressQuality)));
       const bgKeepSize = !!($('#pref-bg-keep-size')?.checked);
-
+      const mobileFabSize = Math.min(80, Math.max(32, Number($('#pref-mobile-fab-size')?.value ?? DEFAULTS.mobileFabSize)));
       // 新增：功能面板按钮隐藏配置（勾选表示隐藏）
       const hiddenFunctionButtons = {};
       try {
@@ -711,7 +764,7 @@
         });
       } catch (_) {}
 
-      return { backgroundUrl, bgMaskOpacity, storyFontSize, storyFontColor, storyDefaultColor, storyQuoteColor, thinkingTextColor, thinkingBgOpacity, guidelineTextColor, guidelineBgOpacity, bgFitMode, customFontName, customFontDataUrl, bgCompressQuality, bgKeepSize, hiddenFunctionButtons };
+      return { backgroundUrl, bgMaskOpacity, storyFontSize, storyFontColor, storyDefaultColor, storyQuoteColor, thinkingTextColor, thinkingBgOpacity, guidelineTextColor, guidelineBgOpacity, bgFitMode, customFontName, customFontDataUrl, bgCompressQuality, bgKeepSize, mobileFabSize, hiddenFunctionButtons };
     },
 
     applyPreview(prefs) {
@@ -719,20 +772,6 @@
       window.GuixuMain?.applyUserPreferences?.(prefs);
     },
 
-    // 持久化到酒馆全局变量（跨设备漫游）
-    async persistToRoaming(prefs) {
-      if (!prefs) return;
-      try {
-        if (window.TavernHelper && typeof window.TavernHelper.insertOrAssignVariables === 'function') {
-          await window.TavernHelper.insertOrAssignVariables(
-            { Guixu: { userPreferences: prefs } },
-            { type: 'global' }
-          );
-        }
-      } catch (e) {
-        throw e;
-      }
-    },
 
     // 加载以“【背景图片】”为前缀的所有世界书条目（兼容旧版“归墟背景/”）
     async loadBackgroundEntries() {

@@ -541,11 +541,13 @@
   -webkit-overflow-scrolling: touch;
 }
 
-/* 移动端 FAB 尺寸下调（统一在移动端隐藏顶部角落控制按钮由JS聚合） */
+/* 移动端 FAB 尺寸：跟随设置中心，通过 CSS 变量控制，保留 !important 以压过宿主站点
+   修复：此前写死为 44px 导致设置中心的“移动端悬浮按钮大小”不生效 */
 .guixu-root-container.mobile-view .mobile-fab {
-  width: 44px !important;
-  height: 44px !important;
-  font-size: 12px !important;
+  /* 使用变量以配合 main.js 中的 applyUserPreferences 设置 */
+  width: var(--guixu-mobile-fab-size, 44px) !important;
+  height: var(--guixu-mobile-fab-size, 44px) !important;
+  font-size: var(--guixu-mobile-fab-font-size, 12px) !important;
   border-radius: 50% !important;
 }
 

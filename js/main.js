@@ -250,6 +250,9 @@
 
       console.info('[归墟] GuixuMain: 启动主入口。');
       hasDeps();
+
+      // 已移除：设置文件写入守卫（不再拦截世界书写入“设置文件”条目）
+
       this.ensureDynamicStyles();
       // 底部输入栏三段式布局与常驻刷新按钮
       this.ensureQuickSendLayout();
@@ -365,7 +368,8 @@
       }
 
                   // 初始数据加载与渲染
-      this.syncUserPreferencesFromRoaming().finally(() => this.applyUserPreferences());
+      // 直接应用本地缓存的用户偏好（不再从世界书同步“设置文件”）
+      this.applyUserPreferences();
       this.loadInputDraft();
       // 新增：一键刷新后，若未设置背景，自动读取世界书首条背景并应用
       this._applyDefaultBackgroundIfFlagged();
@@ -1320,8 +1324,9 @@ if (!document.getElementById('guixu-gate-style')) {
           btn.title = title;
           btn.style.position = 'fixed';
           btn.style.zIndex = '10040';
-          btn.style.width = '44px';
-          btn.style.height = '44px';
+          // 使用 CSS 变量驱动尺寸，避免固定 44px
+          btn.style.width = 'var(--guixu-mobile-fab-size, 44px)';
+          btn.style.height = 'var(--guixu-mobile-fab-size, 44px)';
           btn.style.borderRadius = '50%';
           btn.style.border = '1px solid #c9aa71';
           btn.style.background = 'rgba(15, 15, 35, 0.9)';
@@ -1329,7 +1334,7 @@ if (!document.getElementById('guixu-gate-style')) {
           btn.style.display = 'flex';
           btn.style.alignItems = 'center';
           btn.style.justifyContent = 'center';
-          btn.style.fontSize = '12px';
+          btn.style.fontSize = 'var(--guixu-mobile-fab-font-size, 12px)';
           btn.style.boxShadow = '0 4px 12px rgba(0,0,0,0.3)';
           btn.style.touchAction = 'none';
           btn.style.bottom = '72px';
@@ -2750,21 +2755,7 @@ if (!document.getElementById('guixu-gate-style')) {
       }
     },
 
-    // 从 TavernHelper 全局变量同步用户偏好（跨设备漫游），若存在则覆盖本地
-    async syncUserPreferencesFromRoaming() {
-      try {
-        if (!window.TavernHelper || typeof window.TavernHelper.getVariables !== 'function') return;
-        const vars = window.TavernHelper.getVariables({ type: 'global' });
-        const roamingPrefs = vars && vars.Guixu && vars.Guixu.userPreferences;
-        if (roamingPrefs && typeof roamingPrefs === 'object') {
-          const state = window.GuixuState?.getState?.();
-          const merged = Object.assign({}, state?.userPreferences || {}, roamingPrefs);
-          window.GuixuState.update('userPreferences', merged);
-        }
-      } catch (e) {
-        console.warn('[归墟] 同步用户偏好(全局变量)失败:', e);
-      }
-    },
+    // 已移除：从世界书同步“设置文件”的逻辑（仅使用浏览器本地缓存）
 
     // 应用用户主题偏好（背景、遮罩、字号）
     applyUserPreferences(prefsOverride = null) {
@@ -2850,6 +2841,14 @@ if (!document.getElementById('guixu-gate-style')) {
         const guidelineBgOpacity = Math.min(1, Math.max(0, Number(prefs.guidelineBgOpacity ?? defaults.guidelineBgOpacity)));
         container.style.setProperty('--guixu-guideline-bg-opacity', String(guidelineBgOpacity));
 
+        // 移动端悬浮按钮尺寸（以 CSS 变量驱动）
+        try {
+          const fabSize = Math.min(80, Math.max(32, Number(prefs.mobileFabSize ?? 44)));
+          container.style.setProperty('--guixu-mobile-fab-size', `${fabSize}px`);
+          const fabFont = Math.max(10, Math.round(fabSize * 0.27));
+          container.style.setProperty('--guixu-mobile-fab-font-size', `${fabFont}px`);
+        } catch (_) {}
+
         // 自定义字体（以 dataURL 持久化）
         try {
           const fontDataUrl = String(prefs.customFontDataUrl || '');
@@ -2922,12 +2921,7 @@ container.style.fontFamily = `"Microsoft YaHei", "Noto Sans SC", "PingFang SC", 
         const newPrefs = Object.assign({}, prefsNow || {}, { backgroundUrl: `lorebook://${first.comment}` });
         try { window.GuixuState.update('userPreferences', newPrefs); } catch (_) {}
         this.applyUserPreferences(newPrefs);
-        // 尝试持久化到全局（可选）
-        try {
-          if (window.TavernHelper && typeof window.TavernHelper.insertOrAssignVariables === 'function') {
-            await window.TavernHelper.insertOrAssignVariables({ Guixu: { userPreferences: newPrefs } }, { type: 'global' });
-          }
-        } catch (_) {}
+        // 注意：设置仅保存到浏览器本地缓存（localStorage），不会写入世界书
         // 预置设置中心的下拉选中值（若DOM存在）
         try {
           const sel = document.getElementById('pref-bg-select');
