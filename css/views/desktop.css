@@ -341,3 +341,53 @@
 .guixu-root-container.mobile-view .game-container .pane-toggle-btn {
   display: none !important;
 }
+
+/* ================= 变量编辑器（桌面端）布局优化 ================= */
+/* 1) 组内“新增XX/添加XX”等操作条统一靠左（覆盖组件内联/内置样式） */
+.guixu-root-container:not(.mobile-view) #variable-manager-modal .vm-group .vm-actions {
+  margin-left: 0 !important;
+  justify-content: flex-start !important;
+}
+
+/* 2) 条目摘要（summary）：标题在左，删除按钮靠右（与原先位置对调） */
+.guixu-root-container:not(.mobile-view) #variable-manager-modal details.vm-details > summary {
+  flex-wrap: wrap; /* 宽度不足时允许换行 */
+}
+.guixu-root-container:not(.mobile-view) #variable-manager-modal details.vm-details > summary .vm-actions {
+  order: 0;                           /* 恢复默认顺序，置于右侧 */
+  margin-left: auto !important;       /* 推到最右侧 */
+  display: inline-flex;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+/* 3) 子组对象（如“词条”组）内的键编辑行：输入与删除按钮并排且不互相挤压变形 */
+.guixu-root-container:not(.mobile-view) #variable-manager-modal .attributes-list .attribute-item {
+  align-items: center;
+  gap: 8px;
+}
+.guixu-root-container:not(.mobile-view) #variable-manager-modal .attributes-list .attribute-item .attribute-value {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: none !important;   /* 覆盖模板里的 max-width:70% 限制 */
+  flex: 1 1 auto !important;
+  width: auto !important;
+}
+.guixu-root-container:not(.mobile-view) #variable-manager-modal .attributes-list .attribute-item .attribute-value .gx-input,
+.guixu-root-container:not(.mobile-view) #variable-manager-modal .attributes-list .attribute-item .attribute-value .kv-input,
+.guixu-root-container:not(.mobile-view) #variable-manager-modal .attributes-list .attribute-item .attribute-value .kv-textarea,
+.guixu-root-container:not(.mobile-view) #variable-manager-modal .attributes-list .attribute-item .attribute-value textarea,
+.guixu-root-container:not(.mobile-view) #variable-manager-modal .attributes-list .attribute-item .attribute-value input[type="text"],
+.guixu-root-container:not(.mobile-view) #variable-manager-modal .attributes-list .attribute-item .attribute-value input[type="number"] {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.guixu-root-container:not(.mobile-view) #variable-manager-modal .attributes-list .attribute-item .interaction-btn,
+.guixu-root-container:not(.mobile-view) #variable-manager-modal .attributes-list .attribute-item .danger-btn {
+  flex: 0 0 auto;              /* 删除按钮不拉伸、不挤压输入 */
+  height: 28px;
+  padding: 0 10px;
+  min-width: 72px;             /* 保证点击面积 */
+  box-sizing: border-box;
+}

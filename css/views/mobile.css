@@ -608,3 +608,123 @@
   flex: 1 1 calc(50% - 4px) !important;
   box-sizing: border-box !important;
 }
+
+/* 移动端-变量编辑器：防止底部按钮溢出面板、组内删除键溢出，并统一缩小操作按钮尺寸 */
+.guixu-root-container.mobile-view #variable-manager-modal .modal-content {
+  width: 96vw;
+  max-width: 96vw;
+  height: auto;
+  max-height: 90vh;          /* 以视口高度限制整体，避免被外层裁剪 */
+  overflow-x: hidden;        /* 禁止横向滚动条 */
+}
+.guixu-root-container.mobile-view #variable-manager-modal .modal-body {
+  overflow-y: auto;          /* 主体可滚动，保持页脚可见 */
+}
+
+/* 页脚按钮区：允许换行，上行“重置”独占一行，下行“双键并排” */
+.guixu-root-container.mobile-view #variable-manager-modal .command-center-footer {
+  flex-wrap: wrap !important;
+  gap: 8px !important;
+  align-items: stretch !important;
+  padding-bottom: max(8px, env(safe-area-inset-bottom, 0px)); /* 适配安全区 */
+}
+.guixu-root-container.mobile-view #variable-manager-modal #vm-btn-reset {
+  flex: 1 1 100% !important;
+  height: 36px !important;
+}
+.guixu-root-container.mobile-view #variable-manager-modal .command-center-footer > div {
+  width: 100% !important;
+  display: grid !important;
+  grid-template-columns: 1fr 1fr !important;
+  gap: 8px !important;
+}
+.guixu-root-container.mobile-view #variable-manager-modal .command-center-footer button {
+  min-width: 0 !important;
+  height: 36px !important;
+  width: 100% !important;
+  padding: 0 10px !important;
+  box-sizing: border-box !important;
+}
+
+/* 组/条目摘要行：允许换行；标题（键名）居中；删除键换到下一行且居中（移动端） */
+.guixu-root-container.mobile-view #variable-manager-modal details.vm-details > summary {
+  flex-wrap: wrap !important;
+}
+/* 新增：标题容器 .vm-head 居中显示（顶层对象的子对象键名） */
+.guixu-root-container.mobile-view #variable-manager-modal details.vm-details > summary .vm-head {
+  order: 1;
+  flex: 1 0 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;  /* 关键：标题水平居中 */
+  text-align: center;       /* 多行时文本居中 */
+}
+/* 防止标题内的 attribute-value 被 margin-left:auto 挤到右侧 */
+.guixu-root-container.mobile-view #variable-manager-modal details.vm-details > summary .attribute-value {
+  margin-left: 0 !important;
+}
+.guixu-root-container.mobile-view #variable-manager-modal details.vm-details > summary .vm-actions {
+  order: 2;                                /* 放到下一行 */
+  margin-left: 0 !important;
+  width: 100%;
+  display: flex;
+  justify-content: center !important;      /* 删除键居中 */
+  gap: 6px;
+}
+/* 摘要行中的删除按钮在移动端铺满一整行（保持既有大按钮视觉） */
+.guixu-root-container.mobile-view #variable-manager-modal details.vm-details > summary .vm-actions > .interaction-btn,
+.guixu-root-container.mobile-view #variable-manager-modal details.vm-details > summary .vm-actions > .danger-btn {
+  width: 100% !important;
+}
+
+/* 变量编辑器组内操作条：按钮靠左渲染 */
+.guixu-root-container.mobile-view #variable-manager-modal .vm-group .vm-actions {
+  margin-left: 0 !important;
+  justify-content: flex-start !important;
+}
+
+/* 属性行：允许换行；值区占满整行；删除键与输入同容器不再撑出 */
+
+/* 属性行：允许换行；值区占满整行；删除键与输入同容器不再撑出 */
+.guixu-root-container.mobile-view #variable-manager-modal .attributes-list .attribute-item {
+  flex-wrap: wrap !important;
+  align-items: flex-start !important;
+  gap: 6px !important;
+}
+.guixu-root-container.mobile-view #variable-manager-modal .attribute-item .attribute-value {
+  display: block;                      /* 使内部按钮换到下一行 */
+  flex: 1 1 100% !important;           /* 覆盖内联 max-width:70% 限制 */
+  max-width: 100% !important;
+}
+.guixu-root-container.mobile-view #variable-manager-modal .attribute-item .attribute-name {
+  white-space: nowrap;
+}
+/* 属性行中的删除按钮在移动端独占一行并铺满宽度，避免与输入控件贴在一起 */
+.guixu-root-container.mobile-view #variable-manager-modal .attribute-item .attribute-value > .interaction-btn,
+.guixu-root-container.mobile-view #variable-manager-modal .attribute-item .attribute-value > .danger-btn {
+  display: block !important;
+  width: 100% !important;
+  margin-top: 6px !important;
+  height: 32px !important;
+  box-sizing: border-box !important;
+}
+
+/* 缩小“新增XX/添加XX/删除”等操作按钮尺寸（仅变量编辑器内） */
+.guixu-root-container.mobile-view #variable-manager-modal .vm-actions .interaction-btn,
+.guixu-root-container.mobile-view #variable-manager-modal .vm-actions .danger-btn,
+.guixu-root-container.mobile-view #variable-manager-modal .attribute-item .interaction-btn,
+.guixu-root-container.mobile-view #variable-manager-modal .attribute-item .danger-btn,
+.guixu-root-container.mobile-view #variable-manager-modal details.vm-details > summary .vm-actions .interaction-btn,
+.guixu-root-container.mobile-view #variable-manager-modal details.vm-details > summary .vm-actions .danger-btn {
+  height: 32px !important;
+  padding: 0 10px !important;
+  min-width: 0 !important;
+  font-size: 11px !important;
+  box-sizing: border-box !important;
+}
+
+/* 组内操作条：收紧上下留白，避免在窄屏显得拥挤 */
+.guixu-root-container.mobile-view #variable-manager-modal .vm-actions {
+  padding: 6px 0 !important;
+  gap: 6px !important;
+}

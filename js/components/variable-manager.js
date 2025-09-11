@@ -173,6 +173,10 @@
   const REL_ALLOWED = new Set(['ENEMY','ALLY','NEUTRAL','FRIEND','LOVER']);
   const NPC_BAG_TYPE_ALLOWED = new Set(['功法','武器','防具','饰品','法宝','丹药','其他']);
  
+  // 物品与天赋/灵根的 tier 固定枚举（用于渲染下拉与提交校验）
+  const ITEM_TIER_ALLOWED = new Set(['练气','筑基','金丹','元婴','化神','合体','飞升','神桥']);
+  const ABILITY_TIER_ALLOWED = new Set(['凡品','下品','中品','上品','极品','天品','仙品','神品']);
+ 
   // 根据所属列表路径推断物品类型（玩家物品列表）
   function _inferItemTypeFromGroupPath(groupPath) {
     try {
@@ -223,7 +227,7 @@
           id: '',
           name: '',
           type: '',
-          tier: '凡品',
+          tier: '练气', // 默认与物品tier枚举一致
           description: '',
           special_effects: { $meta: { extensible: true } },
           attributes_bonus: {},
@@ -517,6 +521,12 @@
           details.vm-details > summary {
             list-style: none; cursor: pointer; padding: 6px 8px; color:#c9aa71; display:flex; align-items:center; gap:8px;
           }
+          /* 新增：标题区容器，修正键名与删除按钮左右位置与移动端居中 */
+          details.vm-details > summary .vm-head { display:flex; align-items:center; gap:8px; flex: 1 1 auto; }
+          /* 确保在 summary 中，键名不会被 attribute-value 的 margin-left:auto 推到右侧 */
+          #variable-manager-modal details.vm-details > summary .attribute-value { margin-left: 0 !important; }
+          /* 保证删除按钮永远贴右（桌面端） */
+          #variable-manager-modal details.vm-details > summary .vm-actions { margin-left: auto; display:flex; gap:6px; }
           details.vm-details > summary::-webkit-details-marker { display: none; }
           details.vm-details .vm-details-body { padding: 6px 8px; display:flex; flex-direction:column; gap:6px; }
 
@@ -540,9 +550,13 @@
             border-radius: 6px;
           }
 
-          /* 移动端折叠 */
+          /* 移动端折叠与布局修正 */
           .guixu-root-container.mobile-view #variable-manager-modal .vm-group .vm-group-header { padding: 8px; }
           .guixu-root-container.mobile-view #variable-manager-modal .attribute-item { gap:6px; }
+          /* 顶层条目标题在移动端居中显示，删除按钮换至下一行居中 */
+          .guixu-root-container.mobile-view #variable-manager-modal details.vm-details > summary { flex-wrap: wrap; }
+          .guixu-root-container.mobile-view #variable-manager-modal details.vm-details > summary .vm-head { order:1; flex: 1 0 100%; justify-content: center; text-align: center; }
+          .guixu-root-container.mobile-view #variable-manager-modal details.vm-details > summary .vm-actions { order:2; flex: 1 0 100%; justify-content: center; margin-left: 0; }
         </style>
 
         <div id="vm-root">
@@ -850,8 +864,9 @@
 
         return `
           <details class="vm-details vm-entry" data-label="${escapeHTML(nm)} ${escapeHTML(relationship)} ${escapeHTML(tier)}" data-vm-path="${path}">
-            <summary>${head}
-              <span class="vm-actions" style="margin-left:auto;">
+            <!-- 顶层NPC条目标题：包装为 vm-head，便于桌面端左右布局与移动端居中 -->
+            <summary><span class="vm-head">${head}</span>
+              <span class="vm-actions">
                 <button class="interaction-btn danger-btn" data-vm-del="${path}">删除</button>
               </span>
             </summary>
@@ -921,6 +936,30 @@
           <span class="attribute-value" style="flex:1; max-width: 70%;">
             ${ctrl}
           </span>
+        </div>
+      `;
+    },
+
+    /**
+     * 渲染“枚举选择”的一行（使用下拉框）
+     * 用途：限制 tier 等字段只能在给定枚举内选择，避免自由输入。
+     */
+    _renderEnumRow(label, value, path, options = []) {
+      const opts = Array.isArray(options) ? options : [];
+      const cur = String(value ?? '');
+      // 若当前值不在枚举中，仍然保留一个选项以避免显示为空
+      const list = opts.slice();
+      if (cur && !list.includes(cur)) list.push(cur);
+      const optionsHtml = list.map(v => {
+        const s = String(v);
+        const sel = (s === cur) ? 'selected' : '';
+        return `<option value="${escapeHTML(s)}" ${sel}>${escapeHTML(s)}</option>`;
+      }).join('');
+      const ctrl = `<select class="gx-input kv-input" data-vm-path="${escapeHTML(path)}">${optionsHtml}</select>`;
+      return `
+        <div class="attribute-item" data-label="${escapeHTML(label)} ${escapeHTML(cur)}">
+          <span class="attribute-name">${escapeHTML(label)}</span>
+          <span class="attribute-value" style="flex:1; max-width: 70%;">${ctrl}</span>
         </div>
       `;
     },
@@ -1040,8 +1079,8 @@
 
         return `
           <details class="vm-details vm-entry" data-label="${escapeHTML(nm)} ${escapeHTML(type)}" data-vm-path="${path}">
-            <summary>${head}
-              <span class="vm-actions" style="margin-left:auto;">
+            <summary><span class="vm-head">${head}</span>
+              <span class="vm-actions">
                 <button class="interaction-btn danger-btn" data-vm-del="${path}">删除</button>
               </span>
             </summary>
@@ -1071,8 +1110,13 @@
         const desc = window.GuixuHelpers.SafeGetValue(it, 'description', window.GuixuHelpers.SafeGetValue(it, '描述', ''));
         const head = `<span class="attribute-value" style="${window.GuixuHelpers.getTierStyle ? window.GuixuHelpers.getTierStyle(tier) : ''}">${escapeHTML(name)}</span><span class="attribute-name">【${escapeHTML(tier)}】</span>`;
 
-        const mainFields = ['id','name','tier','description'].filter(f => f in it);
-        const mainHtml = this._renderKVList(mainFields.map(f => this._renderKVRow(f, it[f], `${path}['${f}']`)));
+        /* 天赋/灵根：将 tier 渲染为下拉，限制为固有值 */
+        const mainRows = [];
+        if ('id' in it) mainRows.push(this._renderKVRow('id', it['id'], `${path}['id']`));
+        if ('name' in it) mainRows.push(this._renderKVRow('name', it['name'], `${path}['name']`));
+        if ('tier' in it) mainRows.push(this._renderEnumRow('tier', it['tier'], `${path}['tier']`, Array.from(ABILITY_TIER_ALLOWED)));
+        if ('description' in it) mainRows.push(this._renderKVRow('description', it['description'], `${path}['description']`));
+        const mainHtml = this._renderKVList(mainRows);
 
         const ab = it['attributes_bonus'];
         const abHtml = (ab && typeof ab === 'object')
@@ -1091,8 +1135,8 @@
 
         return `
           <details class="vm-details vm-entry" data-label="${escapeHTML(name)} ${escapeHTML(tier)} ${escapeHTML(desc)}" data-vm-path="${path}">
-            <summary>${head}
-              <span class="vm-actions" style="margin-left:auto;">
+            <summary><span class="vm-head">${head}</span>
+              <span class="vm-actions">
                 <button class="interaction-btn danger-btn" data-vm-del="${path}">删除</button>
               </span>
             </summary>
@@ -1124,13 +1168,29 @@
         const path = entryPath(basePath, hasProps, k);
         const it = toObjectOrNull(entries[k]) || entries[k] || {};
         const name = window.GuixuHelpers.SafeGetValue(it, 'name', k);
-        const tier = window.GuixuHelpers.SafeGetValue(it, 'tier', '凡品');
+        const tier = window.GuixuHelpers.SafeGetValue(it, 'tier', '练气');
         const type = window.GuixuHelpers.SafeGetValue(it, 'type', '');
         const qty = window.GuixuHelpers.SafeGetValue(it, 'quantity', null);
         const head = `<span class="attribute-value" style="${window.GuixuHelpers.getTierStyle ? window.GuixuHelpers.getTierStyle(tier) : ''}">${escapeHTML(name)}</span><span class="attribute-name">【${escapeHTML(tier)}】${type ? ' - ' + escapeHTML(type) : ''}${qty!=null ? (' ×' + qty) : ''}</span>`;
 
-        const baseFields = ['id','name','type','tier','description','base_value','quantity'].filter(f => f in it);
-        const baseHtml = this._renderKVList(baseFields.map(f => this._renderKVRow(f, it[f], `${path}['${f}']`)));
+        /* 物品类：将 tier 渲染为下拉，限制为固有值；NPC储物袋的 type 也改为下拉（固定枚举） */
+        const baseRows = [];
+        if ('id' in it) baseRows.push(this._renderKVRow('id', it['id'], `${path}['id']`));
+        if ('name' in it) baseRows.push(this._renderKVRow('name', it['name'], `${path}['name']`));
+        const isNpcBag = basePath.includes("['储物袋']");
+        if ('type' in it) {
+          if (isNpcBag) {
+            /* NPC 储物袋：type 使用下拉，限定固定枚举 */
+            baseRows.push(this._renderEnumRow('type', it['type'], `${path}['type']`, Array.from(NPC_BAG_TYPE_ALLOWED)));
+          } else {
+            baseRows.push(this._renderKVRow('type', it['type'], `${path}['type']`));
+          }
+        }
+        if ('tier' in it) baseRows.push(this._renderEnumRow('tier', it['tier'], `${path}['tier']`, Array.from(ITEM_TIER_ALLOWED)));
+        if ('description' in it) baseRows.push(this._renderKVRow('description', it['description'], `${path}['description']`));
+        if ('base_value' in it) baseRows.push(this._renderKVRow('base_value', it['base_value'], `${path}['base_value']`));
+        if ('quantity' in it) baseRows.push(this._renderKVRow('quantity', it['quantity'], `${path}['quantity']`));
+        const baseHtml = this._renderKVList(baseRows);
 
         const ab = it['attributes_bonus'];
         const abHtml = (ab && typeof ab === 'object')
@@ -1149,8 +1209,8 @@
 
         return `
           <details class="vm-details vm-entry" data-label="${escapeHTML(name)} ${escapeHTML(tier)} ${escapeHTML(type)}" data-vm-path="${path}">
-            <summary>${head}
-              <span class="vm-actions" style="margin-left:auto;">
+            <summary><span class="vm-head">${head}</span>
+              <span class="vm-actions">
                 <button class="interaction-btn danger-btn" data-vm-del="${path}">删除</button>
               </span>
             </summary>
@@ -1184,8 +1244,8 @@
         const kvHtml = this._renderKVList(fields.map(f => this._renderKVRow(f, it[f], `${path}['${f}']`)));
         return `
           <details class="vm-details vm-entry" data-label="${escapeHTML(nm)} ${escapeHTML(rel)}" data-vm-path="${path}">
-            <summary>${head}
-              <span class="vm-actions" style="margin-left:auto;">
+            <summary><span class="vm-head">${head}</span>
+              <span class="vm-actions">
                 <button class="interaction-btn danger-btn" data-vm-del="${path}">删除</button>
               </span>
             </summary>
@@ -1248,6 +1308,27 @@
             alert('NPC 储物袋物品 type 仅允许：功法、武器、防具、饰品、法宝、丹药、其他');
             try { const oldVal = getByPath(this._workingStat, path, ''); if (t && 'value' in t) t.value = String(oldVal ?? ''); } catch(_) {}
             return;
+          }
+        }
+        // tier 限定值：玩家物品列表与 NPC 储物袋使用修炼阶段枚举；天赋/灵根使用品阶枚举
+        if (/\['tier'\]\s*$/.test(path)) {
+          const v3 = String(newVal || '').trim();
+          if (path.includes("['天赋列表']") || path.includes("['灵根列表']")) {
+            if (!ABILITY_TIER_ALLOWED.has(v3)) {
+              alert('tier 仅允许：凡品、下品、中品、上品、极品、天品、仙品、神品');
+              try { const oldVal = getByPath(this._workingStat, path, ''); if (t && 'value' in t) t.value = String(oldVal ?? ''); } catch(_) {}
+              return;
+            }
+          } else if (
+            path.includes("['功法列表']") || path.includes("['武器列表']") || path.includes("['防具列表']") ||
+            path.includes("['饰品列表']") || path.includes("['法宝列表']") || path.includes("['丹药列表']") ||
+            path.includes("['其他列表']") || path.includes("['储物袋']")
+          ) {
+            if (!ITEM_TIER_ALLOWED.has(v3)) {
+              alert('tier 仅允许：练气、筑基、金丹、元婴、化神、合体、飞升、神桥');
+              try { const oldVal = getByPath(this._workingStat, path, ''); if (t && 'value' in t) t.value = String(oldVal ?? ''); } catch(_) {}
+              return;
+            }
           }
         }
 
@@ -1314,10 +1395,29 @@
         if (spec === 'talent') value = templateFor('talent');
         else if (spec === 'linggen') value = templateFor('linggen');
         else if (spec === 'item') {
-          value = templateFor('item');
-          // 玩家对应列表自动补齐 type
+          // 根据所在分组构造“物品”模板（定制丹药/其他）
           const autoType = _inferItemTypeFromGroupPath(groupPath);
-          if (autoType) { try { value.type = autoType; } catch (_) {} }
+          if (autoType === '丹药') {
+            /* 丹药：保留除“属性加成/百分比加成”外的常规字段 + 词条 */
+            value = {
+              id: '',
+              name: '',
+              type: '丹药',
+              tier: '练气',
+              description: '',
+              special_effects: { $meta: { extensible: true } },
+              base_value: 0,
+              quantity: 1
+            };
+          } else if (autoType === '其他') {
+            /* 其他：不包含 属性加成/百分比加成/词条 三类字段 */
+            value = { id: '', name: '', type: '其他', tier: '练气', description: '', base_value: 0, quantity: 1 };
+          } else {
+            // 其余类别：使用通用模板
+            value = templateFor('item');
+            // 若能推断 type，则补齐
+            if (autoType) { try { value.type = autoType; } catch (_) {} }
+          }
         } else if (spec === 'status') value = templateFor('status');
         else if (spec === 'npc') value = templateFor('npc');
         else if (spec === 'social') value = { id: '', name: key, relationship: 'NEUTRAL', '主观印象': '' };
