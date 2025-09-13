@@ -2050,6 +2050,7 @@ try { await this._syncNpcFourDimMaxToMvu(rel, computedMax); } catch (_) {}
                 eff.forEach(e => {
                   if (e && typeof e === 'object' && !Array.isArray(e)) {
                     Object.entries(e).forEach(([k, v]) => {
+                      if (k === '$meta') return;
                       if (v !== undefined && v !== null && clean(v) !== '') entries.push([k, v]);
                     });
                   } else if (e != null && clean(e) !== '') {
@@ -2068,7 +2069,7 @@ try { await this._syncNpcFourDimMaxToMvu(rel, computedMax); } catch (_) {}
                   `<div class="attribute-item"><span class="attribute-name">条目</span><span class="attribute-value">${s}</span></div>`;
               }
               if (!eff || typeof eff !== 'object') return '';
-              const items = Object.entries(eff).filter(([k, v]) => v !== undefined && v !== null && clean(v) !== '');
+              const items = Object.entries(eff).filter(([k, v]) => k !== '$meta' && v !== undefined && v !== null && clean(v) !== '');
               if (!items.length) return '';
               return `<div class="attribute-item"><span class="attribute-name">词条效果</span><span class="attribute-value"></span></div>` +
                 items.map(([k, v]) => `<div class="attribute-item"><span class="attribute-name">${k}</span><span class="attribute-value">${typeof v === 'string' ? clean(v) : clean(JSON.stringify(v))}</span></div>`).join('');

@@ -286,21 +286,23 @@
               </ul>
             </div>`);
           } else if (typeof effectsObj === 'object' && effectsObj !== null) {
-            const effs = Object.entries(effectsObj).map(([k, v]) => {
-              // 若值本身是 JSON 字符串，先尝试解析
-              const val = (typeof v === 'string') ? this._parsePossibleJson(v) : v;
+            const effs = Object.entries(effectsObj)
+              .filter(([k]) => k !== '$meta')
+              .map(([k, v]) => {
+                // 若值本身是 JSON 字符串，先尝试解析
+                const val = (typeof v === 'string') ? this._parsePossibleJson(v) : v;
 
-              let displayHtml;
-              const scalar = this._maybeScalarEffect(val);
-              if (scalar !== null) {
-                displayHtml = `<strong style="color:#c9aa71;">${this._esc(this._formatEffectValue(scalar))}</strong>`;
-              } else if (typeof val === 'object' && val !== null) {
-                displayHtml = `<pre style="white-space: pre-wrap; word-wrap: break-word; color: #e0dcd1; font-size: 11px; padding: 4px; background: rgba(0,0,0,0.2); border-radius: 3px; margin-top: 4px;">${this._prettyJson(val)}</pre>`;
-              } else {
-                displayHtml = `<strong style="color:#c9aa71;">${this._esc(this._formatEffectValue(val))}</strong>`;
-              }
-              return `<li>${this._esc(k)}：${displayHtml}</li>`;
-            }).join('');
+                let displayHtml;
+                const scalar = this._maybeScalarEffect(val);
+                if (scalar !== null) {
+                  displayHtml = `<strong style="color:#c9aa71;">${this._esc(this._formatEffectValue(scalar))}</strong>`;
+                } else if (typeof val === 'object' && val !== null) {
+                  displayHtml = `<pre style="white-space: pre-wrap; word-wrap: break-word; color: #e0dcd1; font-size: 11px; padding: 4px; background: rgba(0,0,0,0.2); border-radius: 3px; margin-top: 4px;">${this._prettyJson(val)}</pre>`;
+                } else {
+                  displayHtml = `<strong style="color:#c9aa71;">${this._esc(this._formatEffectValue(val))}</strong>`;
+                }
+                return `<li>${this._esc(k)}：${displayHtml}</li>`;
+              }).join('');
             detailsBlocks.push(`<div style="margin:6px 0;">
               <div style="color:#8b7355; font-size:11px;">词条效果：</div>
               <ul style="margin:4px 0 0 16px; color:#e0dcd1; font-size:12px; list-style:disc;">
@@ -453,7 +455,7 @@
     _parseEffects(eff) {
       try {
         if (eff == null) return null;
-        // Map -> Object
+        // Map -> Object/Array
         if (Object.prototype.toString.call(eff) === '[object Map]') {
           try {
             const arr = Array.from(eff.entries());
@@ -468,17 +470,48 @@
         }
         if (typeof eff === 'string') {
           const parsed = this._parsePossibleJson(eff);
-          if (parsed && typeof parsed === 'object') return parsed;
-          // 支持 "A:10%; B:5%" 或多行 "A:10%\nB:5%"
-          const obj = {};
-          const parts = eff.split(/[\n;,]+/).map(s => s.trim()).filter(Boolean);
-          let pairs = 0;
-          for (const p of parts) {
-            const m = p.match(/^([^:：]+)\s*[:：]\s*(.+)$/);
-            if (m) { obj[m[1].trim()] = m[2].trim(); pairs++; }
+          if (parsed && typeof parsed === 'object') {
+            eff = parsed;
+          } else {
+            // 支持 "A:10%; B:5%" 或多行 "A:10%\nB:5%"
+            const obj = {};
+            const parts = eff.split(/[\n;,]+/).map(s => s.trim()).filter(Boolean);
+            let pairs = 0;
+            for (const p of parts) {
+              const m = p.match(/^([^:：]+)\s*[:：]\s*(.+)$/);
+              if (m) { obj[m[1].trim()] = m[2].trim(); pairs++; }
+            }
+            if (pairs > 0) {
+              eff = obj;
+            } else {
+              return eff;
+            }
           }
-          if (pairs > 0) return obj;
-          return eff;
+        }
+        // 数组：清理 $meta 占位项
+        if (Array.isArray(eff)) {
+          const cleaned = eff.filter(entry => {
+            if (!entry) return false;
+            if (Array.isArray(entry)) {
+              return !(entry.length >= 1 && String(entry[0]) === '$meta');
+            }
+            if (typeof entry === 'object') {
+              if (entry.key === '$meta') return false;
+              const keys = Object.keys(entry);
+              if (keys.length === 1 && keys[0] === '$meta') return false;
+            }
+            return true;
+          });
+          return cleaned.length ? cleaned : null;
+        }
+        // 对象：删除 $meta 键
+        if (eff && typeof eff === 'object') {
+          const out = {};
+          for (const [k, v] of Object.entries(eff)) {
+            if (k === '$meta') continue;
+            out[k] = v;
+          }
+          return Object.keys(out).length ? out : null;
         }
       } catch (_) {}
       return eff;
