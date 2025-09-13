@@ -83,17 +83,8 @@
       clearTimeout(this._timer); this._timer = null;
       clearTimeout(this._maxTimer); this._maxTimer = null;
 
-      // 门禁守卫：在“首轮门禁”激活期间，禁止任何对酒馆的写回（直到用户点击“一键刷新”）
-      // 注意：仍需正常 resolve 等待 flush 的调用方，避免 Promise 悬挂
-      const gateActive = !!(window.GuixuMain && window.GuixuMain._firstRoundBlockActive);
-      if (gateActive) {
-        this._flushing = false;
-        try {
-          const resolvers = this._pendingResolvers.splice(0, this._pendingResolvers.length);
-          resolvers.forEach(fn => { try { fn(); } catch (_) {} });
-        } catch (_) {}
-        return;
-      }
+      // 门禁守卫调整：不再在首轮期间拦截任何写回（尤其是 stat_data）
+      // 说明：根据最新策略，检测到 MVU/stat_data 写入时应立即放行，因此此处不做 gateActive 拦截
       try {
         if (this._queue.length === 0) {
           this._flushing = false;

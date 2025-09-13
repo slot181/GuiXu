@@ -15,27 +15,14 @@
     // 聊天记录
     getChatMessages: async (messageId) => getChatMessages(messageId),
     getCurrentMessageId: () => getCurrentMessageId(),
-    // 门禁守卫：首轮激活时，拦截任何对 stat_data 的写回；仅放行 message 正文更新
+    // 门禁守卫调整：不再拦截任何对 stat_data 的写回；直接透传到酒馆
     setChatMessages: async (messages, options) => {
       try {
-        const gateActive = !!(window.GuixuMain && window.GuixuMain._firstRoundBlockActive);
-        if (gateActive && Array.isArray(messages)) {
-          const sanitized = messages.map((m) => {
-            try {
-              if (!m || typeof m !== 'object') return m;
-              // 移除 data 字段，防止写入 stat_data（以及任何其他变量区）
-              if ('data' in m) {
-                const copy = Object.assign({}, m);
-                delete copy.data;
-                return copy;
-              }
-              return m;
-            } catch (_) { return m; }
-          });
-          return await TavernHelper.setChatMessages(sanitized, options);
-        }
-      } catch (_) {}
-      return await TavernHelper.setChatMessages(messages, options);
+        // 为兼容旧逻辑保留封装，但不做任何删除 data 的操作
+        return await TavernHelper.setChatMessages(messages, options);
+      } catch (_) {
+        return await TavernHelper.setChatMessages(messages, options);
+      }
     },
  
     // AI生成
