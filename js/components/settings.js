@@ -24,9 +24,11 @@
     bgKeepSize: false,      // 保留原始尺寸（不缩放）
     // 移动端悬浮按钮尺寸（像素）
     mobileFabSize: 44,
+    // 底部指令发送快捷键：'enter' 或 'ctrlEnter'（默认 ctrlEnter 保留换行）
+    quickSendShortcut: 'ctrlEnter',
     // 新增：功能面板按钮隐藏配置（key 为按钮ID，true 表示隐藏）
     hiddenFunctionButtons: {}
-  });
+   });
 
   function clamp(num, min, max) {
     const n = Number(num);
@@ -539,6 +541,45 @@
         }
       } catch (_) {}
 
+      // 新增：发送快捷键设置（Enter 或 Ctrl+Enter）
+      try {
+        const modalBody = overlay?.querySelector('.modal-body');
+        if (modalBody && !document.getElementById('panel-quick-send-hotkey')) {
+          const panel = document.createElement('div');
+          panel.className = 'panel-section';
+          panel.id = 'panel-quick-send-hotkey';
+          panel.innerHTML = `
+            <div class="section-title">发送快捷键</div>
+            <div class="attributes-list" style="padding: 10px;">
+              <div class="attribute-item" style="gap:10px; align-items:center;">
+                <label class="auto-write-label" style="display:flex; align-items:center; gap:6px;">
+                  <input type="radio" name="pref-quick-send" id="pref-quick-send-enter" value="enter" />
+                  按回车发送（Shift+Enter 换行）
+                </label>
+              </div>
+              <div class="attribute-item" style="gap:10px; align-items:center;">
+                <label class="auto-write-label" style="display:flex; align-items:center; gap:6px;">
+                  <input type="radio" name="pref-quick-send" id="pref-quick-send-ctrlenter" value="ctrlEnter" />
+                  Ctrl+回车发送（Enter 换行）
+                </label>
+              </div>
+            </div>
+          `;
+          // 插入在“流式输出”面板之后更合理
+          const after = document.getElementById('panel-streaming-toggle');
+          if (after && after.parentElement === modalBody) {
+            if (after.nextSibling) modalBody.insertBefore(panel, after.nextSibling);
+            else modalBody.appendChild(panel);
+          } else {
+            modalBody.appendChild(panel);
+          }
+          try {
+            const titleEl = panel.querySelector('.section-title');
+            attachInfoIcon(titleEl, '选择底部指令输入栏的发送快捷键：Enter 发送（支持 Shift+Enter 换行）或 Ctrl+Enter 发送（Enter 换行）。');
+          } catch (_) {}
+        }
+      } catch (_) {}
+
       // 新增：功能面板按钮隐藏设置面板（移动/桌面通用）
       try {
         const modalBody = overlay?.querySelector('.modal-body');
@@ -730,6 +771,15 @@
          if (cb) cb.checked = !!hiddenMap[b.id];
        });
      } catch (_) {}
+
+     // 新增：发送快捷键回显
+     try {
+       const mode = String(prefs.quickSendShortcut || DEFAULTS.quickSendShortcut || 'ctrlEnter');
+       const enterRb = document.getElementById('pref-quick-send-enter');
+       const ctrlRb = document.getElementById('pref-quick-send-ctrlenter');
+       if (enterRb) enterRb.checked = (mode === 'enter');
+       if (ctrlRb) ctrlRb.checked = (mode !== 'enter');
+     } catch (_) {}
     },
 
     readValues() {
@@ -763,9 +813,13 @@
           if (el && el.checked) hiddenFunctionButtons[b.id] = true;
         });
       } catch (_) {}
-
-      return { backgroundUrl, bgMaskOpacity, storyFontSize, storyFontColor, storyDefaultColor, storyQuoteColor, thinkingTextColor, thinkingBgOpacity, guidelineTextColor, guidelineBgOpacity, bgFitMode, customFontName, customFontDataUrl, bgCompressQuality, bgKeepSize, mobileFabSize, hiddenFunctionButtons };
-    },
+ 
+      // 新增：发送快捷键读取（回退 'ctrlEnter'）
+      const qsModeEl = document.querySelector('input[name="pref-quick-send"]:checked');
+      const quickSendShortcut = qsModeEl ? String(qsModeEl.value || 'ctrlEnter') : 'ctrlEnter';
+ 
+      return { backgroundUrl, bgMaskOpacity, storyFontSize, storyFontColor, storyDefaultColor, storyQuoteColor, thinkingTextColor, thinkingBgOpacity, guidelineTextColor, guidelineBgOpacity, bgFitMode, customFontName, customFontDataUrl, bgCompressQuality, bgKeepSize, mobileFabSize, hiddenFunctionButtons, quickSendShortcut };
+     },
 
     applyPreview(prefs) {
       // 仅作为预览，不写入状态

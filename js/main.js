@@ -948,6 +948,29 @@ if (!document.getElementById('guixu-gate-style')) {
       // 输入缓存：实时保存草稿
       const quickInput = $('#quick-send-input');
       quickInput?.addEventListener('input', () => this.saveInputDraft());
+      // 新增：底部指令输入栏键盘发送（两种模式：Enter 或 Ctrl+Enter，可在设置中心切换）
+      quickInput?.addEventListener('keydown', (e) => {
+        if (e.key !== 'Enter') return;
+        // 从全局状态读取用户偏好，未设置时回退为 'ctrlEnter'
+        const st = window.GuixuState?.getState?.();
+        // 优先读取“已应用但未保存”的设置（this._quickSendShortcut），其次读取已保存偏好
+        const mode = String(this._quickSendShortcut || st?.userPreferences?.quickSendShortcut || 'ctrlEnter');
+        // enter 模式：回车发送；Shift+Enter 换行
+        if (mode === 'enter') {
+          if (!e.shiftKey) {
+            e.preventDefault(); // 阻止换行
+            const val = (quickInput?.value || '').trim();
+            this.handleAction(val);
+          }
+          return;
+        }
+        // ctrlEnter 模式：Ctrl/Cmd+Enter 发送；普通 Enter 换行
+        if (e.ctrlKey || e.metaKey) {
+          e.preventDefault(); // 阻止换行
+          const val = (quickInput?.value || '').trim();
+          this.handleAction(val);
+        }
+      });
 
       // 当前指令面板
       $('#btn-quick-commands')?.addEventListener('click', (e) => {
@@ -2689,7 +2712,9 @@ if (!document.getElementById('guixu-gate-style')) {
         // 新增 hiddenFunctionButtons 默认值
         const defaults = { backgroundUrl: '', bgMaskOpacity: 0.7, storyFontSize: 14, storyFontColor: '#e0dcd1', storyDefaultColor: '#e0dcd1', storyQuoteColor: '#ff4d4f', thinkingTextColor: '#e0dcd1', thinkingBgOpacity: 0.85, guidelineTextColor: '#e0dcd1', guidelineBgOpacity: 0.6, bgFitMode: 'cover', customFontName: '', customFontDataUrl: '', hiddenFunctionButtons: {} };
         const prefs = Object.assign({}, defaults, (prefsOverride || state?.userPreferences || {}));
-
+        // 发送快捷键：记录到实例属性，便于“应用（未保存）”即时生效（不依赖持久化）
+        this._quickSendShortcut = (String(prefs.quickSendShortcut) === 'enter') ? 'enter' : 'ctrlEnter';
+ 
         // 遮罩透明度（0~0.8）
         const mask = Math.min(0.8, Math.max(0, Number(prefs.bgMaskOpacity ?? defaults.bgMaskOpacity)));
         container.style.setProperty('--guixu-bg-mask', String(mask));

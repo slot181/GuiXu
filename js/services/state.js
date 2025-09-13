@@ -45,7 +45,8 @@
     isAutoWriteEnabled: true,
     isMobileView: false,
     unifiedIndex: 1,
-    isAutoToggleLorebookEnabled: false,
+    // 默认开启：自动开关世界书（仅首次无本地缓存时生效）
+    isAutoToggleLorebookEnabled: true,
     isAutoSaveEnabled: false,
     autoWritePaused: false,
     isAutoTrimEnabled: false,
@@ -74,7 +75,8 @@
       this.loadStateFromStorage('guixu_novel_mode_enabled', 'isNovelModeEnabled', false);
       this.loadStateFromStorage('guixu_view_mode', 'isMobileView', false, (val) => val === 'mobile');
       this.loadStateFromStorage('guixu_unified_index', 'unifiedIndex', 1, parseInt);
-      this.loadStateFromStorage('guixu_auto_toggle_enabled', 'isAutoToggleLorebookEnabled', false);
+      // 默认开启：若无本地缓存，则视为开启自动开关世界书
+      this.loadStateFromStorage('guixu_auto_toggle_enabled', 'isAutoToggleLorebookEnabled', true);
       this.loadStateFromStorage('guixu_auto_save_enabled', 'isAutoSaveEnabled', false);
       this.loadStateFromStorage('guixu_auto_trim_enabled', 'isAutoTrimEnabled', false);
       this.loadStateFromStorage('guixu_streaming_enabled', 'isStreamingEnabled', false);
