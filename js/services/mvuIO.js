@@ -83,8 +83,27 @@
       clearTimeout(this._timer); this._timer = null;
       clearTimeout(this._maxTimer); this._maxTimer = null;
 
+      // 门禁守卫：在“首轮门禁”激活期间，禁止任何对酒馆的写回（直到用户点击“一键刷新”）
+      // 注意：仍需正常 resolve 等待 flush 的调用方，避免 Promise 悬挂
+      const gateActive = !!(window.GuixuMain && window.GuixuMain._firstRoundBlockActive);
+      if (gateActive) {
+        this._flushing = false;
+        try {
+          const resolvers = this._pendingResolvers.splice(0, this._pendingResolvers.length);
+          resolvers.forEach(fn => { try { fn(); } catch (_) {} });
+        } catch (_) {}
+        return;
+      }
       try {
-        if (this._queue.length === 0) { this._flushing = false; return; }
+        if (this._queue.length === 0) {
+          this._flushing = false;
+          // 确保 flushNow() 的等待者能被正确唤醒，避免 Promise 悬挂造成内存占用与“假死”
+          try {
+            const resolvers = this._pendingResolvers.splice(0, this._pendingResolvers.length);
+            resolvers.forEach(fn => { try { fn(); } catch (_) {} });
+          } catch (_) {}
+          return;
+        }
         const jobs = this._queue.splice(0, this._queue.length);
 
         const st = window.GuixuState?.getState?.();

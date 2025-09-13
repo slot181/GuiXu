@@ -26,45 +26,39 @@
     _pendingRestoreMobileOnExitFullscreen: false,
     // 首轮门禁激活标记：命中后阻止首帧 MVU 抓取/写入/轮询，直至用户“一键刷新”
     _firstRoundBlockActive: false,
+    // 世界书条目内容缓存（按 comment 缓存背景等数据URL）
+    _loreEntryCache: Object.create(null),
 
-    // 兼容旧结构：已弃用占位符逻辑，直接透传
-    _ensureMetaExtensibleArray(arr) {
-      try { return arr; } catch (_) { return arr; }
-    },
-
-    // 对指定路径数组进行“占位符”修复
-    // 已弃用：新结构为字典对象，此处不再处理
-    _ensureExtensibleMarkersOnPaths(data, paths) {
-      try { /* no-op */ } catch (_) {}
-    },
-
-    // 已弃用：新结构为字典对象，不再进行占位符修复
-    _ensureExtensibleMarkers(statData) {
-      try { /* no-op */ } catch (_) {}
-    },
-
-    // 过滤数组中的占位符（用于渲染前忽略）
-    // 已弃用占位符：直接透传
-    _stripMeta(arr) {
-      try { return arr; } catch (_) { return arr; }
-    },
-
-    // 全域“渲染前过滤”：深度复制并删除任意数组中的占位符
-    // 不再移除占位符：保留简单深拷贝（必要层面）
-    _deepStripMeta(value) {
+    // 全域“渲染前过滤” -> 安全深拷贝
+    // 说明：
+    // - 旧版曾用于移除占位符；现阶段仅做“深拷贝/去引用”，不做占位符删除
+    // - 加入循环引用防护（WeakMap），避免遇到带回环的数据结构时无限递归卡死
+    // - 仅复制自有可枚举属性，保持与 JSON 序列化期望一致
+    _deepStripMeta(value, seen = new WeakMap()) {
       const t = Object.prototype.toString.call(value);
+      // 数组：创建新数组并递归拷贝每项（含循环引用防护）
       if (t === '[object Array]') {
-        return value.map(v => this._deepStripMeta(v));
+        if (seen.has(value)) return seen.get(value);
+        const out = new Array(value.length);
+        seen.set(value, out);
+        for (let i = 0; i < value.length; i++) {
+          out[i] = this._deepStripMeta(value[i], seen);
+        }
+        return out;
       }
+      // 普通对象：仅遍历自有属性，避免原型链污染与 getter 副作用
       if (t === '[object Object]') {
+        if (seen.has(value)) return seen.get(value);
         const out = {};
+        seen.set(value, out);
         for (const k in value) {
           if (Object.prototype.hasOwnProperty.call(value, k)) {
-            out[k] = this._deepStripMeta(value[k]);
+            out[k] = this._deepStripMeta(value[k], seen);
           }
         }
         return out;
       }
+      // 原始值/其它类型：直接返回
       return value;
     },
 
@@ -187,24 +181,16 @@
           left.insertBefore(btn, left.firstChild || null);
 
           btn.addEventListener('click', async () => {
-            try {
-              const isFirstRound = await this._shouldBlockFirstRoundMvuCapture();
-              if (isFirstRound) {
-                try {
-                  const idx = window.GuixuState?.getState?.().unifiedIndex || 1;
-                  localStorage.setItem(`guixu_gate_unblocked_${idx}`, '1');
-                  localStorage.setItem(`guixu_apply_default_bg_once_${idx}`, '1');
-                } catch (_) {}
-                window.location.reload();
-                return;
-              }
-            } catch (_) {}
+            // 安全模式：仅解锁门禁并立即刷新，不在点击时解析整段聊天记录，避免内存峰值与卡顿
             try {
               const idx = window.GuixuState?.getState?.().unifiedIndex || 1;
-              // 非首轮或检测失败：直接解锁并刷新
-              localStorage.setItem(`guixu_gate_unblocked_${idx}`, '1');
-              localStorage.setItem(`guixu_apply_default_bg_once_${idx}`, '1');
+              try {
+                localStorage.setItem(`guixu_gate_unblocked_${idx}`, '1');
+                localStorage.setItem(`guixu_apply_default_bg_once_${idx}`, '1');
+              } catch (_) {}
+              this._firstRoundBlockActive = false; // 解除写入守卫
             } catch (_) {}
+            try { this.hideWaitingMessage(); } catch (_) {}
             window.location.reload();
           });
         } else {
@@ -217,7 +203,79 @@
         console.warn('[归墟] ensureRefreshButton 失败:', e);
       }
     },
+ 
+    // 新增：首轮门禁解锁时，将当前最新的 LLM 响应中的 MVU 语法即时计算并写回到 stat_data（无需发起新一轮对话）
+    async _applyFirstMvuNowAndFlush() {
+      try {
+        const currentId = window.GuixuAPI.getCurrentMessageId();
+        const messages = await window.GuixuAPI.getChatMessages(currentId);
 
+        // 关键优化：避免使用 [...messages].reverse() 造成“大数组一次性拷贝 + 反转”的瞬时内存暴涨
+        // 策略：
+        // 1) 先在“最新 -> 更旧”的前若干条内查找 assistant（很多实现返回最新在前）
+        // 2) 若未命中，再从数组尾部向前扫描一小段
+        // 3) 设置扫描上限，避免在超大历史下造成长时间阻塞
+        let aiText = '';
+        if (Array.isArray(messages) && messages.length) {
+          const MAX_SCAN = 200; // 扫描上限：防止极端历史长度导致卡顿
+          const n = messages.length;
+
+          // 优先：从头部向后扫描（假设 [0] 为最新）
+          let found = null;
+          const headScan = Math.min(n, MAX_SCAN);
+          for (let i = 0; i < headScan; i++) {
+            const m = messages[i];
+            if (m && m.role === 'assistant' && typeof m.message === 'string') { found = m; break; }
+          }
+
+          // 退化：从尾部向前再扫一段
+          if (!found) {
+            const start = Math.max(0, n - MAX_SCAN);
+            for (let i = n - 1; i >= start; i--) {
+              const m = messages[i];
+              if (m && m.role === 'assistant' && typeof m.message === 'string') { found = m; break; }
+            }
+          }
+
+          if (found) aiText = String(found.message || '');
+
+          // 兜底：仍未找到则尝试当前楼层自身的正文（多数情况下 [0] 即当前楼层）
+          if (!aiText) {
+            try { aiText = String(messages[0]?.message || ''); } catch (_) {}
+          }
+        }
+
+        if (!aiText) return false;
+
+        // 安全阈值：若文本过长，直接跳过“首刷写回”，避免主线程在解析/提取中卡顿
+        const MAX_LEN = 200000; // 约 200KB，足以覆盖常见回复
+        if (aiText.length > MAX_LEN) return false;
+
+        // 提取与计算：通过 MVU 框架将变量应用到本地状态（失败则前端备用降级在 ActionService 内部处理）
+        try { window.GuixuActionService?.extractAndCacheResponse?.(aiText); } catch (_) {}
+        try { await window.GuixuActionService?.updateMvuState?.(aiText); } catch (_) {}
+
+        const st = window.GuixuState?.getState?.();
+        const newState = st?.currentMvuState;
+        if (newState && newState.stat_data) {
+          // 优先走合并/节流写回，并强制立即 flush，确保本次点击后立刻写入到酒馆的 stat_data
+          if (window.GuixuMvuIO?.scheduleStatUpdate) {
+            window.GuixuMvuIO.scheduleStatUpdate((stat) => {
+              try { Object.assign(stat, newState.stat_data || {}); } catch (_) {}
+            }, { reason: 'first-refresh-apply' });
+            try { await window.GuixuMvuIO.flushNow?.(); } catch (_) {}
+          } else {
+            // 后备：直接写回当前楼层的数据（不改动 message 正文）
+            try { await window.GuixuAPI.setChatMessages([{ message_id: currentId, data: newState }], { refresh: 'none' }); } catch (_) {}
+          }
+          return true;
+        }
+      } catch (e) {
+        console.warn('[归墟] 首刷MVU写回失败:', e);
+      }
+      return false;
+    },
+ 
     // 首轮：若判定为“首轮对话”，仅自动刷新一次（避免循环），再等待用户点击“一键刷新”进行解锁
     _tryAutoRefreshOnceOnFirstRound() {
       try {
@@ -371,9 +429,6 @@
       // 直接应用本地缓存的用户偏好（不再从世界书同步“设置文件”）
       this.applyUserPreferences();
       this.loadInputDraft();
-      // 新增：一键刷新后，若未设置背景，自动读取世界书首条背景并应用
-      this._applyDefaultBackgroundIfFlagged();
-
       // 首轮门禁：首次进入不抓取/渲染 MVU，待玩家“一键刷新”后再启用
       this._evaluateFirstRunGateAndMaybeShow().then((blocked) => {
         if (blocked) return;
@@ -1795,155 +1850,7 @@ if (!document.getElementById('guixu-gate-style')) {
       } catch (_) {}
     },
  
-    // 新增：统一 MVU 结构迁移（effect/effects -> special_effects）
-    // 说明：
-    // - 丹药列表物品：若存在旧字段 item.effect，则将其值迁移为 special_effects.migrated_effect = item.effect，并删除 item.effect
-    // - 状态记录：若存在旧字段 status.effects（对象），则将其键值对全部并入 special_effects，并删除 status.effects
-    // - NPC：对每个 NPC 的“当前状态”与“储物袋”中的丹药物品做同样迁移（储物袋仅在物品 type === '丹药' 时迁移）
-    _migrateEffectsSchemaOnStat(stat) {
-      try {
-        if (!stat || typeof stat !== 'object') return false;
-        let changed = false;
-
-        // 工具：读取“可扩展字典”的条目（兼容 JSON Schema 的 properties 与普通字典）
-        const getDictEntries = (dictLike) => {
-          if (!dictLike || typeof dictLike !== 'object') return {};
-          const hasProps = !!(dictLike && dictLike.properties && typeof dictLike.properties === 'object');
-          return hasProps ? dictLike.properties : dictLike;
-        };
-
-        // 工具：迁移一个“状态对象”的 effects -> special_effects
-        const migrateStatusObj = (stObj) => {
-          if (!stObj || typeof stObj !== 'object') return false;
-          let dirty = false;
-          const eff = stObj.effects;
-          if (eff && typeof eff === 'object' && !Array.isArray(eff)) {
-            // 确保 special_effects 是对象
-            if (!stObj.special_effects || typeof stObj.special_effects !== 'object' || Array.isArray(stObj.special_effects)) {
-              stObj.special_effects = {};
-              dirty = true;
-            }
-            // 合并键值
-            for (const k of Object.keys(eff)) {
-              if (k === '$meta') continue;
-              stObj.special_effects[k] = eff[k];
-              dirty = true;
-            }
-            // 删除旧字段
-            try { delete stObj.effects; dirty = true; } catch (_) {}
-          }
-          return dirty;
-        };
-
-        // 工具：迁移一个“物品对象”的 effect -> special_effects
-        const migrateItemObj = (itemObj, force = false) => {
-          if (!itemObj || typeof itemObj !== 'object') return false;
-          // 仅在丹药类别或明确要求时迁移
-          const isPill = force || String(itemObj.type || '').trim() === '丹药';
-          if (!isPill) return false;
-          const old = itemObj.effect;
-          if (old == null || old === '') {
-            // 顺带清理空的 effect 字段
-            if ('effect' in itemObj) { try { delete itemObj.effect; } catch(_) {} }
-            return false;
-          }
-          if (!itemObj.special_effects || typeof itemObj.special_effects !== 'object' || Array.isArray(itemObj.special_effects)) {
-            itemObj.special_effects = {};
-          }
-          // 将旧值塞到一个稳定的迁移键上（中文注释：键名随意，这里使用英文，避免与自然语言键冲突）
-          const key = 'migrated_effect';
-          // 若已存在同名键，避免覆盖，追加编号
-          let finalKey = key, idx = 1;
-          while (Object.prototype.hasOwnProperty.call(itemObj.special_effects, finalKey)) {
-            idx += 1; finalKey = `${key}_${idx}`;
-          }
-          itemObj.special_effects[finalKey] = old;
-          try { delete itemObj.effect; } catch (_) {}
-          return true;
-        };
-
-        // 1) 玩家：当前状态
-        try {
-          const stDict = stat['当前状态'];
-          const entries = getDictEntries(stDict);
-          for (const k of Object.keys(entries || {})) {
-            const v = entries[k];
-            if (v && typeof v === 'object') {
-              if (migrateStatusObj(Array.isArray(v) && v.length === 1 && typeof v[0] === 'object' ? v[0] : v)) changed = true;
-            }
-          }
-        } catch (_) {}
-
-        // 2) 玩家：丹药列表
-        try {
-          const pillDict = stat['丹药列表'];
-          const entries = getDictEntries(pillDict);
-          for (const k of Object.keys(entries || {})) {
-            const v = entries[k];
-            const obj = (Array.isArray(v) && v.length === 1 && typeof v[0] === 'object') ? v[0] : v;
-            if (obj && typeof obj === 'object') {
-              if (migrateItemObj(obj, true)) changed = true;
-            }
-          }
-        } catch (_) {}
-
-        // 3) NPC：人物关系列表
-        try {
-          const npcRoot = stat['人物关系列表'];
-          const npcEntries = getDictEntries(npcRoot);
-          for (const npcKey of Object.keys(npcEntries || {})) {
-            const npcObj = npcEntries[npcKey];
-            const npc = (Array.isArray(npcObj) && npcObj.length === 1 && typeof npcObj[0] === 'object') ? npcObj[0] : npcObj;
-            if (!npc || typeof npc !== 'object') continue;
-
-            // NPC 当前状态
-            try {
-              const stDict = npc['当前状态'];
-              const entries = getDictEntries(stDict);
-              for (const k of Object.keys(entries || {})) {
-                const v = entries[k];
-                if (v && typeof v === 'object') {
-                  if (migrateStatusObj(Array.isArray(v) && v.length === 1 && typeof v[0] === 'object' ? v[0] : v)) changed = true;
-                }
-              }
-            } catch (_) {}
-
-            // NPC 储物袋：尝试把 type == '丹药' 的物品迁移
-            try {
-              const bag = npc['储物袋'];
-              const bagEntries = getDictEntries(bag);
-              for (const bk of Object.keys(bagEntries || {})) {
-                const node = bagEntries[bk];
-                const nodeObj = (Array.isArray(node) && node.length === 1 && typeof node[0] === 'object') ? node[0] : node;
-
-                if (nodeObj && typeof nodeObj === 'object') {
-                  // 情况A：直接就是一个物品
-                  if (nodeObj.type || nodeObj.name || nodeObj['名称']) {
-                    if (migrateItemObj(nodeObj, false)) changed = true;
-                  } else {
-                    // 情况B：可能是一个类别字典（如 '丹药' 分类下是一堆物品）
-                    const subEntries = getDictEntries(nodeObj);
-                    for (const sk of Object.keys(subEntries || {})) {
-                      const sv = subEntries[sk];
-                      const sobj = (Array.isArray(sv) && sv.length === 1 && typeof sv[0] === 'object') ? sv[0] : sv;
-                      if (sobj && typeof sobj === 'object') {
-                        const inPillCat = bk === '丹药';
-                        if (migrateItemObj(sobj, inPillCat)) changed = true;
-                      }
-                    }
-                  }
-                }
-              }
-            } catch (_) {}
-          }
-        } catch (_) {}
-
-        return changed;
-      } catch (e) {
-        console.warn('[归墟] _migrateEffectsSchemaOnStat 失败:', e);
-        return false;
-      }
-    },
+    // 已移除：effects/effect → special_effects 的迁移逻辑（避免读-写-读链路引发循环）
 
     async updateDynamicData() {
       const $ = (sel, ctx = document) => ctx.querySelector(sel);
@@ -1959,20 +1866,7 @@ if (!document.getElementById('guixu-gate-style')) {
         if (rawState) {
           const normalizedState = rawState;
 
-          // 先对 stat_data 做一次 effect/effects → special_effects 迁移（就地）
-          try {
-            const stat = normalizedState.stat_data || {};
-            const changed = this._migrateEffectsSchemaOnStat(stat);
-            if (changed && window.GuixuMvuIO && typeof window.GuixuMvuIO.scheduleStatUpdate === 'function') {
-              // 将迁移后的 stat_data 写回当前楼层（节流/合并）
-              window.GuixuMvuIO.scheduleStatUpdate((st) => {
-                try {
-                  // 安全合并：以迁移后的结构覆盖
-                  Object.assign(st, stat);
-                } catch (_) {}
-              }, { reason: 'migrate_effects_schema' });
-            }
-          } catch (_) {}
+          // 已移除：读取阶段的 effects/effect → special_effects 迁移（避免写回导致事件循环）
 
           // 渲染用：深度过滤掉占位符
           const toRender = this._deepStripMeta(normalizedState.stat_data);
@@ -2008,8 +1902,7 @@ if (!document.getElementById('guixu-gate-style')) {
     },
 
     renderUI(data) {
-      // 全域“渲染前过滤”：无论从哪里调用 renderUI，都先深度移除占位符，避免出现在界面
-      data = this._deepStripMeta(data);
+      // 渲染入口：期望调用方已进行一次安全深拷贝；此处不再重复拷贝，避免重复递归与性能问题
       const $ = (sel, ctx = document) => ctx.querySelector(sel);
       if (!data) return;
 
@@ -2454,11 +2347,41 @@ if (!document.getElementById('guixu-gate-style')) {
         if (contentToParse === null) {
           const messages = await window.GuixuAPI.getChatMessages(window.GuixuAPI.getCurrentMessageId());
           if (!messages || messages.length === 0) return;
-          const lastAiMessage = [...messages].reverse().find(m => m.role === 'assistant');
-          if (lastAiMessage) contentToParse = lastAiMessage.message;
+          // 优化：避免使用 [...messages].reverse() 造成大数组拷贝，采用限流扫描
+          let found = null;
+          const n = messages.length;
+          const MAX_SCAN = 200; // 扫描上限：防止极端历史长度导致卡顿
+          // 先从头部扫描（多数实现 [0] 为最新）
+          const headScan = Math.min(n, MAX_SCAN);
+          for (let i = 0; i < headScan; i++) {
+            const m = messages[i];
+            if (m && m.role === 'assistant' && typeof m.message === 'string') { found = m; break; }
+          }
+          // 退化：尾部向前扫描一段
+          if (!found) {
+            const start = Math.max(0, n - MAX_SCAN);
+            for (let i = n - 1; i >= start; i--) {
+              const m = messages[i];
+              if (m && m.role === 'assistant' && typeof m.message === 'string') { found = m; break; }
+            }
+          }
+          if (found) contentToParse = String(found.message || '');
+          // 兜底：仍未找到则尝试当前楼层正文
+          if (!contentToParse) {
+            try { contentToParse = String(messages[0]?.message || ''); } catch (_) {}
+          }
         }
 
         if (contentToParse) {
+          // 安全阈值：若文本过长，跳过昂贵校验与复杂渲染，避免卡顿
+          const MAX_LEN = 200000; // ≈200KB
+          if (typeof contentToParse === 'string' && contentToParse.length > MAX_LEN) {
+            // 仅做轻量处理：提取可显示正文并渲染（不做标签校验/思维链/行动方针解析）
+            const safeText = this._getDisplayText(contentToParse.slice(0, MAX_LEN));
+            gameTextDisplay.innerHTML = this.formatMessageContent(safeText || '');
+            // 直接返回，避免在超长文本上继续重度操作
+            return;
+          }
           // 新增：检测主要标签的缺失或未闭合并提示（移动端/桌面端、全屏/非全屏通用）
           try {
             const requiredTags = ['thinking', 'gametxt', 'action', '本世历程', 'UpdateVariable', 'Analysis'];
@@ -2887,60 +2810,29 @@ container.style.fontFamily = `"Microsoft YaHei", "Noto Sans SC", "PingFang SC", 
       }
     },
 
-    // 新增：在“一键刷新”后的首帧，如果用户未选择背景，则自动读取世界书中带前缀的第一条背景并应用
-    async _applyDefaultBackgroundIfFlagged() {
-      try {
-        const idx = window.GuixuState?.getState?.().unifiedIndex || 1;
-        const flagKey = `guixu_apply_default_bg_once_${idx}`;
-        const flagged = localStorage.getItem(flagKey) === '1';
-        if (!flagged) return;
-        // 一次性执行
-        localStorage.removeItem(flagKey);
-
-        // 若已有背景选择，则不覆盖用户选择
-        const st = window.GuixuState?.getState?.();
-        const prefsNow = (st && st.userPreferences) ? st.userPreferences : {};
-        if (prefsNow && prefsNow.backgroundUrl) return;
-
-        const bookName = window.GuixuConstants?.LOREBOOK?.NAME;
-        const newPrefix = String(window.GuixuConstants?.BACKGROUND?.PREFIX || '【背景图片】');
-        const legacyPrefixes = Array.isArray(window.GuixuConstants?.BACKGROUND?.LEGACY_PREFIXES) ? window.GuixuConstants.BACKGROUND.LEGACY_PREFIXES : ['归墟背景/'];
-        if (!bookName || !window.GuixuAPI) return;
-
-        const allEntries = await window.GuixuAPI.getLorebookEntries(bookName);
-        const isBg = (c) => {
-          const s = String(c || '');
-          if (!s) return false;
-          if (s.startsWith(newPrefix)) return true;
-          return legacyPrefixes.some(p => s.startsWith(p));
-        };
-        const list = Array.isArray(allEntries) ? allEntries.filter(e => isBg(e.comment)) : [];
-        if (!list.length) return;
-
-        const first = list[0];
-        const newPrefs = Object.assign({}, prefsNow || {}, { backgroundUrl: `lorebook://${first.comment}` });
-        try { window.GuixuState.update('userPreferences', newPrefs); } catch (_) {}
-        this.applyUserPreferences(newPrefs);
-        // 注意：设置仅保存到浏览器本地缓存（localStorage），不会写入世界书
-        // 预置设置中心的下拉选中值（若DOM存在）
-        try {
-          const sel = document.getElementById('pref-bg-select');
-          if (sel) sel.value = String(first.comment || '');
-        } catch (_) {}
-      } catch (e) {
-        console.warn('[归墟] 默认背景应用失败:', e);
-      }
-    },
 
     async _resolveLorebookDataUrl(entryComment) {
       try {
+        // 简单缓存，避免重复请求导致的多次渲染/潜在循环
+        if (!this._loreEntryCache) this._loreEntryCache = Object.create(null);
+        if (entryComment in this._loreEntryCache) {
+          return this._loreEntryCache[entryComment];
+        }
+
         const bookName = window.GuixuConstants?.LOREBOOK?.NAME;
-        if (!bookName || !entryComment) return '';
+        if (!bookName || !entryComment) {
+          this._loreEntryCache[entryComment] = '';
+          return '';
+        }
         const entries = await window.GuixuAPI.getLorebookEntries(bookName);
-        const entry = entries.find(e => (e.comment || '') === entryComment);
-        return entry ? (entry.content || '') : '';
+        const entry = Array.isArray(entries) ? entries.find(e => (e.comment || '') === entryComment) : null;
+        const content = entry ? (entry.content || '') : '';
+        this._loreEntryCache[entryComment] = content;
+        return content;
       } catch (e) {
         console.warn('[归墟] _resolveLorebookDataUrl 出错:', e);
+        // 缓存失败结果，避免抖动
+        try { if (entryComment) this._loreEntryCache[entryComment] = ''; } catch (_) {}
         return '';
       }
     },

@@ -1,0 +1,57 @@
+{
+  "type": "GuixuSeriesPackage",
+  "version": "2.5",
+  "author": "ab003317",
+  "series": "This is a testing series",
+  "exportTime": "2025-09-07T03:14:36.351Z",
+  "entries": [
+    {
+      "uid": 706030,
+      "name": "【预设】【This is a testing series】Testing2【ab003317】",
+      "enabled": false,
+      "strategy": {
+        "type": "selective",
+        "keys": [
+          "Testing2"
+        ],
+        "keys_secondary": {
+          "logic": "and_any",
+          "keys": []
+        },
+        "scan_depth": "same_as_global"
+      },
+      "position": {
+        "type": "before_character_definition",
+        "role": "system",
+        "depth": 4,
+        "order": 300
+      },
+      "content": "点数: 40\n系列: This is a testing series\n描述: \n属性分配:\n必选天赋:\n可选天赋:\n",
+      "probability": 100,
+      "recursion": {
+        "prevent_incoming": false,
+        "prevent_outgoing": false,
+        "delay_until": null
+      },
+      "effect": {
+        "sticky": null,
+        "cooldown": null,
+        "delay": null
+      },
+      "addMemo": true,
+      "matchPersonaDescription": false,
+      "matchCharacterDescription": false,
+      "matchCharacterPersonality": false,
+      "matchCharacterDepthPrompt": false,
+      "matchScenario": false,
+      "matchCreatorNotes": false,
+      "group": "",
+      "groupOverride": false,
+      "groupWeight": 100,
+      "caseSensitive": null,
+      "matchWholeWords": null,
+      "useGroupScoring": null,
+      "automationId": ""
+    }
+  ]
+}
