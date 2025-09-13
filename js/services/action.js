@@ -306,6 +306,12 @@
                     case 'equip': actionText = `装备 [${cmd.itemName}] 到 [${cmd.category}] 槽位。`; break;
                     case 'unequip': actionText = `卸下 [${cmd.itemName}] 从 [${cmd.category}] 槽位。`; break;
                     case 'use': actionText = `使用 ${cmd.quantity} 个 [${cmd.itemName}]。`; break;
+                    case 'use_stones': {
+                        // 新增：灵石修炼动作（基础单位：下品灵石）
+                        const amount = Number(cmd.amount || 0);
+                        actionText = `使用 下品灵石 ${amount} 个进行修炼。`;
+                        break;
+                    }
                     case 'discard':
                         actionText = cmd.quantity > 1 ? `丢弃 ${cmd.quantity} 个 [${cmd.itemName}]。` : `丢弃 [${cmd.itemName}]。`;
                         break;

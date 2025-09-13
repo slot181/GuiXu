@@ -95,6 +95,25 @@
   outline: none !important;
 }
 
+/* 移动端：背包面板“灵石”行的“使用”按钮独占一行，避免与余额/单位下拉挤成一行变形 */
+.guixu-root-container.mobile-view #inventory-modal .attributes-list .attribute-item {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.guixu-root-container.mobile-view #inventory-modal #btn-use-stones {
+  display: block !important;
+  width: 100% !important;
+  height: 36px !important;
+  margin-left: 0 !important;
+  margin-top: 6px !important;
+}
+.guixu-root-container.mobile-view #inventory-modal .attribute-name,
+.guixu-root-container.mobile-view #inventory-modal #inventory-stones,
+.guixu-root-container.mobile-view #inventory-modal #inventory-currency-unit {
+  flex: 0 0 auto;
+}
+
 /* --- 背包卡片与内容 --- */
 .inventory-item {
   background: rgba(26, 26, 46, 0.7);

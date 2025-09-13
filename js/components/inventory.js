@@ -31,7 +31,7 @@
               stat_data = sd0;
               console.info('[归墟] 背包：使用 0 楼 mvu 数据只读展示。');
             }
-          } catch (_) {}
+          } catch (_) { }
         }
 
         if (window.GuixuMain && typeof window.GuixuMain._deepStripMeta === 'function') {
@@ -45,7 +45,7 @@
               stat_data = normalized.stat_data;
             }
           }
-        } catch (_) {}
+        } catch (_) { }
 
         if (!stat_data) {
           body.innerHTML = '<p class="modal-placeholder" style="text-align:center; color:#8b7355; font-size:12px;">无法获取背包数据。</p>';
@@ -57,6 +57,8 @@
         this.bindSearch(body);
         this.bindTabs(body);
         this.bindCurrencyUnit(body);
+        // 若清空指令或新增指令导致余额变化，轻量同步一下“灵石余额”展示
+        try { document.dispatchEvent(new CustomEvent('guixu:stateChanged', { detail: { key: 'pendingActions' } })); } catch (_) { }
       } catch (error) {
         console.error('[归墟] 加载背包时出错:', error);
         body.innerHTML = `<p class="modal-placeholder" style="text-align:center; color:#8b7355; font-size:12px;">加载背包时出错: ${error.message}</p>`;
@@ -75,13 +77,19 @@
             stat_data = normalized.stat_data;
           }
         }
-      } catch (_) {}
+      } catch (_) { }
       const h = window.GuixuHelpers;
       const state = window.GuixuState.getState();
-      const stonesVal = Number(h.SafeGetValue(stat_data, '灵石', 0)) || 0;
+      const stonesVal = Number(h.SafeGetValue(stat_data, '灵石', 0)) || 0; // 基础单位：下品灵石
+      // 统计“待处理队列”中的灵石预使用（基础单位：下品灵石）
+      const pendingActions = Array.isArray(state?.pendingActions) ? state.pendingActions : [];
+      const pendingStonesBase = pendingActions
+        .filter(a => a && a.action === 'use_stones')
+        .reduce((t, a) => t + (Number(a.amount) || 0), 0);
+      const stonesBaseDisplay = Math.max(stonesVal - pendingStonesBase, 0);
       const Curr = window.GuixuHelpers.Currency;
       const unit = Curr.getPreferredUnit();
-      const stonesDisplay = `${Curr.formatFromBase(stonesVal, unit, { decimals: 2, compact: true })} ${unit}`;
+      const stonesDisplay = `${Curr.formatFromBase(stonesBaseDisplay, unit, { decimals: 2, compact: true })} ${unit}`;
 
       if (!stat_data || Object.keys(stat_data).length === 0) {
         return '<p class="modal-placeholder" style="text-align:center; color:#8b7355; font-size:12px;">背包数据为空。</p>';
@@ -98,7 +106,7 @@
       ];
 
       // 预计算各分类数量与总数（参考人物关系面板标签计数，并与渲染逻辑一致）
-      const pendingActions = (state?.pendingActions || []);
+      const pendingList = (state?.pendingActions || []);
       const getDisplayableCount = (rawArr, catTitle) => {
         if (!Array.isArray(rawArr)) return 0;
         let count = 0;
@@ -112,10 +120,10 @@
           const hasQuantity = Object.prototype.hasOwnProperty.call(item, 'quantity');
           const quantity = parseInt(h.SafeGetValue(item, 'quantity', 1), 10);
 
-          const pendingUses = pendingActions
+          const pendingUses = pendingList
             .filter(a => a.action === 'use' && a.itemName === name)
             .reduce((t, a) => t + (a.quantity || 0), 0);
-          const pendingDiscards = pendingActions
+          const pendingDiscards = pendingList
             .filter(a => a.action === 'discard' && a.itemName === name)
             .reduce((t, a) => t + (a.quantity || 0), 0);
 
@@ -221,12 +229,15 @@
           <div class="attributes-list" style="padding: 6px 10px;">
             <div class="attribute-item" style="gap:8px; align-items:center;">
               <span class="attribute-name">灵石</span>
-              <span class="attribute-value" id="inventory-stones" data-base="${stonesVal}">${stonesDisplay}</span>
+              <!-- data-base 保存“显示用余额”（已扣除队列中的预使用） -->
+              <span class="attribute-value" id="inventory-stones" data-base="${stonesBaseDisplay}">${stonesDisplay}</span>
               <select id="inventory-currency-unit" class="gx-select" style="height: 26px; padding: 0 8px; background: rgba(26,26,46,0.5); border: 1px solid rgba(201,170,113,0.35); border-radius: 4px; color:#e0dcd1; font-size:12px;">
                 <option value="下品灵石" ${unit === '下品灵石' ? 'selected' : ''}>下品灵石</option>
                 <option value="中品灵石" ${unit === '中品灵石' ? 'selected' : ''}>中品灵石</option>
                 <option value="上品灵石" ${unit === '上品灵石' ? 'selected' : ''}>上品灵石</option>
               </select>
+              <!-- 新增：使用灵石按钮（统一使用全局交互按钮样式） -->
+              <button id="btn-use-stones" class="interaction-btn btn-compact" style="height: 26px; padding: 0 10px; margin-left: 8px;">使用</button>
             </div>
           </div>
         </div>
@@ -262,7 +273,8 @@
 
           sortedItems.forEach(item => {
             try {
-              const itemJson = JSON.stringify(item).replace(/'/g, "'");
+              // 将对象序列化并对内联属性中的危险字符做转义（避免破坏 HTML 属性）
+              const itemJson = JSON.stringify(item).replace(/&/g, '&amp;').replace(/'/g, '&#39;');
 
               const name = h.SafeGetValue(item, 'name', '未知物品');
               const id = h.SafeGetValue(item, 'id', null);
@@ -370,14 +382,13 @@
                   </div>
 
                   <!-- 第三行：可折叠的详细信息（如特殊词条等） -->
-                  ${
-                    itemDetailsHtml
-                      ? `<details class="item-row item-row--details">
+                  ${itemDetailsHtml
+                  ? `<details class="item-row item-row--details">
                           <summary class="item-row--details-summary">详细信息</summary>
                           <div class="item-details">${itemDetailsHtml}</div>
                         </details>`
-                      : ''
-                  }
+                  : ''
+                }
 
                   <!-- 第四行：操作按钮（装备/辅修/丢弃/删除等） -->
                   <div class="item-row item-row--actions">
@@ -405,6 +416,19 @@
     bindEvents(container) {
       const { $ } = window.GuixuDOM;
 
+      // 绑定灵石“使用”按钮（独立防重复标记）
+      if (!container._stonesClickBound) {
+        container._stonesClickBound = true;
+        container.addEventListener('click', async (e) => {
+          const t = e.target;
+          if (t && t.id === 'btn-use-stones') {
+            e.preventDefault();
+            e.stopPropagation();
+            await this.useStones(); // 弹出数量浮窗并加入指令队列
+          }
+        });
+      }
+
       // 防重复绑定：多次 render 后只绑定一次，避免点击一次触发两次事件（导致弹窗出现两次）
       if (container._inventoryClickBound) return;
       container._inventoryClickBound = true;
@@ -416,7 +440,8 @@
 
         let item;
         try {
-          item = JSON.parse(itemElement.dataset.itemDetails.replace(/'/g, "'") || '{}');
+          // 数据集属性在解析为 DOM 后会自动解码实体，因此可直接 JSON.parse
+          item = JSON.parse(itemElement.dataset.itemDetails || '{}');
         } catch {
           item = {};
         }
@@ -520,7 +545,7 @@
         console.warn('[归墟] bindTabs 失败:', e);
       }
     },
- 
+
     // 货币单位绑定（移动端/桌面端通用）
     bindCurrencyUnit(container) {
       try {
@@ -536,10 +561,22 @@
             const unit = Curr.getPreferredUnit();
             // 同步所有面板中的下拉选择
             document.querySelectorAll('#inventory-currency-unit').forEach(sel => { sel.value = unit; });
+            // 计算最新灵石余额（基础单位）= MVU原始 - 待处理“use_stones”之和
+            let stonesBase = 0;
+            try {
+              const stat = window.GuixuState?.getState?.().currentMvuState?.stat_data || null;
+              stonesBase = Number(window.GuixuHelpers.SafeGetValue(stat, '灵石', 0)) || 0;
+            } catch (_) {}
+            let pendingBase = 0;
+            try {
+              const pend = window.GuixuState?.getState?.().pendingActions || [];
+              pendingBase = pend.filter(a => a && a.action === 'use_stones').reduce((t, a) => t + (Number(a.amount) || 0), 0);
+            } catch (_) {}
+            const displayBase = Math.max(stonesBase - pendingBase, 0);
             // 同步所有面板中的灵石余额
             document.querySelectorAll('#inventory-stones').forEach(span => {
-              const base = Number(span.getAttribute('data-base') || '0') || 0;
-              span.textContent = `${Curr.formatFromBase(base, unit, { decimals: 2, compact: true })} ${unit}`;
+              try { span.setAttribute('data-base', String(displayBase)); } catch (_) {}
+              span.textContent = `${Curr.formatFromBase(displayBase, unit, { decimals: 2, compact: true })} ${unit}`;
             });
             // 同步所有物品价值展示
             document.querySelectorAll('.inventory-item .item-value[data-base]').forEach(el => {
@@ -549,6 +586,15 @@
           };
 
           document.addEventListener('guixu:currencyUnitChanged', updateAll, { passive: true });
+          // 新增：当指令队列或MVU状态变更时，刷新灵石余额展示（用于“清空指令/新增指令”实时反馈）
+          document.addEventListener('guixu:stateChanged', (ev) => {
+            try {
+              const key = ev?.detail?.key;
+              if (key === 'pendingActions' || key === 'currentMvuState') updateAll();
+            } catch (_) {}
+          }, { passive: true });
+          // 初始执行一次，确保面板打开时与最新余额对齐
+          try { updateAll(); } catch (_) {}
         };
         ensureGlobal();
 
@@ -577,7 +623,7 @@
         console.warn('[归墟] bindCurrencyUnit 失败:', e);
       }
     },
- 
+
     // 数值紧凑格式（大数避免挤压UI）：使用 万 / 亿 缩写，最多2位小数
     formatNumberCompact(n) {
       try {
@@ -629,7 +675,7 @@
           delete swapBuffer[slotKey];
         }
         window.GuixuState.update('equipSwapBuffer', swapBuffer);
-      } catch (_) {}
+      } catch (_) { }
 
       // 如果目标槽位已有装备，先卸下
       if (equipped[slotKey]) {
@@ -648,10 +694,11 @@
         slotEl.textContent = h.SafeGetValue(item, 'name');
         slotEl.setAttribute('style', tierStyle);
         slotEl.classList.add('equipped');
-        slotEl.dataset.itemDetails = JSON.stringify(item).replace(/'/g, "'");
+        // 直接写入 dataset，避免重复/无效的替换
+        slotEl.dataset.itemDetails = JSON.stringify(item);
       }
 
-            // 实时写入：装备对象到槽位，并从对应背包列表中删除（对象字典优先）
+      // 实时写入：装备对象到槽位，并从对应背包列表中删除（对象字典优先）
       await this.applyEquipTransaction(slotKey, item, category, equipType);
 
       // 加入指令队列
@@ -673,7 +720,7 @@
       window.GuixuHelpers.showTemporaryMessage(`已装备 ${window.GuixuHelpers.SafeGetValue(item, 'name')}`);
 
       // 在刷新 UI 前，确保合并写回已完成，避免读到旧的 stat_data
-      if (window.GuixuMvuIO?.flushNow) { try { await window.GuixuMvuIO.flushNow(); } catch (_) {} }
+      if (window.GuixuMvuIO?.flushNow) { try { await window.GuixuMvuIO.flushNow(); } catch (_) { } }
       // 重新渲染
       await this.show();
       // 刷新属性展示（若需要）
@@ -696,7 +743,7 @@
       try {
         itemObj = JSON.parse((slotEl.dataset.itemDetails || '').replace(/'/g, "'") || '{}');
         itemName = h.SafeGetValue(itemObj, 'name', itemName);
-      } catch {}
+      } catch { }
 
       const defaultTextMap = {
         wuqi: '武器',
@@ -721,8 +768,9 @@
           slotEl.textContent = h.SafeGetValue(swapPrev, 'name');
           slotEl.setAttribute('style', prevStyle);
           slotEl.classList.add('equipped');
-          slotEl.dataset.itemDetails = JSON.stringify(swapPrev).replace(/'/g, "'");
-        } catch (_) {}
+          // 直接写入 dataset，避免重复/无效的替换
+          slotEl.dataset.itemDetails = JSON.stringify(swapPrev);
+        } catch (_) { }
 
         // 将当前“新物品”（正要卸下的）放回背包（仅回退到背包列表，不清空槽位）
         await this.addItemBackToInventory(slotKey, itemObj);
@@ -742,19 +790,19 @@
             return true;
           });
           window.GuixuState.update('pendingActions', cleaned);
-        } catch (_) {}
+        } catch (_) { }
 
         // 清空该槽位的回退缓存
         try {
           const buf = { ...(state.equipSwapBuffer || {}) };
           delete buf[slotKey];
           window.GuixuState.update('equipSwapBuffer', buf);
-        } catch (_) {}
+        } catch (_) { }
 
         window.GuixuHelpers.showTemporaryMessage(`已取消卸下，恢复 ${h.SafeGetValue(swapPrev, 'name', '原物品')}`);
 
         if (refresh) {
-          if (window.GuixuMvuIO?.flushNow) { try { await window.GuixuMvuIO.flushNow(); } catch (_) {} }
+          if (window.GuixuMvuIO?.flushNow) { try { await window.GuixuMvuIO.flushNow(); } catch (_) { } }
           await this.show();
         }
         if (window.GuixuAttributeService?.updateDisplay) window.GuixuAttributeService.updateDisplay();
@@ -781,7 +829,7 @@
       window.GuixuHelpers.showTemporaryMessage(`已卸下 ${itemName}`);
 
       if (refresh) {
-        if (window.GuixuMvuIO?.flushNow) { try { await window.GuixuMvuIO.flushNow(); } catch (_) {} }
+        if (window.GuixuMvuIO?.flushNow) { try { await window.GuixuMvuIO.flushNow(); } catch (_) { } }
         await this.show();
       }
       if (window.GuixuAttributeService?.updateDisplay) window.GuixuAttributeService.updateDisplay();
@@ -851,9 +899,80 @@
       // 仅在确认后刷新UI
       await this.show();
     },
+    // 新增逻辑：使用“灵石”（基础单位：下品灵石）
+    useStones: async function () {
+      const h = window.GuixuHelpers;
+      const Curr = window.GuixuHelpers.Currency;
+      const state = window.GuixuState.getState();
+
+      // 获取当前灵石（基础单位），优先从缓存的 currentMvuState 读取，兜底从楼层读取
+      let stonesBase = 0;
+      try {
+        const stat = state?.currentMvuState?.stat_data || null;
+        if (stat) {
+          stonesBase = Number(h.SafeGetValue(stat, '灵石', 0)) || 0;
+        } else {
+          const currentId = window.GuixuAPI.getCurrentMessageId();
+          const messages = await window.GuixuAPI.getChatMessages(currentId);
+          const sd = messages?.[0]?.data?.stat_data || {};
+          stonesBase = Number(h.SafeGetValue(sd, '灵石', 0)) || 0;
+        }
+      } catch (_) { }
+
+      // 计算可用余额（扣除已加入队列的“预使用”）
+      const pending = Array.isArray(state?.pendingActions) ? [...state.pendingActions] : [];
+      const pendingBase = pending.filter(a => a.action === 'use_stones').reduce((t, a) => t + (Number(a.amount) || 0), 0);
+      const availableBase = Math.max(stonesBase - pendingBase, 0);
+
+      if (availableBase <= 0) {
+        h.showTemporaryMessage('灵石不足或已全部加入指令队列');
+        return;
+      }
+
+      // 使用全局数字输入弹窗，单位固定为“下品灵石”
+      let amountBase = null;
+      const msg = `请输入用于修炼的灵石数量（单位：下品灵石），可用：${availableBase}`;
+      try {
+        if (window.GuixuMain?.showNumberPrompt) {
+          amountBase = await window.GuixuMain.showNumberPrompt({
+            title: '使用灵石修炼',
+            message: msg,
+            min: 1,
+            max: availableBase,
+            defaultValue: 1
+          });
+        } else {
+          const input = prompt(`请输入用于修炼的灵石数量（下品灵石，1-${availableBase}）：`, '1');
+          const n = parseInt(String(input || ''), 10);
+          amountBase = Number.isFinite(n) ? n : null;
+        }
+      } catch (_) {
+        amountBase = null;
+      }
+
+      if (!Number.isFinite(amountBase) || amountBase === null) {
+        h.showTemporaryMessage('已取消');
+        return;
+      }
+      if (amountBase <= 0 || amountBase > availableBase) {
+        h.showTemporaryMessage('无效的数量');
+        return;
+      }
+
+      // 合并到 pendingActions 中（聚合 use_stones）
+      const exist = pending.find(a => a.action === 'use_stones');
+      if (exist) exist.amount = (Number(exist.amount) || 0) + amountBase;
+      else pending.push({ action: 'use_stones', amount: amountBase });
+
+      window.GuixuState.update('pendingActions', pending);
+
+      // 反馈与刷新
+      h.showTemporaryMessage(`已将 [使用 ${amountBase} 个下品灵石修炼] 加入指令队列`);
+      await this.show();
+    },
 
     // 逻辑：丢弃（数量类/装备类）
-    async discardItem(item, category) {
+    discardItem: async function (item, category) {
       const hasQuantity = Object.prototype.hasOwnProperty.call(item, 'quantity');
       if (hasQuantity && (category === '丹药' || category === '杂物')) {
         // 简化：采用浏览器 prompt
@@ -879,322 +998,386 @@
         await this.confirmDiscardItem(item, category, qty);
       } else {
         await this.confirmDiscardItem(item, category, 1);
-      }
-    },
+      }},
+ 
+      confirmDiscardItem: async function(item, category, quantity = 1) {
+        const h = window.GuixuHelpers;
+        const name = h.SafeGetValue(item, 'name');
 
-    async confirmDiscardItem(item, category, quantity = 1) {
-      const h = window.GuixuHelpers;
-      const name = h.SafeGetValue(item, 'name');
+        const state = window.GuixuState.getState();
+        const pending = [...(state.pendingActions || [])];
+        pending.push({ action: 'discard', itemName: name, category, quantity });
 
-      const state = window.GuixuState.getState();
-      const pending = [...(state.pendingActions || [])];
-      pending.push({ action: 'discard', itemName: name, category, quantity });
+        window.GuixuState.update('pendingActions', pending);
 
-      window.GuixuState.update('pendingActions', pending);
+        if (quantity > 1) h.showTemporaryMessage(`已将 [丢弃 ${quantity} 个 ${name}] 加入指令队列`);
+        else h.showTemporaryMessage(`已将 [丢弃 ${name}] 加入指令队列`);
 
-      if (quantity > 1) h.showTemporaryMessage(`已将 [丢弃 ${quantity} 个 ${name}] 加入指令队列`);
-      else h.showTemporaryMessage(`已将 [丢弃 ${name}] 加入指令队列`);
-
-      await this.show();
-    },
+        await this.show();
+      },
 
     // 逻辑：删除（直接修改数据）
     async deleteItem(item, category) {
-      const h = window.GuixuHelpers;
-      const itemName = h.SafeGetValue(item, 'name', '未知物品');
-      const itemId = h.SafeGetValue(item, 'id');
+        const h = window.GuixuHelpers;
+        const itemName = h.SafeGetValue(item, 'name', '未知物品');
+        const itemId = h.SafeGetValue(item, 'id');
 
-      const confirmed = await new Promise(resolve => 
-        window.GuixuMain.showCustomConfirm(
-          `确定要删除【${itemName}】吗？此操作不可逆，将直接从角色数据中移除，且不会通知AI。`,
-          () => resolve(true),
-          () => resolve(false)
-        )
-      );
+        const confirmed = await new Promise(resolve =>
+          window.GuixuMain.showCustomConfirm(
+            `确定要删除【${itemName}】吗？此操作不可逆，将直接从角色数据中移除，且不会通知AI。`,
+            () => resolve(true),
+            () => resolve(false)
+          )
+        );
 
-      if (!confirmed) {
-        h.showTemporaryMessage('操作已取消');
-        return;
-      }
-
-      try {
-        // 1. 获取当前最新的 stat_data
-        const messages = await window.GuixuAPI.getChatMessages(window.GuixuAPI.getCurrentMessageId());
-        if (!messages || !messages[0] || !messages[0].data || !messages[0].data.stat_data) {
-          throw new Error('无法获取角色数据。');
-        }
-        const currentMvuState = messages[0].data;
-        const stat_data = currentMvuState.stat_data;
-
-        // 2. 找到对应的列表并删除项目
-        const categoryMap = {
-          '功法': '功法列表', '武器': '武器列表', '防具': '防具列表',
-          '饰品': '饰品列表', '法宝': '法宝列表', '丹药': '丹药列表', '杂物': '其他列表'
-        };
-        const listKey = categoryMap[category];
-        if (!listKey || !stat_data[listKey]) {
-          throw new Error(`找不到对应的物品列表: ${listKey}`);
+        if (!confirmed) {
+          h.showTemporaryMessage('操作已取消');
+          return;
         }
 
-        let deleted = false;
-        // 统一转换为“对象字典”容器后再删除（兼容旧数组包装）
-        const ensureObjectDict = (lv) => {
-          if (Array.isArray(lv)) {
-            const arr = lv[0] || [];
-            const obj = { $meta: { extensible: true } };
-            const used = new Set();
-            arr.forEach((i, idx) => {
-              let v = i;
-              if (typeof v === 'string') { try { v = JSON.parse(v); } catch (_) {} }
-              if (!v || typeof v !== 'object') return;
-              const name = window.GuixuHelpers.SafeGetValue(v, 'name', null);
-              const id = window.GuixuHelpers.SafeGetValue(v, 'id', null);
-              let key = (name && name !== 'N/A') ? String(name) : (id != null ? String(id) : `条目${idx+1}`);
-              while (Object.prototype.hasOwnProperty.call(obj, key) || used.has(key)) { key = `${key}_`; }
-              used.add(key);
-              obj[key] = v;
-            });
-            return obj;
-          }
-          if (!lv || typeof lv !== 'object') return { $meta: { extensible: true } };
-          if (!lv.$meta) { try { lv.$meta = { extensible: true }; } catch (_) {} }
-          return lv;
-        };
-        const obj = ensureObjectDict(stat_data[listKey]);
-        stat_data[listKey] = obj;
-        const keys = Object.keys(obj).filter(k => k !== '$meta');
-        for (const k of keys) {
-          try {
-            let v = obj[k];
-            if (typeof v === 'string') { try { v = JSON.parse(v); } catch (_) {} }
-            if (!v || typeof v !== 'object') continue;
-            if ((itemId && itemId !== 'N/A' && v.id === itemId) || v.name === itemName) {
-              delete obj[k];
-              deleted = true;
-              break;
-            }
-          } catch (_) {}
-        }
-
-        if (!deleted) {
-          throw new Error(`在列表中未找到物品: ${itemName}`);
-        }
-
-        // 3. 将修改后的数据写回
-        await window.GuixuAPI.setChatMessages([{
-          message_id: 0,
-          data: currentMvuState,
-        }], { refresh: 'none' });
-
-        // 若该物品正被装备，立即清空对应槽位（变量 + 状态 + UI）
         try {
-          const state = window.GuixuState.getState();
-          const equipped = { ...(state.equippedItems || {}) };
-          const slots = ['wuqi', 'fangju', 'shipin', 'fabao1', 'zhuxiuGongfa', 'fuxiuXinfa'];
-          for (const slotKey of slots) {
-            const eq = equipped[slotKey];
-            if (eq && ((itemId && eq.id === itemId) || eq.name === itemName)) {
-              equipped[slotKey] = null;
-              // 写回变量
-              await this.persistEquipmentToVariables(slotKey, null);
-              // 更新槽位UI（兜底，避免等待全量刷新）
-              const $ = (sel, ctx = document) => ctx.querySelector(sel);
-              const slotEl = $(`#equip-${slotKey}`);
-              if (slotEl) {
-                const defaultTextMap = {
-                  wuqi: '武器',
-                  fangju: '防具',
-                  shipin: '饰品',
-                  fabao1: '法宝',
-                  zhuxiuGongfa: '主修功法',
-                  fuxiuXinfa: '辅修心法',
-                };
-                slotEl.textContent = defaultTextMap[slotKey] || '空';
-                slotEl.classList.remove('equipped');
-                slotEl.removeAttribute('style');
-                delete slotEl.dataset.itemDetails;
+          // 1. 获取当前最新的 stat_data
+          const messages = await window.GuixuAPI.getChatMessages(window.GuixuAPI.getCurrentMessageId());
+          if (!messages || !messages[0] || !messages[0].data || !messages[0].data.stat_data) {
+            throw new Error('无法获取角色数据。');
+          }
+          const currentMvuState = messages[0].data;
+          const stat_data = currentMvuState.stat_data;
+
+          // 2. 找到对应的列表并删除项目
+          const categoryMap = {
+            '功法': '功法列表', '武器': '武器列表', '防具': '防具列表',
+            '饰品': '饰品列表', '法宝': '法宝列表', '丹药': '丹药列表', '杂物': '其他列表'
+          };
+          const listKey = categoryMap[category];
+          if (!listKey || !stat_data[listKey]) {
+            throw new Error(`找不到对应的物品列表: ${listKey}`);
+          }
+
+          let deleted = false;
+          // 统一转换为“对象字典”容器后再删除（兼容旧数组包装）
+          const ensureObjectDict = (lv) => {
+            if (Array.isArray(lv)) {
+              const arr = lv[0] || [];
+              const obj = { $meta: { extensible: true } };
+              const used = new Set();
+              arr.forEach((i, idx) => {
+                let v = i;
+                if (typeof v === 'string') { try { v = JSON.parse(v); } catch (_) { } }
+                if (!v || typeof v !== 'object') return;
+                const name = window.GuixuHelpers.SafeGetValue(v, 'name', null);
+                const id = window.GuixuHelpers.SafeGetValue(v, 'id', null);
+                let key = (name && name !== 'N/A') ? String(name) : (id != null ? String(id) : `条目${idx + 1}`);
+                while (Object.prototype.hasOwnProperty.call(obj, key) || used.has(key)) { key = `${key}_`; }
+                used.add(key);
+                obj[key] = v;
+              });
+              return obj;
+            }
+            if (!lv || typeof lv !== 'object') return { $meta: { extensible: true } };
+            if (!lv.$meta) { try { lv.$meta = { extensible: true }; } catch (_) { } }
+            return lv;
+          };
+          const obj = ensureObjectDict(stat_data[listKey]);
+          stat_data[listKey] = obj;
+          const keys = Object.keys(obj).filter(k => k !== '$meta');
+          for (const k of keys) {
+            try {
+              let v = obj[k];
+              if (typeof v === 'string') { try { v = JSON.parse(v); } catch (_) { } }
+              if (!v || typeof v !== 'object') continue;
+              if ((itemId && itemId !== 'N/A' && v.id === itemId) || v.name === itemName) {
+                delete obj[k];
+                deleted = true;
+                break;
+              }
+            } catch (_) { }
+          }
+
+          if (!deleted) {
+            throw new Error(`在列表中未找到物品: ${itemName}`);
+          }
+
+          // 3. 将修改后的数据写回
+          await window.GuixuAPI.setChatMessages([{
+            message_id: 0,
+            data: currentMvuState,
+          }], { refresh: 'none' });
+
+          // 若该物品正被装备，立即清空对应槽位（变量 + 状态 + UI）
+          try {
+            const state = window.GuixuState.getState();
+            const equipped = { ...(state.equippedItems || {}) };
+            const slots = ['wuqi', 'fangju', 'shipin', 'fabao1', 'zhuxiuGongfa', 'fuxiuXinfa'];
+            for (const slotKey of slots) {
+              const eq = equipped[slotKey];
+              if (eq && ((itemId && eq.id === itemId) || eq.name === itemName)) {
+                equipped[slotKey] = null;
+                // 写回变量
+                await this.persistEquipmentToVariables(slotKey, null);
+                // 更新槽位UI（兜底，避免等待全量刷新）
+                const $ = (sel, ctx = document) => ctx.querySelector(sel);
+                const slotEl = $(`#equip-${slotKey}`);
+                if (slotEl) {
+                  const defaultTextMap = {
+                    wuqi: '武器',
+                    fangju: '防具',
+                    shipin: '饰品',
+                    fabao1: '法宝',
+                    zhuxiuGongfa: '主修功法',
+                    fuxiuXinfa: '辅修心法',
+                  };
+                  slotEl.textContent = defaultTextMap[slotKey] || '空';
+                  slotEl.classList.remove('equipped');
+                  slotEl.removeAttribute('style');
+                  delete slotEl.dataset.itemDetails;
+                }
               }
             }
+            window.GuixuState.update('equippedItems', equipped);
+          } catch (clearErr) {
+            console.warn('[归墟] 删除物品后清理装备槽位失败:', clearErr);
           }
-          window.GuixuState.update('equippedItems', equipped);
-        } catch (clearErr) {
-          console.warn('[归墟] 删除物品后清理装备槽位失败:', clearErr);
+
+          h.showTemporaryMessage(`【${itemName}】已删除。`);
+
+          // 4. 刷新UI
+          await this.show();
+          // 同步主界面
+          if (window.GuixuMain?.updateDynamicData) {
+            window.GuixuMain.updateDynamicData();
+          }
+
+        } catch (error) {
+          console.error('删除物品时出错:', error);
+          h.showTemporaryMessage(`删除失败: ${error.message}`);
         }
-
-        h.showTemporaryMessage(`【${itemName}】已删除。`);
-
-        // 4. 刷新UI
-        await this.show();
-        // 同步主界面
-        if (window.GuixuMain?.updateDynamicData) {
-          window.GuixuMain.updateDynamicData();
-        }
-
-      } catch (error) {
-        console.error('删除物品时出错:', error);
-        h.showTemporaryMessage(`删除失败: ${error.message}`);
-      }
-    },
+      },
 
     // 将装备变动实时写入到酒馆变量（通过合并/节流的 MvuIO，避免竞态覆盖）
     async persistEquipmentToVariables(slotKey, itemOrNull) {
-      try {
-        const mvuKey = this.getMvuKeyForSlotKey(slotKey, (window.GuixuState?.getState?.().currentMvuState?.stat_data) || {});
-        if (!mvuKey || !window.GuixuMvuIO?.scheduleStatUpdate) return;
+        try {
+          const mvuKey = this.getMvuKeyForSlotKey(slotKey, (window.GuixuState?.getState?.().currentMvuState?.stat_data) || {});
+          if (!mvuKey || !window.GuixuMvuIO?.scheduleStatUpdate) return;
 
-        const payload = (itemOrNull && typeof itemOrNull === 'object') ? itemOrNull : null;
-        window.GuixuMvuIO.scheduleStatUpdate((stat) => {
-          stat[mvuKey] = payload;
-        }, { reason: 'equip:persist' });
-      } catch (e) {
-        console.warn('[归墟] persistEquipmentToVariables 失败:', e);
-      }
-    },
+          const payload = (itemOrNull && typeof itemOrNull === 'object') ? itemOrNull : null;
+          window.GuixuMvuIO.scheduleStatUpdate((stat) => {
+            stat[mvuKey] = payload;
+          }, { reason: 'equip:persist' });
+        } catch (e) {
+          console.warn('[归墟] persistEquipmentToVariables 失败:', e);
+        }
+      },
 
-    // 新增：根据物品/分类推断背包列表键（对象字典结构）
-    _getInventoryListKey(item, category) {
-      try {
-        const mapByCat = {
-          '功法': '功法列表',
-          '武器': '武器列表',
-          '防具': '防具列表',
-          '饰品': '饰品列表',
-          '法宝': '法宝列表',
-          '丹药': '丹药列表',
-          '杂物': '其他列表',
-          '其他': '其他列表',
-        };
-        const t = (item && (item.type || item['类型'])) || '';
-        if (mapByCat[t]) return mapByCat[t];
-        if (mapByCat[category]) return mapByCat[category];
-        return null;
-      } catch (_) {
-        return null;
-      }
-    },
+      // 新增：根据物品/分类推断背包列表键（对象字典结构）
+      _getInventoryListKey(item, category) {
+        try {
+          const mapByCat = {
+            '功法': '功法列表',
+            '武器': '武器列表',
+            '防具': '防具列表',
+            '饰品': '饰品列表',
+            '法宝': '法宝列表',
+            '丹药': '丹药列表',
+            '杂物': '其他列表',
+            '其他': '其他列表',
+          };
+          const t = (item && (item.type || item['类型'])) || '';
+          if (mapByCat[t]) return mapByCat[t];
+          if (mapByCat[category]) return mapByCat[category];
+          return null;
+        } catch (_) {
+          return null;
+        }
+      },
 
     // 新增：装备事务（写入槽位 + 从背包列表删除）——改为通过 MvuIO 合并写入，避免与其它写回竞态
     async applyEquipTransaction(slotKey, item, category = null, equipType = null) {
-      try {
-        const mvuKey = this.getMvuKeyForSlotKey(slotKey, (window.GuixuState?.getState?.().currentMvuState?.stat_data) || {});
-        if (!mvuKey || !window.GuixuMvuIO?.scheduleStatUpdate) return;
+        try {
+          const mvuKey = this.getMvuKeyForSlotKey(slotKey, (window.GuixuState?.getState?.().currentMvuState?.stat_data) || {});
+          if (!mvuKey || !window.GuixuMvuIO?.scheduleStatUpdate) return;
 
-        const listKey = this._getInventoryListKey(item, category);
-        const itemId = window.GuixuHelpers.SafeGetValue(item, 'id', null);
-        const itemName = window.GuixuHelpers.SafeGetValue(item, 'name', null);
+          const listKey = this._getInventoryListKey(item, category);
+          const itemId = window.GuixuHelpers.SafeGetValue(item, 'id', null);
+          const itemName = window.GuixuHelpers.SafeGetValue(item, 'name', null);
 
-        const ensureObjectDict = (lv) => {
-          if (Array.isArray(lv)) {
-            const arr = lv[0] || [];
-            const obj = { $meta: { extensible: true } };
-            const used = new Set();
-            arr.forEach((i, idx) => {
-              let v = i;
-              if (typeof v === 'string') { try { v = JSON.parse(v); } catch (_) {} }
-              if (!v || typeof v !== 'object') return;
-              const name = window.GuixuHelpers.SafeGetValue(v, 'name', null);
-              const id = window.GuixuHelpers.SafeGetValue(v, 'id', null);
-              let key = (name && name !== 'N/A') ? String(name) : (id != null ? String(id) : `条目${idx+1}`);
-              while (Object.prototype.hasOwnProperty.call(obj, key) || used.has(key)) { key = `${key}_`; }
-              used.add(key);
-              obj[key] = v;
-            });
-            return obj;
-          }
-          if (!lv || typeof lv !== 'object') return { $meta: { extensible: true } };
-          if (!lv.$meta) { try { lv.$meta = { extensible: true }; } catch (_) {} }
-          return lv;
-        };
-
-        window.GuixuMvuIO.scheduleStatUpdate((stat) => {
-          // 1) 槽位写入对象
-          stat[mvuKey] = (item && typeof item === 'object') ? item : null;
-
-          // 2) 从背包列表删除同一件物品（按 id 优先，退回 name）
-          if (listKey && stat[listKey] != null) {
-            const listVal = ensureObjectDict(stat[listKey]);
-            stat[listKey] = listVal;
-            const keys = Object.keys(listVal).filter(k => k !== '$meta');
-            for (const k of keys) {
-              try {
-                let v = listVal[k];
-                if (typeof v === 'string') { try { v = JSON.parse(v); } catch (_) {} }
-                if (v && typeof v === 'object' && ((itemId && v.id === itemId) || v.name === itemName)) {
-                  delete listVal[k];
-                  break;
-                }
-              } catch (_) {}
+          const ensureObjectDict = (lv) => {
+            if (Array.isArray(lv)) {
+              const arr = lv[0] || [];
+              const obj = { $meta: { extensible: true } };
+              const used = new Set();
+              arr.forEach((i, idx) => {
+                let v = i;
+                if (typeof v === 'string') { try { v = JSON.parse(v); } catch (_) { } }
+                if (!v || typeof v !== 'object') return;
+                const name = window.GuixuHelpers.SafeGetValue(v, 'name', null);
+                const id = window.GuixuHelpers.SafeGetValue(v, 'id', null);
+                let key = (name && name !== 'N/A') ? String(name) : (id != null ? String(id) : `条目${idx + 1}`);
+                while (Object.prototype.hasOwnProperty.call(obj, key) || used.has(key)) { key = `${key}_`; }
+                used.add(key);
+                obj[key] = v;
+              });
+              return obj;
             }
-          }
-        }, { reason: 'equip:transaction' });
-      } catch (e) {
-        console.warn('[归墟] applyEquipTransaction 失败:', e);
-      }
-    },
+            if (!lv || typeof lv !== 'object') return { $meta: { extensible: true } };
+            if (!lv.$meta) { try { lv.$meta = { extensible: true }; } catch (_) { } }
+            return lv;
+          };
+
+          window.GuixuMvuIO.scheduleStatUpdate((stat) => {
+            // 1) 槽位写入对象
+            stat[mvuKey] = (item && typeof item === 'object') ? item : null;
+
+            // 2) 从背包列表删除同一件物品（按 id 优先，退回 name）
+            if (listKey && stat[listKey] != null) {
+              const listVal = ensureObjectDict(stat[listKey]);
+              stat[listKey] = listVal;
+              const keys = Object.keys(listVal).filter(k => k !== '$meta');
+              for (const k of keys) {
+                try {
+                  let v = listVal[k];
+                  if (typeof v === 'string') { try { v = JSON.parse(v); } catch (_) { } }
+                  if (v && typeof v === 'object' && ((itemId && v.id === itemId) || v.name === itemName)) {
+                    delete listVal[k];
+                    break;
+                  }
+                } catch (_) { }
+              }
+            }
+          }, { reason: 'equip:transaction' });
+        } catch (e) {
+          console.warn('[归墟] applyEquipTransaction 失败:', e);
+        }
+      },
 
     // 新增：卸下事务（清空槽位 + 回退到背包列表）——通过 MvuIO 合并写入
     async applyUnequipTransaction(slotKey, item) {
-      try {
-        if (!window.GuixuMvuIO?.scheduleStatUpdate) {
-          // 回退：仅清空槽位
-          await this.persistEquipmentToVariables(slotKey, null);
-          return;
-        }
-        const mvuKey = this.getMvuKeyForSlotKey(slotKey, (window.GuixuState?.getState?.().currentMvuState?.stat_data) || {});
-        if (!mvuKey) {
-          await this.persistEquipmentToVariables(slotKey, null);
-          return;
-        }
-
-        // 兜底列表键
-        const fallbackMap = {
-          wuqi: '武器列表',
-          fangju: '防具列表',
-          shipin: '饰品列表',
-          fabao1: '法宝列表',
-          zhuxiuGongfa: '功法列表',
-          fuxiuXinfa: '功法列表',
-        };
-        const listKeyGuess = this._getInventoryListKey(item, null) || fallbackMap[slotKey] || null;
-
-        const ensureObjectDict = (lv) => {
-          if (Array.isArray(lv)) {
-            const arr = lv[0] || [];
-            const obj = { $meta: { extensible: true } };
-            const used = new Set();
-            arr.forEach((i, idx) => {
-              let v = i;
-              if (typeof v === 'string') { try { v = JSON.parse(v); } catch (_) {} }
-              if (!v || typeof v !== 'object') return;
-              const name = window.GuixuHelpers.SafeGetValue(v, 'name', null);
-              const id = window.GuixuHelpers.SafeGetValue(v, 'id', null);
-              let key = (name && name !== 'N/A') ? String(name) : (id != null ? String(id) : `条目${idx+1}`);
-              while (Object.prototype.hasOwnProperty.call(obj, key) || used.has(key)) { key = `${key}_`; }
-              used.add(key);
-              obj[key] = v;
-            });
-            return obj;
+        try {
+          if (!window.GuixuMvuIO?.scheduleStatUpdate) {
+            // 回退：仅清空槽位
+            await this.persistEquipmentToVariables(slotKey, null);
+            return;
           }
-          if (!lv || typeof lv !== 'object') return { $meta: { extensible: true } };
-          if (!lv.$meta) { try { lv.$meta = { extensible: true }; } catch (_) {} }
-          return lv;
-        };
+          const mvuKey = this.getMvuKeyForSlotKey(slotKey, (window.GuixuState?.getState?.().currentMvuState?.stat_data) || {});
+          if (!mvuKey) {
+            await this.persistEquipmentToVariables(slotKey, null);
+            return;
+          }
 
-        window.GuixuMvuIO.scheduleStatUpdate((stat) => {
-          // 1) 清空槽位
-          stat[mvuKey] = null;
+          // 兜底列表键
+          const fallbackMap = {
+            wuqi: '武器列表',
+            fangju: '防具列表',
+            shipin: '饰品列表',
+            fabao1: '法宝列表',
+            zhuxiuGongfa: '功法列表',
+            fuxiuXinfa: '功法列表',
+          };
+          const listKeyGuess = this._getInventoryListKey(item, null) || fallbackMap[slotKey] || null;
 
-          // 2) 放回背包列表
-          if (item && typeof item === 'object' && listKeyGuess) {
-            const dict = ensureObjectDict(stat[listKeyGuess]);
-            stat[listKeyGuess] = dict;
+          const ensureObjectDict = (lv) => {
+            if (Array.isArray(lv)) {
+              const arr = lv[0] || [];
+              const obj = { $meta: { extensible: true } };
+              const used = new Set();
+              arr.forEach((i, idx) => {
+                let v = i;
+                if (typeof v === 'string') { try { v = JSON.parse(v); } catch (_) { } }
+                if (!v || typeof v !== 'object') return;
+                const name = window.GuixuHelpers.SafeGetValue(v, 'name', null);
+                const id = window.GuixuHelpers.SafeGetValue(v, 'id', null);
+                let key = (name && name !== 'N/A') ? String(name) : (id != null ? String(id) : `条目${idx + 1}`);
+                while (Object.prototype.hasOwnProperty.call(obj, key) || used.has(key)) { key = `${key}_`; }
+                used.add(key);
+                obj[key] = v;
+              });
+              return obj;
+            }
+            if (!lv || typeof lv !== 'object') return { $meta: { extensible: true } };
+            if (!lv.$meta) { try { lv.$meta = { extensible: true }; } catch (_) { } }
+            return lv;
+          };
 
+          window.GuixuMvuIO.scheduleStatUpdate((stat) => {
+            // 1) 清空槽位
+            stat[mvuKey] = null;
+
+            // 2) 放回背包列表
+            if (item && typeof item === 'object' && listKeyGuess) {
+              const dict = ensureObjectDict(stat[listKeyGuess]);
+              stat[listKeyGuess] = dict;
+
+              const id = window.GuixuHelpers.SafeGetValue(item, 'id', null);
+              const name = window.GuixuHelpers.SafeGetValue(item, 'name', null);
+              const keys = Object.keys(dict).filter(k => k !== '$meta');
+              const hasSame = keys.some(k => {
+                let v = dict[k];
+                if (typeof v === 'string') { try { v = JSON.parse(v); } catch (_) { } }
+                return v && typeof v === 'object' && ((id && v.id === id) || v.name === name);
+              });
+              if (!hasSame) {
+                let keyName = (name && name !== 'N/A') ? String(name) : (id != null ? String(id) : '物品');
+                while (Object.prototype.hasOwnProperty.call(dict, keyName)) { keyName = `${keyName}_`; }
+                dict[keyName] = item;
+              }
+            }
+          }, { reason: 'equip:unequip' });
+        } catch (e) {
+          console.warn('[归墟] applyUnequipTransaction 失败:', e);
+        }
+      },
+
+    // 新增：仅将物品回退到背包（不清空槽位；用于撤销换装时，避免新物品“消失”）——通过 MvuIO 合并写入
+    async addItemBackToInventory(slotKey, item) {
+        try {
+          if (!item || typeof item !== 'object') return;
+          if (!window.GuixuMvuIO?.scheduleStatUpdate) return;
+
+          const fallbackMap = {
+            wuqi: '武器列表',
+            fangju: '防具列表',
+            shipin: '饰品列表',
+            fabao1: '法宝列表',
+            zhuxiuGongfa: '功法列表',
+            fuxiuXinfa: '功法列表',
+          };
+          let listKey = this._getInventoryListKey(item, null) || fallbackMap[slotKey] || null;
+          if (!listKey) return;
+
+          const ensureObjectDict = (lv) => {
+            if (Array.isArray(lv)) {
+              const arr = lv[0] || [];
+              const obj = { $meta: { extensible: true } };
+              const used = new Set();
+              arr.forEach((i, idx) => {
+                let v = i;
+                if (typeof v === 'string') { try { v = JSON.parse(v); } catch (_) { } }
+                if (!v || typeof v !== 'object') return;
+                const name = window.GuixuHelpers.SafeGetValue(v, 'name', null);
+                const id = window.GuixuHelpers.SafeGetValue(v, 'id', null);
+                let key = (name && name !== 'N/A') ? String(name) : (id != null ? String(id) : `条目${idx + 1}`);
+                while (Object.prototype.hasOwnProperty.call(obj, key) || used.has(key)) { key = `${key}_`; }
+                used.add(key);
+                obj[key] = v;
+              });
+              return obj;
+            }
+            if (!lv || typeof lv !== 'object') return { $meta: { extensible: true } };
+            if (!lv.$meta) { try { lv.$meta = { extensible: true }; } catch (_) { } }
+            return lv;
+          };
+
+          window.GuixuMvuIO.scheduleStatUpdate((stat) => {
+            const dict = ensureObjectDict(stat[listKey]);
+            stat[listKey] = dict;
+
+            // 避免重复：按 id/name 去重
             const id = window.GuixuHelpers.SafeGetValue(item, 'id', null);
             const name = window.GuixuHelpers.SafeGetValue(item, 'name', null);
             const keys = Object.keys(dict).filter(k => k !== '$meta');
             const hasSame = keys.some(k => {
               let v = dict[k];
-              if (typeof v === 'string') { try { v = JSON.parse(v); } catch (_) {} }
+              if (typeof v === 'string') { try { v = JSON.parse(v); } catch (_) { } }
               return v && typeof v === 'object' && ((id && v.id === id) || v.name === name);
             });
             if (!hasSame) {
@@ -1202,89 +1385,24 @@
               while (Object.prototype.hasOwnProperty.call(dict, keyName)) { keyName = `${keyName}_`; }
               dict[keyName] = item;
             }
-          }
-        }, { reason: 'equip:unequip' });
-      } catch (e) {
-        console.warn('[归墟] applyUnequipTransaction 失败:', e);
-      }
-    },
+          }, { reason: 'equip:add-back' });
+        } catch (e) {
+          console.warn('[归墟] addItemBackToInventory 失败:', e);
+        }
+      },
 
-    // 新增：仅将物品回退到背包（不清空槽位；用于撤销换装时，避免新物品“消失”）——通过 MvuIO 合并写入
-    async addItemBackToInventory(slotKey, item) {
-      try {
-        if (!item || typeof item !== 'object') return;
-        if (!window.GuixuMvuIO?.scheduleStatUpdate) return;
-
-        const fallbackMap = {
-          wuqi: '武器列表',
-          fangju: '防具列表',
-          shipin: '饰品列表',
-          fabao1: '法宝列表',
-          zhuxiuGongfa: '功法列表',
-          fuxiuXinfa: '功法列表',
+      getMvuKeyForSlotKey(slotKey, stat_data) {
+        const map = {
+          wuqi: '武器',
+          zhuxiuGongfa: '主修功法',
+          fuxiuXinfa: '辅修心法',
+          fangju: '防具',
+          shipin: '饰品',
+          fabao1: '法宝',
         };
-        let listKey = this._getInventoryListKey(item, null) || fallbackMap[slotKey] || null;
-        if (!listKey) return;
+        return map[slotKey] || null;
+      },
+    };
 
-        const ensureObjectDict = (lv) => {
-          if (Array.isArray(lv)) {
-            const arr = lv[0] || [];
-            const obj = { $meta: { extensible: true } };
-            const used = new Set();
-            arr.forEach((i, idx) => {
-              let v = i;
-              if (typeof v === 'string') { try { v = JSON.parse(v); } catch (_) {} }
-              if (!v || typeof v !== 'object') return;
-              const name = window.GuixuHelpers.SafeGetValue(v, 'name', null);
-              const id = window.GuixuHelpers.SafeGetValue(v, 'id', null);
-              let key = (name && name !== 'N/A') ? String(name) : (id != null ? String(id) : `条目${idx+1}`);
-              while (Object.prototype.hasOwnProperty.call(obj, key) || used.has(key)) { key = `${key}_`; }
-              used.add(key);
-              obj[key] = v;
-            });
-            return obj;
-          }
-          if (!lv || typeof lv !== 'object') return { $meta: { extensible: true } };
-          if (!lv.$meta) { try { lv.$meta = { extensible: true }; } catch (_) {} }
-          return lv;
-        };
-
-        window.GuixuMvuIO.scheduleStatUpdate((stat) => {
-          const dict = ensureObjectDict(stat[listKey]);
-          stat[listKey] = dict;
-
-          // 避免重复：按 id/name 去重
-          const id = window.GuixuHelpers.SafeGetValue(item, 'id', null);
-          const name = window.GuixuHelpers.SafeGetValue(item, 'name', null);
-          const keys = Object.keys(dict).filter(k => k !== '$meta');
-          const hasSame = keys.some(k => {
-            let v = dict[k];
-            if (typeof v === 'string') { try { v = JSON.parse(v); } catch (_) {} }
-            return v && typeof v === 'object' && ((id && v.id === id) || v.name === name);
-          });
-          if (!hasSame) {
-            let keyName = (name && name !== 'N/A') ? String(name) : (id != null ? String(id) : '物品');
-            while (Object.prototype.hasOwnProperty.call(dict, keyName)) { keyName = `${keyName}_`; }
-            dict[keyName] = item;
-          }
-        }, { reason: 'equip:add-back' });
-      } catch (e) {
-        console.warn('[归墟] addItemBackToInventory 失败:', e);
-      }
-    },
-
-    getMvuKeyForSlotKey(slotKey, stat_data) {
-      const map = {
-        wuqi: '武器',
-        zhuxiuGongfa: '主修功法',
-        fuxiuXinfa: '辅修心法',
-        fangju: '防具',
-        shipin: '饰品',
-        fabao1: '法宝',
-      };
-      return map[slotKey] || null;
-    },
-  };
-
-  window.InventoryComponent = InventoryComponent;
-})(window);
+    window.InventoryComponent = InventoryComponent;
+  })(window);

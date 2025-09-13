@@ -35,6 +35,12 @@
           case 'use':
             actionText = `[使用] ${cmd.itemName} x ${cmd.quantity}`;
             break;
+          case 'use_stones': {
+            // 新增：灵石修炼指令展示（基础单位：下品灵石）
+            const amount = Number(cmd.amount || 0);
+            actionText = `[修炼] 使用 下品灵石 x ${amount}`;
+            break;
+          }
           case 'discard':
             if (cmd.quantity && cmd.quantity > 1) {
               actionText = `[丢弃] ${cmd.itemName} x ${cmd.quantity}`;
