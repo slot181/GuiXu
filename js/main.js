@@ -2384,7 +2384,7 @@ if (!document.getElementById('guixu-gate-style')) {
           }
           // 新增：检测主要标签的缺失或未闭合并提示（移动端/桌面端、全屏/非全屏通用）
           try {
-            const requiredTags = ['thinking', 'gametxt', 'action', '本世历程', 'UpdateVariable', 'Analysis'];
+            const requiredTags = ['thinking', 'gametxt', 'action', '本世历程', 'UpdateVariable'];
             const res = window.GuixuHelpers?.validateTagClosures?.(contentToParse, requiredTags) || null;
             if (res && (Array.isArray(res.missing) && res.missing.length || Array.isArray(res.unclosed) && res.unclosed.length)) {
               const parts = [];
@@ -2720,8 +2720,15 @@ if (!document.getElementById('guixu-gate-style')) {
 
         // 背景图
         const bg = (prefs.backgroundUrl || '').trim();
+        // 新增：当未选择任何背景时，使用全局常量中的默认网络背景地址作为兜底
+        const defaultBg = String(window.GuixuConstants?.BACKGROUND?.DEFAULT_URL || '').trim();
         if (!bg) {
-          container.style.backgroundImage = '';
+          // 仅在用户未设置背景时使用默认网络背景；保持对 lorebook 的优先级与安全限制不变
+          if (defaultBg) {
+            container.style.backgroundImage = `url("${defaultBg}")`;
+          } else {
+            container.style.backgroundImage = '';
+          }
         } else if (bg.startsWith('lorebook://')) {
           // 异步从世界书加载资源
           const entryComment = bg.slice('lorebook://'.length);

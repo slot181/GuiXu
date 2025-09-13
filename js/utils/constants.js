@@ -39,10 +39,12 @@
       JOURNEY: ['序号', '日期', '标题', '地点', '人物', '描述', '人物关系', '标签', '重要信息', '暗线与伏笔', '自动化系统'],
       PAST_LIVES: ['第x世', '事件脉络', '本世概述', '本世成就', '本世获得物品', '本世人物关系网', '死亡原因', '本世总结', '本世评价'],
     },
-    // 前缀调整：新前缀采用【背景图片】，并保留旧版前缀兼容列表
+    // 前缀调整：新前缀采用【背景图片】，并保留旧版前缀兼容列表；新增 DEFAULT_URL 作为兜底网络背景
     BACKGROUND: {
       PREFIX: '【背景图片】',
-      LEGACY_PREFIXES: ['归墟背景/']
+      LEGACY_PREFIXES: ['归墟背景/'],
+      // 当用户未在设置中心选择任何背景时，作为默认加载的网络背景地址（嵌入式也可用）
+      DEFAULT_URL: 'https://cdn.jsdelivr.net/gh/slot181/GuiXu/assets/image/background/background.png'
     },
   };
 
